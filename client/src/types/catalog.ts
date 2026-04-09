@@ -68,6 +68,7 @@ export type ScentMood =
   | 'golden-heritage'
 
 export type ProductSummary = {
+  apiId: string
   id: string
   name: string
   collection: CollectionId

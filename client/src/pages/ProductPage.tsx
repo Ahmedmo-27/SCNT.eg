@@ -88,7 +88,7 @@ export function ProductPage() {
   function handleAddToCart() {
     if (!product) return
     addItem({
-      productId: product.id,
+      productId: product.apiId,
       name: product.name,
       price: product.price,
       quantity: 1,

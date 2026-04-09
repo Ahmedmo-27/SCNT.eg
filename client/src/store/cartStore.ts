@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { getStoredAuthToken } from '../lib/authStorage'
+import { addToServerCart, clearServerCart } from '../services/cartApi'
 
 export type CartLine = {
   productId: string
@@ -16,7 +18,7 @@ type CartState = {
 
 export const useCartStore = create<CartState>((set) => ({
   items: [],
-  addItem: (line) =>
+  addItem: (line) => {
     set((s) => {
       const existing = s.items.find((i) => i.productId === line.productId)
       if (existing) {
@@ -29,6 +31,20 @@ export const useCartStore = create<CartState>((set) => ({
         }
       }
       return { items: [...s.items, line] }
-    }),
-  clear: () => set({ items: [] }),
+    })
+
+    if (getStoredAuthToken()) {
+      void addToServerCart(line.productId, line.quantity).catch(() => {
+        /* keep optimistic local cart even if sync fails */
+      })
+    }
+  },
+  clear: () => {
+    set({ items: [] })
+    if (getStoredAuthToken()) {
+      void clearServerCart().catch(() => {
+        /* keep local clear even if sync fails */
+      })
+    }
+  },
 }))

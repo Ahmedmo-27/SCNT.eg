@@ -80,7 +80,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
 
   function handleAddToCart() {
     addItem({
-      productId: product.id,
+      productId: product.apiId,
       name: product.name,
       price: product.price,
       quantity: 1,

@@ -69,6 +69,7 @@ export function mapApiProductToSummary(p: ApiProduct): ProductSummary {
   const lifestyleLine = parts[1] ?? vibeSentence
 
   return {
+    apiId: p._id,
     id: p.slug,
     name: p.name,
     collection: cid,
