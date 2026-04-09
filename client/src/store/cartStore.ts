@@ -5,6 +5,7 @@ import {
   applyPromoCode,
   clearServerCart,
   removePromoCode,
+  removeFromServerCart,
   type CartPromo,
   type ServerCart,
 } from '../services/cartApi'
@@ -29,6 +30,7 @@ type CartState = {
   }) => void
   applyPromo: (code: string) => Promise<void>
   removePromo: () => Promise<void>
+  removeItem: (productId: string) => Promise<void>
   clear: () => void
 }
 
@@ -75,6 +77,27 @@ export const useCartStore = create<CartState>((set) => ({
     }
     const cart = await removePromoCode()
     set({ promo: cart.appliedPromo, summary: cart.summary })
+  },
+  removeItem: async (productId) => {
+    if (!getStoredAuthToken()) {
+      set((s) => ({
+        items: s.items.filter((i) => i.productId !== productId),
+        summary: null,
+      }))
+      return
+    }
+
+    const cart = await removeFromServerCart(productId)
+    const mapped =
+      cart.lines?.map((line) => ({
+        productId: line.productId,
+        name: line.name,
+        price: Number(line.unitPrice || 0),
+        quantity: Number(line.quantity || 0),
+        image: line.image || '',
+      })) ?? []
+
+    set({ items: mapped, promo: cart.appliedPromo, summary: cart.summary ?? null })
   },
   clear: () => {
     set({ items: [], promo: null, summary: null })

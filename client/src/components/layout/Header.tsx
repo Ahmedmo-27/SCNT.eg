@@ -7,6 +7,7 @@ import { sortCollectionsForDisplay } from '../../lib/catalogDisplayOrder'
 import { fetchProductsByQuery } from '../../services/productSearch'
 import type { ApiProduct } from '../../types/catalog'
 import { useWishlistStore } from '../../store/wishlistStore'
+import { useCartStore } from '../../store/cartStore'
 
 const LANG_KEY = 'scnt-lang'
 const MEGA_LEAVE_MS = 28
@@ -89,6 +90,7 @@ const navText = 'text-scnt-text/90 hover:text-scnt-text'
 export function Header() {
   const { collections, previewImageByCollectionId } = useCatalog()
   const wishlistCount = useWishlistStore((s) => s.items.length)
+  const cartCount = useCartStore((s) => s.items.length)
   const navCollections = useMemo(() => sortCollectionsForDisplay(collections), [collections])
   const location = useLocation()
   const navigate = useNavigate()
@@ -346,8 +348,13 @@ export function Header() {
                 </span>
               ) : null}
             </Link>
-            <Link to="/cart" className={iconBtnClass} aria-label="Cart">
+            <Link to="/cart" className={`${iconBtnClass} relative`} aria-label="Cart">
               <IconCart className="h-5 w-5" />
+              {cartCount > 0 ? (
+                <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-scnt-text px-1 text-[0.6rem] leading-4 text-scnt-bg">
+                  {cartCount}
+                </span>
+              ) : null}
             </Link>
           </div>
         </div>

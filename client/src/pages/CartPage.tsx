@@ -22,6 +22,7 @@ export function CartPage() {
   const hydrateFromServer = useCartStore((s) => s.hydrateFromServer)
   const applyPromo = useCartStore((s) => s.applyPromo)
   const removePromo = useCartStore((s) => s.removePromo)
+  const removeItem = useCartStore((s) => s.removeItem)
   const clear = useCartStore((s) => s.clear)
   const [promoInput, setPromoInput] = useState('')
   const [promoError, setPromoError] = useState<string | null>(null)
@@ -84,6 +85,7 @@ export function CartPage() {
     return Math.min(subtotal, Math.max(0, promo.discountValue))
   }, [promo, subtotal, summary])
   const shipping = items.length > 0 ? 80 : 0
+  const discountPerProduct = items.length > 0 ? discount / items.length : 0
   const total =
     summary && Math.abs(Number(summary.subtotal || 0) - subtotal) < 0.001
       ? Math.max(0, Number(summary.total || 0))
@@ -180,14 +182,45 @@ export function CartPage() {
                           <p className="truncate text-sm font-medium text-scnt-text sm:text-base">
                             {i.name}
                           </p>
-                          <p className="mt-1 text-xs text-scnt-text-muted">
-                            {formatEgp(i.price)} each
-                          </p>
+                          {discount > 0 ? (
+                            <div className="mt-1 text-xs">
+                              <p className="text-scnt-text-muted line-through">{formatEgp(i.price)} each</p>
+                              <p className="font-medium text-green-700">
+                                {formatEgp(Math.max(0, i.price - discountPerProduct))} each
+                              </p>
+                            </div>
+                          ) : (
+                            <p className="mt-1 text-xs text-scnt-text-muted">{formatEgp(i.price)} each</p>
+                          )}
                         </div>
                       </div>
-                      <p className="text-sm font-medium text-scnt-text sm:text-base">
-                        {formatEgp(i.price * i.quantity)}
-                      </p>
+                      <div className="flex items-start gap-3">
+                        <div className="text-right">
+                          {discount > 0 ? (
+                            <>
+                              <p className="text-xs text-scnt-text-muted line-through">
+                                {formatEgp(i.price * i.quantity)}
+                              </p>
+                              <p className="text-sm font-medium text-green-700 sm:text-base">
+                                {formatEgp(Math.max(0, i.price - discountPerProduct) * i.quantity)}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-sm font-medium text-scnt-text sm:text-base">
+                              {formatEgp(i.price * i.quantity)}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void removeItem(i.productId)}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-scnt-border/80 text-scnt-text-muted transition hover:border-scnt-text/40 hover:text-scnt-text"
+                          aria-label={`Remove ${i.name} from cart`}
+                          title="Remove item"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
 
                     <div className="mt-4 flex items-center justify-between border-t border-scnt-border/70 pt-3">
