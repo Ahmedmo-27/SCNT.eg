@@ -61,9 +61,37 @@ function lineProductName(line: OrderLine): string {
   return 'Item'
 }
 
+function lineProductImage(line: OrderLine): string | null {
+  const p = line.product
+  if (
+    p &&
+    typeof p === 'object' &&
+    'images' in p &&
+    Array.isArray(p.images) &&
+    typeof p.images[0] === 'string' &&
+    p.images[0].trim()
+  ) {
+    return p.images[0]
+  }
+  return null
+}
+
 function orderItemsSummary(order: UserOrder): string {
   if (!order.items?.length) return 'No line items'
   return order.items.map((line) => `${lineProductName(line)} ×${line.quantity}`).join(', ')
+}
+
+function orderAddressSummary(order: UserOrder): string | null {
+  if (!order.address) return null
+  const parts = [
+    order.address.fullName,
+    order.address.phone,
+    order.address.addressLine1,
+    order.address.city,
+    order.address.addressLine2,
+    order.address.postalCode,
+  ].filter((p): p is string => Boolean(p && String(p).trim()))
+  return parts.length > 0 ? parts.join(', ') : null
 }
 
 function orderStatusLabel(status: UserOrder['status']): string {
@@ -110,6 +138,7 @@ export function ProfilePage() {
 
   const [orders, setOrders] = useState<UserOrder[]>([])
   const [ordersStatus, setOrdersStatus] = useState<'loading' | 'error' | 'ready'>('loading')
+  const [expandedOrderIds, setExpandedOrderIds] = useState<string[]>([])
 
   const cityOptions = useMemo(() => getCitiesForGovernorate(draftGovernorate), [draftGovernorate])
 
@@ -182,6 +211,10 @@ export function ProfilePage() {
     if (profile) syncDraftFromProfile(profile)
     setSaveError(null)
     setEditing(false)
+  }
+
+  const toggleOrderDetails = (orderId: string) => {
+    setExpandedOrderIds((prev) => (prev.includes(orderId) ? prev.filter((id) => id !== orderId) : [...prev, orderId]))
   }
 
   const handleSave = async (e: FormEvent) => {
@@ -463,7 +496,51 @@ export function ProfilePage() {
                       </span>
                     </div>
                     <p className="mt-2 text-sm text-scnt-text-muted">{orderItemsSummary(order)}</p>
-                    <p className="mt-2 text-sm font-medium text-scnt-text">{formatEgp(order.total)}</p>
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-sm font-medium text-scnt-text">{formatEgp(order.total)}</p>
+                      <button
+                        type="button"
+                        onClick={() => toggleOrderDetails(order._id)}
+                        className="rounded-full border border-scnt-border/80 px-3 py-1.5 text-xs uppercase tracking-[0.12em] text-scnt-text transition-colors hover:bg-scnt-bg-muted/60"
+                        aria-expanded={expandedOrderIds.includes(order._id)}
+                      >
+                        {expandedOrderIds.includes(order._id) ? 'Hide details' : 'View details'}
+                      </button>
+                    </div>
+                    {expandedOrderIds.includes(order._id) ? (
+                      <div className="mt-3 rounded-lg border border-scnt-border/60 bg-scnt-bg-muted/25 p-3">
+                        <ul className="space-y-2">
+                          {order.items.map((line, idx) => (
+                            <li
+                              key={`${order._id}-${typeof line.product === 'string' ? line.product : idx}-${idx}`}
+                              className="flex items-center justify-between gap-3 text-sm"
+                            >
+                              <div className="flex min-w-0 items-center gap-3">
+                                {lineProductImage(line) ? (
+                                  <img
+                                    src={lineProductImage(line) ?? ''}
+                                    alt={lineProductName(line)}
+                                    className="h-12 w-12 shrink-0 rounded-md border border-scnt-border/70 object-cover"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <div className="h-12 w-12 shrink-0 rounded-md border border-scnt-border/70 bg-scnt-bg-muted/40" />
+                                )}
+                                <span className="truncate text-scnt-text-muted">
+                                  {lineProductName(line)} ×{line.quantity}
+                                </span>
+                              </div>
+                              <span className="font-medium text-scnt-text">{formatEgp(line.price * line.quantity)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {orderAddressSummary(order) ? (
+                          <p className="mt-3 border-t border-scnt-border/50 pt-3 text-sm text-scnt-text-muted">
+                            <span className="text-scnt-text">Delivery:</span> {orderAddressSummary(order)}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </li>
                 ))}
               </ul>

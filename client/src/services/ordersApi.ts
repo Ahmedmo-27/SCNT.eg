@@ -6,6 +6,7 @@ export type OrderLineProduct = {
   _id: string
   name: string
   slug?: string
+  images?: string[]
 }
 
 export type OrderLine = {
@@ -20,6 +21,14 @@ export type UserOrder = {
   status: OrderStatus
   createdAt: string
   items: OrderLine[]
+  address?: {
+    fullName: string
+    phone: string
+    city: string
+    addressLine1: string
+    addressLine2?: string
+    postalCode: string
+  }
 }
 
 export type CreateOrderAddress = {

@@ -25,6 +25,10 @@ const orderSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     items: { type: [orderItemSchema], required: true },
+    subtotal: { type: Number, required: true, min: 0, default: 0 },
+    shipping: { type: Number, required: true, min: 0, default: 0 },
+    discount: { type: Number, required: true, min: 0, default: 0 },
+    promoCode: { type: String, default: "" },
     total: { type: Number, required: true, min: 0 },
     status: {
       type: String,
