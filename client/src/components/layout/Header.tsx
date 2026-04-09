@@ -328,13 +328,17 @@ export function Header() {
             </Link>
             <button
               type="button"
-              className={iconBtnClass}
+              className={`${iconBtnClass} !hidden lg:!inline-flex`}
               aria-label="Profile"
               onClick={() => navigate(getStoredAuthToken() ? '/profile' : '/login')}
             >
               <IconUser className="h-5 w-5" />
             </button>
-            <Link to="/wishlist" className={`${iconBtnClass} relative`} aria-label="Wishlist">
+            <Link
+              to="/wishlist"
+              className={`${iconBtnClass} !hidden lg:!inline-flex relative`}
+              aria-label="Wishlist"
+            >
               <IconHeart className="h-5 w-5" />
               {wishlistCount > 0 ? (
                 <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-scnt-text px-1 text-[0.6rem] leading-4 text-scnt-bg">
@@ -342,7 +346,7 @@ export function Header() {
                 </span>
               ) : null}
             </Link>
-            <Link to="/cart" className={`${iconBtnClass} !hidden lg:!inline-flex`} aria-label="Cart">
+            <Link to="/cart" className={iconBtnClass} aria-label="Cart">
               <IconCart className="h-5 w-5" />
             </Link>
           </div>
@@ -637,6 +641,12 @@ export function Header() {
             </Link>
             <Link to="/cart" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               Cart
+            </Link>
+            <Link
+              to={getStoredAuthToken() ? "/profile" : "/login"}
+              className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30"
+            >
+              Profile
             </Link>
             <Link to="/wishlist" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               Wishlist
