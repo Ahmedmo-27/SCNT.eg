@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import type { ProductSummary } from '../../data/products'
 import { getCollectionById } from '../../data/collections'
+import { productImageFrameFull, productImageFrameTop } from './productImageFrame'
 import { EightPointStar } from '../ui/EightPointStar'
 
 function formatEgp(n: number): string {
@@ -63,11 +64,11 @@ export function ProductRecommendations({
             >
               <Link
                 to={`/product/${p.id}`}
-                className="group block overflow-hidden rounded-2xl bg-scnt-bg-elevated/50 ring-1 ring-scnt-border/90 transition-[transform,box-shadow] duration-[750ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:shadow-[0_28px_70px_-38px_rgba(42,38,34,0.16)]"
+                className={`group block overflow-hidden bg-scnt-bg-elevated/50 ring-1 ring-scnt-border/90 transition-[transform,box-shadow] duration-[750ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:shadow-[0_28px_70px_-38px_rgba(42,38,34,0.16)] ${productImageFrameFull}`}
                 style={{ boxShadow: `0 14px 40px -28px ${accent}18` }}
               >
                 <div
-                  className="relative aspect-scnt-product w-full overflow-hidden"
+                  className={`relative aspect-scnt-product w-full overflow-hidden ${productImageFrameTop}`}
                   style={{
                     background: `linear-gradient(145deg, ${g0}, ${g1})`,
                   }}
@@ -86,13 +87,17 @@ export function ProductRecommendations({
                     }}
                     aria-hidden
                   />
-                  <img
-                    src={bottleFront}
-                    alt=""
-                    className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-contain p-1 sm:p-1.5"
-                    loading="lazy"
-                    decoding="async"
-                  />
+                  <div
+                    className={`pointer-events-none absolute inset-0 z-[1] overflow-hidden ${productImageFrameTop}`}
+                  >
+                    <img
+                      src={bottleFront}
+                      alt=""
+                      className="block h-full w-full object-contain object-center"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-1.5 px-5 py-5">
                   <p className="text-[0.65rem] uppercase tracking-[0.22em] text-scnt-text-muted">

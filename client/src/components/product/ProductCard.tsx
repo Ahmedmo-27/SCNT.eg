@@ -5,6 +5,7 @@ import { getCollectionById } from '../../data/collections'
 import { getCollectionVivid } from '../../data/collectionThemes'
 import { hexToRgba, tintedBeigeGlass } from '../../lib/colorUtils'
 import type { ProductSummary } from '../../data/products'
+import { productImageFrameFull, productImageFrameTop } from './productImageFrame'
 import { EightPointStar } from '../ui/EightPointStar'
 
 type ProductCardProps = {
@@ -41,14 +42,14 @@ export function ProductCard({ product, entrance = true }: ProductCardProps) {
     >
       <Link
         to={`/product/${product.id}`}
-        className="group/card relative block overflow-hidden rounded-2xl border border-[rgba(42,38,34,0.1)] backdrop-blur-md transition-[box-shadow] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:shadow-[0_32px_80px_-36px_rgba(42,38,34,0.18)]"
+        className={`group/card relative block overflow-hidden border border-[rgba(42,38,34,0.1)] backdrop-blur-md transition-[box-shadow] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:shadow-[0_32px_80px_-36px_rgba(42,38,34,0.18)] ${productImageFrameFull}`}
         style={{
           background: tintedBeigeGlass(accent),
           boxShadow: `0 18px 50px -32px ${accent}14`,
         }}
       >
         <div
-          className="relative aspect-scnt-product w-full overflow-hidden"
+          className={`relative aspect-scnt-product w-full overflow-hidden ${productImageFrameTop}`}
           style={{
             background: `linear-gradient(145deg, ${g0}, ${g1})`,
           }}
@@ -80,13 +81,17 @@ export function ProductCard({ product, entrance = true }: ProductCardProps) {
             style={{ background: sweepBg }}
             aria-hidden
           />
-          <img
-            src={bottleFront}
-            alt=""
-            className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-contain p-1 sm:p-1.5"
-            loading="lazy"
-            decoding="async"
-          />
+          <div
+            className={`pointer-events-none absolute inset-0 z-[1] overflow-hidden ${productImageFrameTop}`}
+          >
+            <img
+              src={bottleFront}
+              alt=""
+              className="block h-full w-full object-contain object-center"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
           <div className="absolute right-4 top-4 z-[4] text-scnt-bg/90 opacity-0 transition-all duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:translate-y-0 group-hover:opacity-100 sm:translate-y-1">
             <motion.span
               initial={false}

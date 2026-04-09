@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { productImageFrameFull } from './productImageFrame'
 
 const SLIDE_LABELS = ['Bottle front', 'Bottle back', 'Box'] as const
 
@@ -97,7 +98,7 @@ export function ProductImageCarousel({
       aria-label={`${productName} photos`}
     >
       <div
-        className="relative aspect-scnt-product w-full overflow-hidden rounded-2xl ring-1 ring-scnt-border/90 outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/20 sm:rounded-[1.35rem] lg:rounded-3xl"
+        className={`relative aspect-scnt-product w-full overflow-hidden ring-1 ring-scnt-border/90 outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/20 ${productImageFrameFull}`}
         style={{
           background: `linear-gradient(145deg, ${g0}, ${g1})`,
           boxShadow: `0 32px 90px -48px ${accent}55, inset 0 0 0 1px rgba(255,255,255,0.12)`,
@@ -115,7 +116,7 @@ export function ProductImageCarousel({
         }}
       >
         <div
-          className="pointer-events-none absolute inset-0 z-0 opacity-55"
+          className={`pointer-events-none absolute inset-0 z-0 opacity-55 ${productImageFrameFull}`}
           style={{
             background: `radial-gradient(ellipse 90% 75% at 50% 38%, rgba(255,255,255,0.32), transparent 52%), linear-gradient(210deg, rgba(255,255,255,0.18) 0%, transparent 48%, rgba(42,38,34,0.06) 100%)`,
           }}
@@ -123,20 +124,24 @@ export function ProductImageCarousel({
         />
 
         <AnimatePresence initial={false} custom={direction}>
-          <motion.img
+          <motion.div
             key={`${productId}-${index}`}
-            src={images[index]}
-            alt={`${productName} — ${SLIDE_LABELS[index]}`}
             custom={direction}
             variants={slideVariants}
             initial="enter"
             animate="center"
             exit="exit"
             transition={{ duration: 0.4, ease: easeScnt }}
-            className="absolute inset-0 z-[1] h-full w-full object-contain p-0 sm:p-0.5"
-            decoding={index === 0 ? 'sync' : 'async'}
-            draggable={false}
-          />
+            className={`absolute inset-0 z-[1] overflow-hidden ${productImageFrameFull}`}
+          >
+            <img
+              src={images[index]}
+              alt={`${productName} — ${SLIDE_LABELS[index]}`}
+              className="block h-full w-full object-contain object-center"
+              decoding={index === 0 ? 'sync' : 'async'}
+              draggable={false}
+            />
+          </motion.div>
         </AnimatePresence>
 
         <div className="pointer-events-none absolute inset-x-0 top-1/2 z-[2] flex -translate-y-1/2 justify-between px-0.5 sm:px-2 lg:px-3">
