@@ -137,3 +137,47 @@ export async function apiPatchDataAuthed<T>(path: string, body: unknown): Promis
   if (!envelope.success) throw new Error(envelope.message)
   return envelope.data
 }
+
+/** PUT with Bearer token; clears stored token on 401. */
+export async function apiPutDataAuthed<T>(path: string, body: unknown): Promise<T> {
+  const token = getStoredAuthToken()
+  if (!token) throw new Error('Not signed in')
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  })
+  const parsed = await parseBody(res)
+  if (res.status === 401) clearStoredAuthToken()
+  if (!res.ok) throw new Error(errorMessageFromBody(parsed, res.statusText))
+  const envelope = parsed as ApiEnvelope<T>
+  if (!envelope || typeof envelope !== 'object' || !('success' in envelope)) {
+    throw new Error('Invalid API response')
+  }
+  if (!envelope.success) throw new Error(envelope.message)
+  return envelope.data
+}
+
+/** DELETE with Bearer token; clears stored token on 401. */
+export async function apiDeleteDataAuthed<T>(path: string): Promise<T> {
+  const token = getStoredAuthToken()
+  if (!token) throw new Error('Not signed in')
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  const parsed = await parseBody(res)
+  if (res.status === 401) clearStoredAuthToken()
+  if (!res.ok) throw new Error(errorMessageFromBody(parsed, res.statusText))
+  const envelope = parsed as ApiEnvelope<T>
+  if (!envelope || typeof envelope !== 'object' || !('success' in envelope)) {
+    throw new Error('Invalid API response')
+  }
+  if (!envelope.success) throw new Error(envelope.message)
+  return envelope.data
+}

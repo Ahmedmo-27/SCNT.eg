@@ -442,6 +442,14 @@ export function ProfilePage() {
                 >
                   Edit profile
                 </button>
+                {profile.role === 'admin' ? (
+                  <Link
+                    to="/admin"
+                    className="mt-3 block w-full rounded-full border border-scnt-text/70 px-4 py-2.5 text-center text-xs uppercase tracking-[0.14em] text-scnt-text transition-colors hover:bg-scnt-bg-muted/60"
+                  >
+                    Open admin panel
+                  </Link>
+                ) : null}
               </>
             ) : null}
           </Card>

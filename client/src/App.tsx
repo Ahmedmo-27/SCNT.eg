@@ -15,6 +15,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { ShopAllPage } from './pages/ShopAllPage'
 import { FindYourScntPage } from './pages/FindYourScntPage'
 import { WishlistPage } from './pages/WishlistPage'
+import { AdminPage } from './pages/AdminPage'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </BrowserRouter>
   )
