@@ -98,6 +98,8 @@ function orderStatusLabel(status: UserOrder['status']): string {
   switch (status) {
     case 'PENDING':
       return 'Pending'
+    case 'CONFIRMED':
+      return 'Confirmed'
     case 'PAID':
       return 'Paid'
     case 'SHIPPED':
@@ -111,6 +113,8 @@ function orderStatusClass(status: UserOrder['status']): string {
   switch (status) {
     case 'PENDING':
       return 'bg-scnt-bg-muted/75 text-scnt-text ring-1 ring-scnt-border/90'
+    case 'CONFIRMED':
+      return 'bg-scnt-bg-muted/70 text-scnt-text ring-1 ring-scnt-text/10'
     case 'PAID':
       return 'bg-scnt-bg-muted/60 text-scnt-text'
     case 'SHIPPED':

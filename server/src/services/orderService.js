@@ -129,7 +129,7 @@ const getOrderById = async (id, currentUser) => {
 const getAllOrders = () => orderRepository.findAll();
 
 const updateOrderStatus = async (id, status) => {
-  const allowed = ["PENDING", "PAID", "SHIPPED"];
+  const allowed = ["PENDING", "CONFIRMED", "PAID", "SHIPPED"];
   if (!allowed.includes(status)) {
     throw new ApiError(400, "Invalid status");
   }

@@ -1,6 +1,6 @@
 import { apiGetDataAuthed, apiPostDataAuthed } from './api'
 
-export type OrderStatus = 'PENDING' | 'PAID' | 'SHIPPED'
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PAID' | 'SHIPPED'
 
 export type OrderLineProduct = {
   _id: string

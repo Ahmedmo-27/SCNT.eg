@@ -543,6 +543,7 @@ export function AdminPage() {
                   </div>
                   <select className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" value={item.status} onChange={(e) => void changeOrderStatus(item._id, e.target.value as AdminOrder['status'])} disabled={busy}>
                     <option value="PENDING">PENDING</option>
+                    <option value="CONFIRMED">CONFIRMED</option>
                     <option value="PAID">PAID</option>
                     <option value="SHIPPED">SHIPPED</option>
                   </select>

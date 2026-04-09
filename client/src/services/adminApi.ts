@@ -20,7 +20,7 @@ export type AdminUser = {
 export type AdminOrder = {
   _id: string
   total: number
-  status: 'PENDING' | 'PAID' | 'SHIPPED'
+  status: 'PENDING' | 'CONFIRMED' | 'PAID' | 'SHIPPED'
   promoCode?: string
   createdAt: string
   user?: { _id: string; full_name?: string; email?: string }
