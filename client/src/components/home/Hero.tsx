@@ -96,11 +96,11 @@ export function Hero() {
         >
           <Button to="/collections">Explore collections</Button>
           <Link
-            to={{ pathname: '/', hash: 'find-your-scent' }}
+            to={{ pathname: '/', hash: 'find-your-scnt' }}
             className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full border border-scnt-border bg-scnt-bg-elevated/50 px-8 py-3 text-sm font-medium tracking-wide text-scnt-text transition-colors duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-scnt-bg-elevated"
           >
             <span className="pointer-events-none absolute inset-0 translate-x-[-120%] bg-gradient-to-r from-transparent via-white/14 to-transparent opacity-0 transition-[transform,opacity] duration-[950ms] ease-out group-hover:translate-x-[120%] group-hover:opacity-100" aria-hidden />
-            <span className="relative z-[1]">Find your scent</span>
+            <span className="relative z-[1]">Find your SCNT</span>
           </Link>
         </motion.div>
       </div>
