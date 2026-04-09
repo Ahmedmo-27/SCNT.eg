@@ -34,13 +34,21 @@ export function CartPage() {
               {items.map((i) => (
                 <li
                   key={i.productId}
-                  className="flex items-baseline justify-between gap-4 text-sm"
+                  className="flex items-center justify-between gap-4 text-sm"
                 >
-                  <div>
-                    <p className="font-medium text-scnt-text">{i.name}</p>
-                    <p className="text-scnt-text-muted">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={i.image}
+                      alt={i.name}
+                      className="h-14 w-14 rounded-lg object-cover ring-1 ring-scnt-border"
+                      loading="lazy"
+                    />
+                    <div>
+                      <p className="font-medium text-scnt-text">{i.name}</p>
+                      <p className="text-scnt-text-muted">
                       × {i.quantity}
-                    </p>
+                      </p>
+                    </div>
                   </div>
                   <p className="text-scnt-text">
                     {formatEgp(i.price * i.quantity)}

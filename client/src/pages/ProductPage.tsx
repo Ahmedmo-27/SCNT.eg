@@ -56,6 +56,7 @@ export function ProductPage() {
       name: product.name,
       price: product.price,
       quantity: 1,
+      image: product.galleryImages[0],
     })
     setJustAdded(true)
   }
@@ -90,7 +91,7 @@ export function ProductPage() {
               duration: 0.65,
               ease: [0.22, 1, 0.36, 1],
             }}
-            className="relative lg:col-span-7 lg:sticky lg:top-28 xl:col-span-8"
+            className="relative lg:col-span-7 xl:col-span-8"
           >
             <motion.div
               className="pointer-events-none absolute -inset-8 -z-10 rounded-[2rem] opacity-90"
@@ -110,88 +111,92 @@ export function ProductPage() {
               }}
               aria-hidden
             />
-            <ProductImageCarousel
-              productId={product.id}
-              productName={product.name}
-              images={product.galleryImages}
-              gradient={product.placeholderGradient}
-              accent={accent}
-            />
+            <div className={`rounded-2xl bg-scnt-bg-elevated/55 p-3 ring-1 ring-scnt-border/90 backdrop-blur-md sm:p-4`}>
+              <ProductImageCarousel
+                productId={product.id}
+                productName={product.name}
+                images={product.galleryImages}
+                gradient={product.placeholderGradient}
+                accent={accent}
+              />
+
+              <div className="px-1 pb-1 pt-6 sm:px-2 sm:pt-8">
+                <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">
+                  {col?.name}
+                </p>
+                <h1 className="mt-3 font-serif text-4xl text-scnt-text sm:text-5xl">
+                  {product.name}
+                </h1>
+                <p className="mt-3 text-sm text-scnt-text-muted">
+                  <span className="uppercase tracking-[0.2em] text-scnt-text/55">
+                    Inspired by{' '}
+                  </span>
+                  {product.inspiredBy}
+                </p>
+                {col ? (
+                  <p className="mt-4 font-serif text-xl italic text-scnt-text-muted sm:text-2xl">
+                    {col.heroTagline}
+                  </p>
+                ) : null}
+                <p className="mt-4 text-base leading-relaxed text-scnt-text/90 sm:text-[1.05rem]">
+                  {product.vibeSentence}
+                </p>
+
+                <div className={`mt-8 ${cardShell}`}>
+                  <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 border-b border-scnt-border/90 pb-5">
+                    <p className="font-serif text-2xl text-scnt-text">{formatEgp(product.price)}</p>
+                    <span className="text-scnt-text/25">·</span>
+                    <p className="text-sm text-scnt-text-muted">
+                      {product.format} · {product.volume}
+                    </p>
+                  </div>
+                  <p className="mt-3 text-xs tracking-wide text-scnt-text-muted">
+                    {product.concentrationHint}
+                  </p>
+
+                  <div className="mt-8 flex flex-wrap items-center gap-4">
+                    <div className="relative">
+                      <Button type="button" onClick={handleAddToCart}>
+                        Add to cart
+                      </Button>
+                      <AnimatePresence>
+                        {justAdded ? (
+                          <motion.span
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{
+                              duration: 0.65,
+                              ease: [0.22, 1, 0.36, 1],
+                            }}
+                            className="pointer-events-none absolute -bottom-8 left-1/2 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap text-xs text-scnt-text-muted"
+                          >
+                            <motion.span
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ type: 'spring', stiffness: 380, damping: 22 }}
+                            >
+                              <EightPointStar size={10} className="opacity-60" />
+                            </motion.span>
+                            Added — yours to wear
+                          </motion.span>
+                        ) : null}
+                      </AnimatePresence>
+                    </div>
+                    <Link
+                      to="/cart"
+                      className="text-sm text-scnt-text-muted transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:text-scnt-text"
+                    >
+                      View cart
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
           </motion.div>
 
           <div className="min-w-0 lg:col-span-5 xl:col-span-4">
-            <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">
-              {col?.name}
-            </p>
-            <h1 className="mt-3 font-serif text-4xl text-scnt-text sm:text-5xl">
-              {product.name}
-            </h1>
-            <p className="mt-3 text-sm text-scnt-text-muted">
-              <span className="uppercase tracking-[0.2em] text-scnt-text/55">
-                Inspired by{' '}
-              </span>
-              {product.inspiredBy}
-            </p>
-            {col ? (
-              <p className="mt-4 font-serif text-xl italic text-scnt-text-muted sm:text-2xl">
-                {col.heroTagline}
-              </p>
-            ) : null}
-            <p className="mt-4 text-base leading-relaxed text-scnt-text/90 sm:text-[1.05rem]">
-              {product.vibeSentence}
-            </p>
-
-            <div className={`mt-8 ${cardShell}`}>
-              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 border-b border-scnt-border/90 pb-5">
-                <p className="font-serif text-2xl text-scnt-text">{formatEgp(product.price)}</p>
-                <span className="text-scnt-text/25">·</span>
-                <p className="text-sm text-scnt-text-muted">
-                  {product.format} · {product.volume}
-                </p>
-              </div>
-              <p className="mt-3 text-xs tracking-wide text-scnt-text-muted">
-                {product.concentrationHint}
-              </p>
-
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                <div className="relative">
-                  <Button type="button" onClick={handleAddToCart}>
-                    Add to cart
-                  </Button>
-                  <AnimatePresence>
-                    {justAdded ? (
-                      <motion.span
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -4 }}
-                        transition={{
-                          duration: 0.65,
-                          ease: [0.22, 1, 0.36, 1],
-                        }}
-                        className="pointer-events-none absolute -bottom-8 left-1/2 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap text-xs text-scnt-text-muted"
-                      >
-                        <motion.span
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: 'spring', stiffness: 380, damping: 22 }}
-                        >
-                          <EightPointStar size={10} className="opacity-60" />
-                        </motion.span>
-                        Added — yours to wear
-                      </motion.span>
-                    ) : null}
-                  </AnimatePresence>
-                </div>
-                <Link
-                  to="/cart"
-                  className="text-sm text-scnt-text-muted transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:text-scnt-text"
-                >
-                  View cart
-                </Link>
-              </div>
-            </div>
-
-            <div className={`mt-8 ${cardShell}`}>
+            <div className={cardShell}>
               <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">
                 Scent story
               </p>

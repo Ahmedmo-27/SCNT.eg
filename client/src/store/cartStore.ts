@@ -5,6 +5,7 @@ export type CartLine = {
   name: string
   price: number
   quantity: number
+  image: string
 }
 
 type CartState = {

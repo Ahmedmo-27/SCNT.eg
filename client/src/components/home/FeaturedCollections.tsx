@@ -38,7 +38,7 @@ export function FeaturedCollections() {
           </h2>
           <p className="mt-4 text-sm leading-relaxed text-scnt-text-muted sm:text-base">
             Not categories — people. Pick the line that sounds like you, then
-            find the bottle that fits the night.
+            find the fragrance that fits your mood.
           </p>
         </header>
 
