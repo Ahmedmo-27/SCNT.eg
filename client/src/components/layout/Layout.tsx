@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import type { CollectionId } from '../../data/collections'
+import { CollectionVisualProvider } from '../../context/CollectionVisualContext'
+import { CollectionAura } from '../atmosphere/CollectionAura'
 import { CollectionWorld } from '../atmosphere/CollectionWorld'
 import { GlobalAtmosphere } from '../atmosphere/GlobalAtmosphere'
 import { Footer } from './Footer'
@@ -13,14 +15,17 @@ type LayoutProps = {
 
 export function Layout({ children, collection }: LayoutProps) {
   return (
-    <div className="relative min-h-svh">
-      <GlobalAtmosphere />
-      {collection ? <CollectionWorld id={collection} /> : null}
-      <div className="relative z-10 flex min-h-svh flex-col">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+    <CollectionVisualProvider collectionId={collection}>
+      <div className="relative min-h-svh">
+        <GlobalAtmosphere />
+        {collection ? <CollectionWorld id={collection} /> : null}
+        {collection ? <CollectionAura id={collection} /> : null}
+        <div className="relative z-10 flex min-h-svh flex-col">
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </div>
       </div>
-    </div>
+    </CollectionVisualProvider>
   )
 }

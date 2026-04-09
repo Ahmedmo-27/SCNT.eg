@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { useCollectionVisual } from '../../context/CollectionVisualContext'
+import { hexToRgba } from '../../lib/colorUtils'
 
 const MotionLink = motion.create(Link)
 
@@ -19,7 +21,7 @@ type ButtonProps = Omit<
 }
 
 const base =
-  'group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full px-8 py-3 text-sm font-medium tracking-wide transition-colors duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)] disabled:pointer-events-none disabled:opacity-45'
+  'group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full px-8 py-3 text-sm font-medium tracking-wide transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] disabled:pointer-events-none disabled:opacity-45'
 
 const variants: Record<NonNullable<ButtonProps['variant']>, string> = {
   primary:
@@ -33,14 +35,23 @@ const variants: Record<NonNullable<ButtonProps['variant']>, string> = {
 const motionProps = {
   whileHover: { scale: 1.02 },
   whileTap: { scale: 0.98 },
-  transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const },
+  transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] as const },
+}
+
+function vividSweepCss(vivid: string): string {
+  if (vivid.startsWith('rgba') || vivid.startsWith('rgb(')) {
+    return `linear-gradient(100deg, transparent 8%, ${vivid} 50%, transparent 92%)`
+  }
+  return `linear-gradient(100deg, transparent 6%, ${hexToRgba(vivid, 0.72)} 48%, ${hexToRgba(vivid, 0.38)} 52%, transparent 94%)`
 }
 
 function LightSweep({ active }: { active: boolean }) {
+  const { vivid } = useCollectionVisual()
   if (!active) return null
   return (
     <span
-      className="pointer-events-none absolute inset-0 translate-x-[-120%] bg-gradient-to-r from-transparent via-white/14 to-transparent opacity-0 transition-[transform,opacity] duration-[950ms] ease-out group-hover:translate-x-[120%] group-hover:opacity-100"
+      className="pointer-events-none absolute inset-0 z-0 translate-x-[-130%] skew-x-[-14deg] opacity-0 transition-[transform,opacity] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:translate-x-[130%] group-hover:opacity-100"
+      style={{ background: vividSweepCss(vivid) }}
       aria-hidden
     />
   )

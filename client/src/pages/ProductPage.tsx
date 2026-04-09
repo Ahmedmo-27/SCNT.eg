@@ -113,7 +113,7 @@ export function ProductPage() {
             />
             <div className="mx-auto flex w-full max-w-md flex-col gap-3">
               <div
-                className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
+                className="relative aspect-scnt-product w-full overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
                 style={{
                   background: `linear-gradient(145deg, ${g0}, ${g1})`,
                   boxShadow: `0 32px 90px -48px ${accent}55, inset 0 0 0 1px rgba(255,255,255,0.12)`,
@@ -129,13 +129,13 @@ export function ProductPage() {
                 <img
                   src={bottleFront}
                   alt={`${product.name} — bottle front`}
-                  className="absolute inset-0 z-[1] h-full w-full object-contain p-6 sm:p-10"
+                  className="absolute inset-0 z-[1] h-full w-full object-contain p-1.5 sm:p-2"
                   decoding="async"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div
-                  className="relative aspect-[4/5] overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
+                  className="relative aspect-scnt-product overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
                   style={{
                     background: `linear-gradient(145deg, ${g0}, ${g1})`,
                     boxShadow: `0 18px 48px -36px ${accent}40`,
@@ -151,13 +151,13 @@ export function ProductPage() {
                   <img
                     src={bottleBack}
                     alt={`${product.name} — bottle back`}
-                    className="absolute inset-0 z-[1] h-full w-full object-contain p-4 sm:p-6"
+                    className="absolute inset-0 z-[1] h-full w-full object-contain p-1 sm:p-1.5"
                     loading="lazy"
                     decoding="async"
                   />
                 </div>
                 <div
-                  className="relative aspect-[4/5] overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
+                  className="relative aspect-scnt-product overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
                   style={{
                     background: `linear-gradient(145deg, ${g0}, ${g1})`,
                     boxShadow: `0 18px 48px -36px ${accent}40`,
@@ -173,7 +173,7 @@ export function ProductPage() {
                   <img
                     src={boxImage}
                     alt={`${product.name} — box`}
-                    className="absolute inset-0 z-[1] h-full w-full object-contain p-4 sm:p-6"
+                    className="absolute inset-0 z-[1] h-full w-full object-contain p-1 sm:p-1.5"
                     loading="lazy"
                     decoding="async"
                   />

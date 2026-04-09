@@ -67,7 +67,7 @@ export function ProductRecommendations({
                 style={{ boxShadow: `0 14px 40px -28px ${accent}18` }}
               >
                 <div
-                  className="relative aspect-[4/5] w-full overflow-hidden sm:aspect-[5/6]"
+                  className="relative aspect-scnt-product w-full overflow-hidden"
                   style={{
                     background: `linear-gradient(145deg, ${g0}, ${g1})`,
                   }}
@@ -89,7 +89,7 @@ export function ProductRecommendations({
                   <img
                     src={bottleFront}
                     alt=""
-                    className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-contain p-5 sm:p-6"
+                    className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-contain p-1 sm:p-1.5"
                     loading="lazy"
                     decoding="async"
                   />

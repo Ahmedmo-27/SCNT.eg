@@ -43,3 +43,10 @@
     @apply min-h-svh;
   }
 }
+
+@layer utilities {
+  /* Product mockups ship at 1182×752 — frame cards and PDP gallery to match */
+  .aspect-scnt-product {
+    aspect-ratio: 1182 / 752;
+  }
+}
