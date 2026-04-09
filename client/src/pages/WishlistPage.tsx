@@ -22,7 +22,7 @@ export function WishlistPage() {
   return (
     <Layout>
       <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8 sm:py-16">
-        <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">Your wishlist</h1>
+        <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">My wishlist</h1>
         <p className="mt-3 max-w-2xl text-sm text-scnt-text-muted sm:text-base">
           Save the fragrances you love and move them to your cart when you are ready.
         </p>
