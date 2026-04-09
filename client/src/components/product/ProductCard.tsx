@@ -62,14 +62,14 @@ export function ProductCard({ product, entrance = true }: ProductCardProps) {
             aria-hidden
           />
           <div
-            className="absolute inset-0 opacity-0 transition-opacity duration-[750ms] group-hover:opacity-100"
+            className="absolute inset-0 opacity-0 transition-opacity duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:opacity-100"
             style={{
               background: `radial-gradient(circle at 50% 115%, ${accent}40, transparent 58%)`,
             }}
             aria-hidden
           />
           <div
-            className="absolute inset-0 opacity-0 mix-blend-overlay transition-opacity duration-[750ms] group-hover:opacity-100"
+            className="absolute inset-0 opacity-0 mix-blend-overlay transition-opacity duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:opacity-100"
             style={{
               background: `radial-gradient(circle at 30% 20%, rgba(255,255,255,0.25), transparent 45%)`,
             }}

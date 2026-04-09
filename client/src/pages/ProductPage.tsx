@@ -7,6 +7,7 @@ import { getCollectionById } from '../data/collections'
 import { Button } from '../components/ui/Button'
 import { EightPointStar } from '../components/ui/EightPointStar'
 import { ScentPyramid } from '../components/product/ScentPyramid'
+import { ProductImageCarousel } from '../components/product/ProductImageCarousel'
 import { ProductRecommendations } from '../components/product/ProductRecommendations'
 import { StarDivider } from '../components/ui/StarDivider'
 import { useCartStore } from '../store/cartStore'
@@ -45,8 +46,6 @@ export function ProductPage() {
   }
 
   const col = getCollectionById(product.collection)
-  const [g0, g1] = product.placeholderGradient
-  const [bottleFront, bottleBack, boxImage] = product.galleryImages
   const accent = col?.accent ?? '#2a2622'
   const related = getRelatedProducts(product.id, 3)
 
@@ -63,7 +62,7 @@ export function ProductPage() {
 
   return (
     <Layout collection={product.collection}>
-      <div className="mx-auto max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
+      <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16">
         <nav className="mb-10 text-xs text-scnt-text-muted">
           <Link to="/" className="hover:text-scnt-text">
             Home
@@ -83,7 +82,7 @@ export function ProductPage() {
           ) : null}
         </nav>
 
-        <div className="grid gap-14 lg:grid-cols-2 lg:gap-20 lg:items-start">
+        <div className="grid gap-12 lg:grid-cols-12 lg:items-start lg:gap-14 xl:gap-16">
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -91,7 +90,7 @@ export function ProductPage() {
               duration: 0.65,
               ease: [0.22, 1, 0.36, 1],
             }}
-            className="relative lg:sticky lg:top-28"
+            className="relative lg:col-span-7 lg:sticky lg:top-28 xl:col-span-8"
           >
             <motion.div
               className="pointer-events-none absolute -inset-8 -z-10 rounded-[2rem] opacity-90"
@@ -111,78 +110,16 @@ export function ProductPage() {
               }}
               aria-hidden
             />
-            <div className="mx-auto flex w-full max-w-md flex-col gap-3">
-              <div
-                className="relative aspect-scnt-product w-full overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
-                style={{
-                  background: `linear-gradient(145deg, ${g0}, ${g1})`,
-                  boxShadow: `0 32px 90px -48px ${accent}55, inset 0 0 0 1px rgba(255,255,255,0.12)`,
-                }}
-              >
-                <div
-                  className="pointer-events-none absolute inset-0 opacity-80"
-                  style={{
-                    background: `radial-gradient(ellipse 90% 75% at 50% 38%, rgba(255,255,255,0.42), transparent 52%), linear-gradient(210deg, rgba(255,255,255,0.28) 0%, transparent 48%, rgba(42,38,34,0.1) 100%)`,
-                  }}
-                  aria-hidden
-                />
-                <img
-                  src={bottleFront}
-                  alt={`${product.name} — bottle front`}
-                  className="absolute inset-0 z-[1] h-full w-full object-contain p-1.5 sm:p-2"
-                  decoding="async"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div
-                  className="relative aspect-scnt-product overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
-                  style={{
-                    background: `linear-gradient(145deg, ${g0}, ${g1})`,
-                    boxShadow: `0 18px 48px -36px ${accent}40`,
-                  }}
-                >
-                  <div
-                    className="pointer-events-none absolute inset-0 opacity-70"
-                    style={{
-                      background: `linear-gradient(200deg, rgba(255,255,255,0.28) 0%, transparent 45%)`,
-                    }}
-                    aria-hidden
-                  />
-                  <img
-                    src={bottleBack}
-                    alt={`${product.name} — bottle back`}
-                    className="absolute inset-0 z-[1] h-full w-full object-contain p-1 sm:p-1.5"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-                <div
-                  className="relative aspect-scnt-product overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
-                  style={{
-                    background: `linear-gradient(145deg, ${g0}, ${g1})`,
-                    boxShadow: `0 18px 48px -36px ${accent}40`,
-                  }}
-                >
-                  <div
-                    className="pointer-events-none absolute inset-0 opacity-70"
-                    style={{
-                      background: `linear-gradient(200deg, rgba(255,255,255,0.28) 0%, transparent 45%)`,
-                    }}
-                    aria-hidden
-                  />
-                  <img
-                    src={boxImage}
-                    alt={`${product.name} — box`}
-                    className="absolute inset-0 z-[1] h-full w-full object-contain p-1 sm:p-1.5"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-              </div>
-            </div>
+            <ProductImageCarousel
+              productId={product.id}
+              productName={product.name}
+              images={product.galleryImages}
+              gradient={product.placeholderGradient}
+              accent={accent}
+            />
           </motion.div>
 
-          <div>
+          <div className="min-w-0 lg:col-span-5 xl:col-span-4">
             <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">
               {col?.name}
             </p>

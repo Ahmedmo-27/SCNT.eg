@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { collections } from '../../data/collections'
+import { getCollectionVivid } from '../../data/collectionThemes'
+import { hexToRgba, tintedBeigeGlass } from '../../lib/colorUtils'
 import { EightPointStar } from '../ui/EightPointStar'
 import { StarDivider } from '../ui/StarDivider'
 
@@ -49,31 +51,40 @@ export function FeaturedCollections() {
           viewport={{ once: true, margin: '-80px' }}
           className="grid gap-6 sm:grid-cols-2 lg:gap-8"
         >
-          {collections.map((c) => (
+          {collections.map((c) => {
+            const vivid = getCollectionVivid(c.id)
+            const sweepBg = `linear-gradient(100deg, transparent 5%, ${hexToRgba(vivid, 0.48)} 50%, transparent 95%)`
+            return (
             <motion.li key={c.id} variants={item}>
               <Link
                 to={`/collections/${c.id}`}
-                className="group/card block h-full rounded-2xl bg-scnt-bg-elevated/55 p-1 ring-1 ring-scnt-border/90 transition-[box-shadow,transform] duration-[750ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:shadow-[0_36px_90px_-40px_rgba(42,38,34,0.14)]"
+                className="group/card block h-full rounded-2xl border border-[rgba(42,38,34,0.1)] backdrop-blur-md transition-[box-shadow,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:-translate-y-1 hover:shadow-[0_36px_90px_-40px_rgba(42,38,34,0.14)]"
+                style={{ background: tintedBeigeGlass(c.accent) }}
               >
                 <div
-                  className="relative overflow-hidden rounded-[0.9rem] px-7 py-8 sm:px-9 sm:py-10"
+                  className="relative overflow-hidden rounded-2xl px-7 py-8 sm:px-9 sm:py-10"
                   style={{
-                    background: `linear-gradient(135deg, ${c.accentSoft} 0%, transparent 55%), var(--color-scnt-bg-elevated)`,
+                    background: `linear-gradient(135deg, ${c.accentSoft} 0%, transparent 55%)`,
                   }}
                 >
                   <span
-                    className="absolute left-0 top-0 h-full w-1.5 rounded-full opacity-90 transition-opacity duration-[750ms] group-hover/card:opacity-100"
+                    className="pointer-events-none absolute inset-0 z-[1] translate-x-[-125%] skew-x-[-11deg] opacity-0 mix-blend-overlay transition-[transform,opacity] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:translate-x-[125%] group-hover/card:opacity-100"
+                    style={{ background: sweepBg }}
+                    aria-hidden
+                  />
+                  <span
+                    className="absolute left-0 top-0 z-[2] h-full w-1.5 rounded-full opacity-90 transition-opacity duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:opacity-100"
                     style={{ backgroundColor: c.accent }}
                     aria-hidden
                   />
                   <div
-                    className="pointer-events-none absolute -right-6 -top-10 h-40 w-40 rounded-full opacity-40 blur-2xl transition-opacity duration-[750ms] group-hover/card:opacity-70"
+                    className="pointer-events-none absolute -right-6 -top-10 z-0 h-40 w-40 rounded-full opacity-40 blur-2xl transition-opacity duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:opacity-70"
                     style={{
                       background: `radial-gradient(circle, ${c.accent}33, transparent 65%)`,
                     }}
                     aria-hidden
                   />
-                  <div className="relative pl-2">
+                  <div className="relative z-[3] pl-2">
                     <p className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
                       {c.code}
                     </p>
@@ -89,9 +100,9 @@ export function FeaturedCollections() {
                     <p className="mt-6 text-xs tracking-wide text-scnt-text/55">
                       {c.mood}
                     </p>
-                    <span className="mt-8 inline-flex items-center gap-2 text-sm text-scnt-text transition-colors duration-[750ms]">
+                    <span className="mt-8 inline-flex items-center gap-2 text-sm text-scnt-text transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)]">
                       Enter collection
-                      <span className="inline-block text-scnt-text/35 transition-transform duration-[750ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/card:translate-x-1 group-hover/card:rotate-12">
+                      <span className="inline-block text-scnt-text/35 transition-transform duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:translate-x-1 group-hover/card:rotate-12">
                         <EightPointStar size={11} />
                       </span>
                     </span>
@@ -99,7 +110,8 @@ export function FeaturedCollections() {
                 </div>
               </Link>
             </motion.li>
-          ))}
+            )
+          })}
         </motion.ul>
       </div>
     </section>
