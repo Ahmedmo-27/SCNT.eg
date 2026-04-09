@@ -1,0 +1,32 @@
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { CartPage } from './pages/CartPage'
+import { CollectionDetailPage } from './pages/CollectionDetailPage'
+import { CollectionsPage } from './pages/CollectionsPage'
+import { Home } from './pages/Home'
+import { PlaceholderPage } from './pages/PlaceholderPage'
+import { ProductPage } from './pages/ProductPage'
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/collections" element={<CollectionsPage />} />
+        <Route path="/collections/:id" element={<CollectionDetailPage />} />
+        <Route path="/product/:id" element={<ProductPage />} />
+        <Route path="/cart" element={<CartPage />} />
+        <Route
+          path="/checkout"
+          element={
+            <PlaceholderPage
+              title="Checkout"
+              subtitle="Order flow will call POST /api/checkout and POST /api/orders."
+            />
+          }
+        />
+        <Route path="/about" element={<PlaceholderPage title="About" />} />
+        <Route path="/contact" element={<PlaceholderPage title="Contact" />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}

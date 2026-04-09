@@ -1,0 +1,45 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-serif: 'Cormorant Garamond', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* Logo-adjacent warm beige system (light only) */
+  --color-scnt-bg: #ebe4d9;
+  --color-scnt-bg-muted: #e3dcd1;
+  --color-scnt-bg-elevated: #f3eee6;
+  --color-scnt-text: #2a2622;
+  --color-scnt-text-muted: #6b635a;
+  --color-scnt-border: rgba(42, 38, 34, 0.08);
+  --color-scnt-shadow: rgba(42, 38, 34, 0.06);
+
+  /* Collection accents (used on themed pages + cards) */
+  --color-collection-executive: #7a8fa3;
+  --color-collection-explorer: #3d8b8b;
+  --color-collection-charmer: #8b3d5c;
+  --color-collection-icon: #b89b5e;
+
+  --ease-scnt: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-scnt: 0.65s;
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+    color-scheme: only light;
+  }
+
+  body {
+    @apply m-0 min-h-svh bg-scnt-bg font-sans text-scnt-text;
+    font-optical-sizing: auto;
+  }
+
+  ::selection {
+    background: rgba(42, 38, 34, 0.1);
+    color: var(--color-scnt-text);
+  }
+
+  #root {
+    @apply min-h-svh;
+  }
+}
