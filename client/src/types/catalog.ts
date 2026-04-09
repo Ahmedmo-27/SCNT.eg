@@ -15,6 +15,7 @@ export type ApiProduct = {
   name: string
   slug: string
   inspired_from: string
+  gender?: 'male' | 'female'
   collection: ApiCollection
   price: number
   size: string
@@ -71,6 +72,7 @@ export type ProductSummary = {
   name: string
   collection: CollectionId
   inspiredBy: string
+  gender: 'male' | 'female'
   price: number
   placeholderGradient: [string, string]
   topNotes: string[]

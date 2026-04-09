@@ -160,9 +160,12 @@ export function ProductPage() {
                 <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">
                   {col?.name}
                 </p>
-                <h1 className="mt-3 font-serif text-4xl text-scnt-text sm:text-5xl">
-                  {product.name}
-                </h1>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">{product.name}</h1>
+                  <span className="rounded-full border border-scnt-border bg-scnt-bg-elevated/60 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.2em] text-scnt-text">
+                    {product.gender === 'female' ? 'For her' : 'For him'}
+                  </span>
+                </div>
                 <p className="mt-3 text-sm text-scnt-text-muted">
                   <span className="uppercase tracking-[0.2em] text-scnt-text/55">
                     Inspired by{' '}

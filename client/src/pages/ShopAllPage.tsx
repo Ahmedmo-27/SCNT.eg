@@ -32,11 +32,19 @@ function collectionFilter(v: string | null): CollectionId | null {
   return parseCollectionIdParam(v)
 }
 
+function genderFilter(v: string | null): ProductSummary['gender'] | null {
+  if (v === null) return null
+  const s = v.trim().toLowerCase()
+  return s === 'male' || s === 'female' ? (s as ProductSummary['gender']) : null
+}
+
 export function ShopAllPage() {
   const { collections, products, loading } = useCatalog()
   const [searchParams, setSearchParams] = useSearchParams()
   const filterRaw = searchParams.get('collection')
   const filter = collectionFilter(filterRaw)
+  const genderRaw = searchParams.get('gender')
+  const gender = genderFilter(genderRaw)
   const qRaw = searchParams.get('q')
   const qParam = qRaw?.trim() ?? ''
 
@@ -51,7 +59,13 @@ export function ShopAllPage() {
     }
     let cancelled = false
     setSearchLoading(true)
-    apiGetData<ApiProductListResponse>(`/products?q=${encodeURIComponent(qParam)}&limit=48&page=1`)
+    const params = new URLSearchParams({
+      q: qParam,
+      limit: '48',
+      page: '1',
+    })
+    if (gender) params.set('gender', gender)
+    apiGetData<ApiProductListResponse>(`/products?${params.toString()}`)
       .then((data) => {
         if (!cancelled) setShopQueryResults(data.items.map(mapApiProductToSummary))
       })
@@ -64,13 +78,16 @@ export function ShopAllPage() {
     return () => {
       cancelled = true
     }
-  }, [qParam])
+  }, [qParam, gender])
 
   const catalogueList = qParam ? shopQueryResults : products
 
   const visible = useMemo(
-    () => (filter ? catalogueList.filter((p) => p.collection === filter) : catalogueList),
-    [filter, catalogueList],
+    () => {
+      const gendered = gender ? catalogueList.filter((p) => p.gender === gender) : catalogueList
+      return filter ? gendered.filter((p) => p.collection === filter) : gendered
+    },
+    [filter, gender, catalogueList],
   )
 
   const gridLoading = loading || (qParam !== '' && searchLoading)
@@ -81,6 +98,16 @@ export function ShopAllPage() {
       nextParams.delete('collection')
     } else {
       nextParams.set('collection', next)
+    }
+    setSearchParams(nextParams)
+  }
+
+  const setGender = (next: ProductSummary['gender'] | null) => {
+    const nextParams = new URLSearchParams(searchParams)
+    if (next === null) {
+      nextParams.delete('gender')
+    } else {
+      nextParams.set('gender', next)
     }
     setSearchParams(nextParams)
   }
@@ -114,9 +141,10 @@ export function ShopAllPage() {
 
         <StarDivider className="py-8 sm:py-10" />
 
-        <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">Filter by line</p>
-          <div className="flex flex-wrap gap-2">
+        <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">Filter by line</p>
+            <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setFilter(null)}
@@ -149,6 +177,49 @@ export function ShopAllPage() {
                 {c.name.replace(/^The /, '')}
               </button>
             ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">Filter by gender</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setGender(null)}
+                aria-pressed={gender === null}
+                className={`rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  gender === null
+                    ? 'border-scnt-text bg-scnt-text text-scnt-bg shadow-[0_12px_32px_-18px_rgba(42,38,34,0.35)]'
+                    : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setGender('male')}
+                aria-pressed={gender === 'male'}
+                className={`rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  gender === 'male'
+                    ? 'border-scnt-text bg-scnt-text text-scnt-bg shadow-[0_12px_32px_-18px_rgba(42,38,34,0.35)]'
+                    : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
+                }`}
+              >
+                Male
+              </button>
+              <button
+                type="button"
+                onClick={() => setGender('female')}
+                aria-pressed={gender === 'female'}
+                className={`rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  gender === 'female'
+                    ? 'border-scnt-text bg-scnt-text text-scnt-bg shadow-[0_12px_32px_-18px_rgba(42,38,34,0.35)]'
+                    : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
+                }`}
+              >
+                Female
+              </button>
+            </div>
           </div>
         </div>
 
@@ -160,7 +231,7 @@ export function ShopAllPage() {
           </p>
         ) : (
           <motion.div
-            key={filter ?? 'all'}
+            key={`${filter ?? 'all'}-${gender ?? 'all'}`}
             variants={grid}
             initial="hidden"
             animate="show"

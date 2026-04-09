@@ -5,6 +5,12 @@ const productSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, index: true },
     inspired_from: { type: String, required: true, unique: true, trim: true },
+    gender: {
+      type: String,
+      enum: ["male", "female"],
+      default: "male",
+      index: true,
+    },
     collection: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Collection",

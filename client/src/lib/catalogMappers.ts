@@ -73,6 +73,7 @@ export function mapApiProductToSummary(p: ApiProduct): ProductSummary {
     name: p.name,
     collection: cid,
     inspiredBy: p.inspired_from,
+    gender: p.gender === 'female' ? 'female' : 'male',
     price: p.price,
     placeholderGradient: placeholderPairFromAccent(accent),
     topNotes: p.topNotes ?? [],
@@ -113,6 +114,10 @@ export function getRelatedProducts(
       }
     }
   }
+  push(others.filter((x) => x.gender === p.gender && x.scentMood === p.scentMood && x.collection === p.collection))
+  push(others.filter((x) => x.gender === p.gender && x.scentMood === p.scentMood))
+  push(others.filter((x) => x.gender === p.gender && x.collection === p.collection))
+  push(others.filter((x) => x.gender === p.gender))
   push(others.filter((x) => x.scentMood === p.scentMood && x.collection === p.collection))
   push(others.filter((x) => x.scentMood === p.scentMood))
   push(others.filter((x) => x.collection === p.collection))

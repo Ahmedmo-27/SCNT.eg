@@ -3,10 +3,14 @@ const ApiError = require("../utils/ApiError");
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-const buildProductFilters = ({ collection, note, q }) => {
+const buildProductFilters = ({ collection, note, q, gender }) => {
   const and = [];
 
   if (collection) and.push({ collection });
+
+  if (gender && ["male", "female"].includes(String(gender).toLowerCase())) {
+    and.push({ gender: String(gender).toLowerCase() });
+  }
 
   if (note && String(note).trim()) {
     const safe = escapeRegex(String(note).trim());
