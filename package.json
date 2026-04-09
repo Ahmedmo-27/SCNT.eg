@@ -3,7 +3,10 @@
   "private": true,
   "workspaces": ["client", "server"],
   "scripts": {
-    "dev": "concurrently -k -n server,client -c cyan,magenta \"npm run dev -w server\" \"npm run dev -w client\""
+    "dev": "concurrently -k -n server,client -c cyan,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
+    "start": "npm run start -w server",
+    "build": "npm run build -w client",
+    "heroku-postbuild": "npm run build -w client"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

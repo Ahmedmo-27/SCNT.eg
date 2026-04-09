@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -21,6 +22,16 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api", routes);
+
+// Serve the built client in production (e.g. Heroku)
+if (process.env.NODE_ENV === "production") {
+  const clientDist = path.resolve(__dirname, "../../client/dist");
+  app.use(express.static(clientDist));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
+
 app.use(notFound);
 app.use(errorHandler);
 
