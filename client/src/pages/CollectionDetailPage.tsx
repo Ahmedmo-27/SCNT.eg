@@ -75,6 +75,30 @@ export function CollectionDetailPage() {
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-scnt-text sm:text-[1.05rem]">
               {c.worldIntro}
             </p>
+            {c.id === 'executive' && (
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-scnt-text-muted">
+                Executive dresses your day in a tailored suit and tie — clean lines, confident
+                shoulders, and a quiet power that enters every room before you do.
+              </p>
+            )}
+            {c.id === 'charmer' && (
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-scnt-text-muted">
+                Charmer feels like a warm date night in a bottle — soft candlelight, easy laughter,
+                and skin-close warmth that lingers long after the evening ends.
+              </p>
+            )}
+            {c.id === 'explorer' && (
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-scnt-text-muted">
+                Explorer is charged with adventure and sea breeze — salt-kissed air, sun on your
+                back, and the thrill of taking the next unknown turn.
+              </p>
+            )}
+            {c.id === 'icon' && (
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-scnt-text-muted">
+                Icon is made for the one-of-a-kind person — magnetic, unmistakable, and remembered
+                long after everyone else fades into the background.
+              </p>
+            )}
             <Link
               to="/collections"
               className="mt-10 inline-flex items-center gap-2 text-sm text-scnt-text-muted underline-offset-4 transition-colors duration-[550ms] hover:text-scnt-text"
