@@ -1,8 +1,9 @@
 {
   "name": "scnt-eg-website",
   "private": true,
+  "workspaces": ["client", "server"],
   "scripts": {
-    "dev": "concurrently -k -n server,client -c cyan,magenta \"npm run dev --prefix server\" \"npm run dev --prefix client\""
+    "dev": "concurrently -k -n server,client -c cyan,magenta \"npm run dev -w server\" \"npm run dev -w client\""
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

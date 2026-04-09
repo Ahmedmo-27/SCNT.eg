@@ -3,11 +3,23 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 
+const connectDb = require("./config/db");
 const routes = require("./routes");
 const notFound = require("./middleware/notFound");
 const errorHandler = require("./middleware/errorHandler");
 
 const app = express();
+
+if (process.env.VERCEL) {
+  app.use(async (_req, _res, next) => {
+    try {
+      await connectDb();
+      next();
+    } catch (err) {
+      next(err);
+    }
+  });
+}
 
 app.use(helmet());
 app.use(cors());
