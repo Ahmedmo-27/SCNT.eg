@@ -23,6 +23,14 @@ function IconCart({ className }: { className?: string }) {
   )
 }
 
+function IconUser({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 12a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 0114 0" />
+    </svg>
+  )
+}
+
 function IconMenu({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
@@ -47,6 +55,7 @@ const navText = 'text-scnt-text/90 hover:text-scnt-text'
 export function Header() {
   const location = useLocation()
   const headerRef = useRef<HTMLElement>(null)
+  const [scrolled, setScrolled] = useState(false)
   const [sideOpen, setSideOpen] = useState(false)
   const [megaOpen, setMegaOpen] = useState(false)
   const megaTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -71,7 +80,14 @@ export function Header() {
     ro.observe(el)
     document.documentElement.style.setProperty('--scnt-header-h', `${el.offsetHeight}px`)
     return () => ro.disconnect()
-  }, [megaOpen, sideOpen])
+  }, [megaOpen, sideOpen, scrolled])
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   useEffect(() => {
     document.documentElement.lang = lang === 'ar' ? 'ar' : 'en'
@@ -117,17 +133,28 @@ export function Header() {
 
   const iconBtn =
     'inline-flex items-center justify-center rounded-full p-2 text-scnt-text-muted transition-colors hover:bg-scnt-border/40 hover:text-scnt-text'
+  const topTransparent = !scrolled && !sideOpen && !megaOpen
+  const iconBtnClass = iconBtn
+  const navTone = navText
 
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[100] flex justify-center px-0">
       <header
         ref={headerRef}
-        className="relative pointer-events-auto flex w-full max-w-[100vw] flex-col border-b border-scnt-border/80 bg-scnt-bg/92 shadow-[0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl backdrop-saturate-150"
+        className={`relative pointer-events-auto flex w-full max-w-[100vw] flex-col transition-[background-color,border-color,box-shadow,padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          topTransparent
+            ? 'border-b border-transparent bg-transparent shadow-none'
+            : 'border-b border-scnt-border/80 bg-scnt-bg/92 shadow-[0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl backdrop-saturate-150'
+        }`}
       >
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-2 px-5 py-3 sm:px-8">
+        <div
+          className={`relative mx-auto flex w-full max-w-6xl items-center justify-center px-5 transition-[padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-8 ${
+            topTransparent ? 'py-5 sm:py-6' : 'py-3 sm:py-3.5'
+          }`}
+        >
           <button
             type="button"
-            className={`${iconBtn} lg:hidden`}
+            className={`${iconBtnClass} absolute left-5 top-1/2 -translate-y-1/2 lg:hidden sm:left-8`}
             aria-label="Open menu"
             aria-expanded={sideOpen}
             onClick={() => setSideOpen(true)}
@@ -135,27 +162,41 @@ export function Header() {
             <IconMenu className="h-5 w-5" />
           </button>
 
-          <div className="flex justify-center">
-            <Logo />
+          <div
+            className={`flex justify-center transition-[transform,margin] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              scrolled ? 'lg:-translate-x-[40vw]' : ''
+            }`}
+          >
+            <Logo
+              tone="default"
+              className={`transition-[font-size,letter-spacing,color,text-shadow,transform] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                topTransparent
+                  ? 'text-[2.6rem] tracking-[0.11em] sm:text-[3.2rem]'
+                  : 'text-[2rem] tracking-[0.12em] sm:text-[2.4rem]'
+              }`}
+            />
           </div>
 
-          <div className="flex items-center justify-end gap-1 sm:gap-2">
-            <Link to="/contact" className={`${iconBtn} hidden lg:inline-flex`} aria-label="Contact">
+          <div className="absolute right-5 top-1/2 flex -translate-y-1/2 items-center justify-end gap-1 sm:right-8 sm:gap-2">
+            <Link to="/contact" className={`${iconBtnClass} !hidden lg:!inline-flex`} aria-label="Contact">
               <IconPhone className="h-5 w-5" />
             </Link>
-            {/* <span className={`${iconBtn} hidden cursor-default opacity-40 lg:inline-flex`} title="Coming soon" aria-hidden>
+            <Link to="/profile" className={`${iconBtnClass} !hidden lg:!inline-flex`} aria-label="Profile">
               <IconUser className="h-5 w-5" />
-            </span>
-            <span className={`${iconBtn} hidden cursor-default opacity-40 lg:inline-flex`} title="Coming soon" aria-hidden>
-              <IconHeart className="h-5 w-5" />
-            </span> */}
-            <Link to="/cart" className={iconBtn} aria-label="Cart">
+            </Link>
+            <Link to="/cart" className={`${iconBtnClass} !hidden lg:!inline-flex`} aria-label="Cart">
               <IconCart className="h-5 w-5" />
             </Link>
           </div>
         </div>
 
-        <div className="mx-auto hidden w-full max-w-6xl border-t border-scnt-border/50 px-5 py-2.5 sm:px-8 lg:block">
+        <div
+          className={`mx-auto hidden w-full max-w-6xl px-5 transition-[border-color,transform,opacity,padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-8 lg:block ${
+            topTransparent
+              ? 'border-t border-white/20 py-3 text-white/95'
+              : 'border-t border-scnt-border/50 py-2.5'
+          }`}
+        >
           <nav
             className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2"
             aria-label="Primary"
@@ -164,7 +205,7 @@ export function Header() {
             <NavLink
               to="/"
               className={({ isActive }) =>
-                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? 'border-scnt-text text-scnt-text' : `${navText} hover:border-scnt-text/30`}`
+                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
               }
             >
               Home
@@ -172,14 +213,14 @@ export function Header() {
             <NavLink
               to="/shop"
               className={({ isActive }) =>
-                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? 'border-scnt-text text-scnt-text' : `${navText} hover:border-scnt-text/30`}`
+                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
               }
             >
               Shop all
             </NavLink>
             <button
               type="button"
-              className={`${navLinkBase} cursor-pointer border-b-2 border-transparent pb-2 ${navText} hover:border-scnt-text/30 ${megaOpen ? 'border-scnt-text text-scnt-text' : ''}`}
+              className={`${navLinkBase} cursor-pointer border-b-2 border-transparent pb-2 ${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'} ${megaOpen ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : ''}`}
               aria-expanded={megaOpen}
               onMouseEnter={() => {
                 overTrigger.current = true
@@ -196,7 +237,7 @@ export function Header() {
             <NavLink
               to="/about"
               className={({ isActive }) =>
-                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? 'border-scnt-text text-scnt-text' : `${navText} hover:border-scnt-text/30`}`
+                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
               }
             >
               About
@@ -204,10 +245,26 @@ export function Header() {
             <NavLink
               to="/contact"
               className={({ isActive }) =>
-                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? 'border-scnt-text text-scnt-text' : `${navText} hover:border-scnt-text/30`}`
+                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
               }
             >
               Contact
+            </NavLink>
+            <NavLink
+              to="/login"
+              className={({ isActive }) =>
+                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
+              }
+            >
+              Login
+            </NavLink>
+            <NavLink
+              to="/register"
+              className={({ isActive }) =>
+                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
+              }
+            >
+              Create account
             </NavLink>
           </nav>
         </div>
@@ -280,7 +337,7 @@ export function Header() {
           onClick={() => setSideOpen(false)}
         />
         <aside
-          className={`fixed left-0 top-0 z-[130] flex h-full w-[min(280px,88vw)] flex-col bg-scnt-bg-elevated shadow-2xl transition-[transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:hidden ${
+          className={`fixed inset-y-0 !left-0 !right-auto z-[130] m-0 flex h-svh w-[min(320px,92vw)] flex-col overflow-hidden rounded-none border-r border-scnt-border/80 bg-scnt-bg-elevated shadow-2xl transition-[transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:hidden ${
             sideOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
           aria-label="Mobile navigation"
@@ -292,20 +349,30 @@ export function Header() {
               <IconX className="h-5 w-5" />
             </button>
           </div>
-          <nav className="flex flex-col gap-1 overflow-y-auto px-2 py-4 text-sm" onClick={() => setSideOpen(false)}>
-            <Link to="/" className="rounded-md px-3 py-2.5 text-scnt-text hover:bg-scnt-border/30">
+          <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto bg-scnt-bg-elevated px-4 py-5 text-sm" onClick={() => setSideOpen(false)}>
+            <Link to="/" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               Home
             </Link>
-            <Link to="/contact" className="rounded-md px-3 py-2.5 text-scnt-text hover:bg-scnt-border/30">
+            <Link to="/shop" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
+              Shop all
+            </Link>
+            <Link to="/about" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
+              About
+            </Link>
+            <Link to="/contact" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               Contact
             </Link>
-            <span className="cursor-default rounded-md px-3 py-2.5 text-scnt-text-muted/60">Account (soon)</span>
-            <span className="cursor-default rounded-md px-3 py-2.5 text-scnt-text-muted/60">Wishlist (soon)</span>
-            <Link to="/cart" className="rounded-md px-3 py-2.5 text-scnt-text hover:bg-scnt-border/30">
-              Cart
+            <Link to="/login" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
+              Login
             </Link>
-            <Link to="/shop" className="rounded-md px-3 py-2.5 text-scnt-text hover:bg-scnt-border/30">
-              Shop all
+            <Link to="/register" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
+              Create account
+            </Link>
+            <Link to="/profile" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
+              Profile
+            </Link>
+            <Link to="/cart" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
+              Cart
             </Link>
             <p className="mt-2 px-3 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-scnt-text-muted">
               Collections
@@ -319,9 +386,6 @@ export function Header() {
                 {c.name}
               </Link>
             ))}
-            <Link to="/about" className="mt-2 rounded-md px-3 py-2.5 text-scnt-text hover:bg-scnt-border/30">
-              About
-            </Link>
             <div className="mt-4 flex items-center gap-2 px-3">
               <span className="text-xs text-scnt-text-muted">Language</span>
               <select
