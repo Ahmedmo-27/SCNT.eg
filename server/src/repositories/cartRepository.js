@@ -15,28 +15,33 @@ const migrateLegacyCartIfNeeded = async (userId, user) => {
 };
 
 const findByUserId = async (userId) => {
-  let user = await User.findById(userId).select("cart");
+  let user = await User.findById(userId).select("cart cartPromoCode");
   user = await migrateLegacyCartIfNeeded(userId, user);
   if (!user) return null;
   await user.populate("cart.product");
-  return { user: userId, items: user.cart || [] };
+  return { user: userId, items: user.cart || [], promoCode: user.cartPromoCode || "" };
 };
 
 const findRawByUserId = async (userId) => {
-  let user = await User.findById(userId).select("cart");
+  let user = await User.findById(userId).select("cart cartPromoCode");
   user = await migrateLegacyCartIfNeeded(userId, user);
   if (!user) return null;
-  return { user: userId, items: user.cart || [] };
+  return { user: userId, items: user.cart || [], promoCode: user.cartPromoCode || "" };
 };
 
-const upsertByUserId = async (userId, items) => {
+const upsertByUserId = async (userId, items, promoCode) => {
+  const setPayload = { cart: items };
+  if (typeof promoCode === "string") {
+    setPayload.cartPromoCode = promoCode.trim().toUpperCase();
+  }
+
   const updated = await User.findByIdAndUpdate(
     userId,
-    { $set: { cart: items } },
-    { new: true, runValidators: true, select: "cart" }
+    { $set: setPayload },
+    { new: true, runValidators: true, select: "cart cartPromoCode" }
   );
   if (!updated) return null;
-  return { user: userId, items: updated.cart || [] };
+  return { user: userId, items: updated.cart || [], promoCode: updated.cartPromoCode || "" };
 };
 
 module.exports = {

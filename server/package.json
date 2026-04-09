@@ -9,7 +9,8 @@
     "dev": "nodemon src/server.js",
     "check": "node --check src/server.js",
     "seed:collections": "node seed/seedCollections.js",
-    "seed:products": "node seed/seedProducts.js"
+    "seed:products": "node seed/seedProducts.js",
+    "seed:promo-codes": "node seed/seedPromoCodes.js"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -1,7 +1,9 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
 import { StarDivider } from '../components/ui/StarDivider'
+import { getStoredAuthToken } from '../lib/authStorage'
 import { useCartStore } from '../store/cartStore'
 
 function formatEgp(n: number): string {
@@ -14,10 +16,63 @@ function formatEgp(n: number): string {
 
 export function CartPage() {
   const items = useCartStore((s) => s.items)
+  const promo = useCartStore((s) => s.promo)
+  const applyPromo = useCartStore((s) => s.applyPromo)
+  const removePromo = useCartStore((s) => s.removePromo)
   const clear = useCartStore((s) => s.clear)
+  const [promoInput, setPromoInput] = useState('')
+  const [promoError, setPromoError] = useState<string | null>(null)
+  const [promoLoading, setPromoLoading] = useState(false)
+
   const subtotal = items.reduce((acc, i) => acc + i.price * i.quantity, 0)
+  const discount = useMemo(() => {
+    if (!promo || subtotal <= 0) return 0
+    if (promo.discountType === 'PERCENTAGE') {
+      const percentageValue = (subtotal * promo.discountValue) / 100
+      const capped =
+        promo.maxDiscount != null ? Math.min(percentageValue, promo.maxDiscount) : percentageValue
+      return Math.min(subtotal, Math.max(0, capped))
+    }
+    return Math.min(subtotal, Math.max(0, promo.discountValue))
+  }, [promo, subtotal])
   const shipping = items.length > 0 ? 80 : 0
-  const total = subtotal + shipping
+  const total = Math.max(0, subtotal + shipping - discount)
+
+  const onApplyPromo = async () => {
+    setPromoError(null)
+    if (!getStoredAuthToken()) {
+      setPromoError('Please log in to apply promo codes.')
+      return
+    }
+
+    const code = promoInput.trim()
+    if (!code) {
+      setPromoError('Enter a promo code first.')
+      return
+    }
+
+    setPromoLoading(true)
+    try {
+      await applyPromo(code)
+      setPromoInput('')
+    } catch (err) {
+      setPromoError(err instanceof Error ? err.message : 'Could not apply promo code.')
+    } finally {
+      setPromoLoading(false)
+    }
+  }
+
+  const onRemovePromo = async () => {
+    setPromoError(null)
+    setPromoLoading(true)
+    try {
+      await removePromo()
+    } catch (err) {
+      setPromoError(err instanceof Error ? err.message : 'Could not remove promo code.')
+    } finally {
+      setPromoLoading(false)
+    }
+  }
 
   return (
     <Layout>
@@ -95,6 +150,49 @@ export function CartPage() {
 
             <aside className="h-fit rounded-2xl border border-scnt-border bg-scnt-bg-elevated/55 p-6 sm:p-7 lg:sticky lg:top-[calc(var(--scnt-header-h,5.5rem)+1.25rem)]">
               <h2 className="font-serif text-2xl text-scnt-text">Order summary</h2>
+              <div className="mt-5 rounded-xl border border-scnt-border/80 bg-scnt-bg/45 p-3.5">
+                <p className="text-xs uppercase tracking-[0.14em] text-scnt-text-muted">Promo code</p>
+                {promo ? (
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-scnt-text">{promo.code}</p>
+                      <p className="text-xs text-scnt-text-muted">
+                        {promo.discountType === 'PERCENTAGE'
+                          ? `${promo.discountValue}% discount`
+                          : `${formatEgp(promo.discountValue)} discount`}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="px-3 py-2 text-xs"
+                      onClick={onRemovePromo}
+                      disabled={promoLoading}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      value={promoInput}
+                      onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                      placeholder="Enter code"
+                      className="w-full rounded-lg border border-scnt-border bg-scnt-bg px-3 py-2 text-sm text-scnt-text outline-none placeholder:text-scnt-text-muted/70 focus:border-scnt-text/30"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="whitespace-nowrap px-3 py-2"
+                      onClick={onApplyPromo}
+                      disabled={promoLoading}
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                )}
+                {promoError ? <p className="mt-2 text-xs text-red-700">{promoError}</p> : null}
+              </div>
               <dl className="mt-6 space-y-3 text-sm">
                 <div className="flex items-center justify-between text-scnt-text-muted">
                   <dt>Subtotal</dt>
@@ -104,6 +202,12 @@ export function CartPage() {
                   <dt>Shipping</dt>
                   <dd>{formatEgp(shipping)}</dd>
                 </div>
+                {discount > 0 ? (
+                  <div className="flex items-center justify-between text-green-700">
+                    <dt>Discount</dt>
+                    <dd>-{formatEgp(discount)}</dd>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between border-t border-scnt-border pt-3 font-medium text-scnt-text">
                   <dt>Total</dt>
                   <dd>{formatEgp(total)}</dd>

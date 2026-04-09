@@ -1,6 +1,7 @@
 const orderRepository = require("../repositories/orderRepository");
 const productRepository = require("../repositories/productRepository");
 const cartRepository = require("../repositories/cartRepository");
+const PromoCode = require("../models/PromoCode");
 const ApiError = require("../utils/ApiError");
 
 /** Flat COD shipping fee (EGP), aligned with checkout UI. */
@@ -15,6 +16,40 @@ const validateAddress = (address) => {
       throw new ApiError(400, `Address field ${field} is required`);
     }
   }
+};
+
+const normalizePromoCode = (code = "") => String(code).trim().toUpperCase();
+
+const getPromoIfValid = async (promoCode, subtotal) => {
+  const normalized = normalizePromoCode(promoCode);
+  if (!normalized) return null;
+
+  const promo = await PromoCode.findOne({ code: normalized, isActive: true });
+  if (!promo) return null;
+
+  const now = Date.now();
+  if (promo.startsAt && new Date(promo.startsAt).getTime() > now) return null;
+  if (promo.expiresAt && new Date(promo.expiresAt).getTime() < now) return null;
+  if (subtotal < Number(promo.minSubtotal || 0)) return null;
+  return promo;
+};
+
+const calculateDiscount = (promo, subtotal) => {
+  if (!promo || subtotal <= 0) return 0;
+  let discount = 0;
+
+  if (promo.discountType === "PERCENTAGE") {
+    discount = (subtotal * Number(promo.discountValue || 0)) / 100;
+  } else {
+    discount = Number(promo.discountValue || 0);
+  }
+
+  const maxDiscount = promo.maxDiscount == null ? null : Number(promo.maxDiscount);
+  if (maxDiscount != null && Number.isFinite(maxDiscount)) {
+    discount = Math.min(discount, maxDiscount);
+  }
+
+  return Math.min(Math.max(0, discount), subtotal);
 };
 
 const createOrderFromCart = async (userId, address) => {
@@ -60,13 +95,21 @@ const createOrderFromCart = async (userId, address) => {
     await productRepository.updateProduct(item.product, { $inc: { stock: -item.quantity } });
   }
 
+  const promo = await getPromoIfValid(cart.promoCode, subtotal);
+  const discount = calculateDiscount(promo, subtotal);
+  const total = Math.max(0, subtotal + SHIPPING_FEE_EGP - discount);
+
   const order = await orderRepository.createOrder({
     user: userId,
     items: orderItems,
-    total: subtotal + SHIPPING_FEE_EGP,
+    subtotal,
+    shipping: SHIPPING_FEE_EGP,
+    discount,
+    promoCode: promo?.code || "",
+    total,
     address,
   });
-  await cartRepository.upsertByUserId(userId, []);
+  await cartRepository.upsertByUserId(userId, [], "");
   return order;
 };
 

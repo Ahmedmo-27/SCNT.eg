@@ -25,6 +25,22 @@ const updateCartItem = asyncHandler(async (req, res) => {
   res.status(200).json(successResponse(cart, "Cart updated"));
 });
 
+const replaceCart = asyncHandler(async (req, res) => {
+  const lines = Array.isArray(req.body?.lines) ? req.body.lines : [];
+  const cart = await cartService.replaceItems(req.user.userId, lines);
+  res.status(200).json(successResponse(cart, "Cart replaced"));
+});
+
+const applyPromoCode = asyncHandler(async (req, res) => {
+  const cart = await cartService.applyPromoCode(req.user.userId, req.body?.code);
+  res.status(200).json(successResponse(cart, "Promo code applied"));
+});
+
+const removePromoCode = asyncHandler(async (req, res) => {
+  const cart = await cartService.removePromoCode(req.user.userId);
+  res.status(200).json(successResponse(cart, "Promo code removed"));
+});
+
 const clearCart = asyncHandler(async (req, res) => {
   await cartService.clearCart(req.user.userId);
   const cart = await cartService.getCart(req.user.userId);
@@ -36,5 +52,8 @@ module.exports = {
   addToCart,
   removeFromCart,
   updateCartItem,
+  replaceCart,
+  applyPromoCode,
+  removePromoCode,
   clearCart,
 };

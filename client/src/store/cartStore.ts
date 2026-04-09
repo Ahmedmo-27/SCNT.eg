@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { getStoredAuthToken } from '../lib/authStorage'
-import { addToServerCart, clearServerCart } from '../services/cartApi'
+import {
+  addToServerCart,
+  applyPromoCode,
+  clearServerCart,
+  removePromoCode,
+  type CartPromo,
+} from '../services/cartApi'
 
 export type CartLine = {
   productId: string
@@ -12,12 +18,16 @@ export type CartLine = {
 
 type CartState = {
   items: CartLine[]
+  promo: CartPromo | null
   addItem: (line: CartLine) => void
+  applyPromo: (code: string) => Promise<void>
+  removePromo: () => Promise<void>
   clear: () => void
 }
 
 export const useCartStore = create<CartState>((set) => ({
   items: [],
+  promo: null,
   addItem: (line) => {
     set((s) => {
       const existing = s.items.find((i) => i.productId === line.productId)
@@ -39,8 +49,23 @@ export const useCartStore = create<CartState>((set) => ({
       })
     }
   },
+  applyPromo: async (code) => {
+    if (!getStoredAuthToken()) {
+      throw new Error('Please log in to apply promo codes.')
+    }
+    const cart = await applyPromoCode(code)
+    set({ promo: cart.appliedPromo })
+  },
+  removePromo: async () => {
+    if (!getStoredAuthToken()) {
+      set({ promo: null })
+      return
+    }
+    const cart = await removePromoCode()
+    set({ promo: cart.appliedPromo })
+  },
   clear: () => {
-    set({ items: [] })
+    set({ items: [], promo: null })
     if (getStoredAuthToken()) {
       void clearServerCart().catch(() => {
         /* keep local clear even if sync fails */

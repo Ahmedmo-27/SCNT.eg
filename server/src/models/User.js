@@ -35,6 +35,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     address: { type: addressSchema, default: () => ({}) },
     cart: { type: [cartItemSchema], default: [] },
+    cartPromoCode: { type: String, default: "", uppercase: true, trim: true },
     wishlist: { type: [wishlistItemSchema], default: [] },
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
     role: { type: String, enum: ["user", "admin"], default: "user" },

@@ -83,6 +83,7 @@ function orderRef(id: string): string {
 
 export function CheckoutPage() {
   const items = useCartStore((s) => s.items)
+  const promo = useCartStore((s) => s.promo)
   const clear = useCartStore((s) => s.clear)
 
   const [form, setForm] = useState<CheckoutFormState>(initialForm)
@@ -121,8 +122,18 @@ export function CheckoutPage() {
     () => items.reduce((acc, i) => acc + i.price * i.quantity, 0),
     [items],
   )
+  const discount = useMemo(() => {
+    if (!promo || subtotal <= 0) return 0
+    if (promo.discountType === 'PERCENTAGE') {
+      const percentageValue = (subtotal * promo.discountValue) / 100
+      const capped =
+        promo.maxDiscount != null ? Math.min(percentageValue, promo.maxDiscount) : percentageValue
+      return Math.min(subtotal, Math.max(0, capped))
+    }
+    return Math.min(subtotal, Math.max(0, promo.discountValue))
+  }, [promo, subtotal])
   const shipping = items.length > 0 ? 80 : 0
-  const total = subtotal + shipping
+  const total = Math.max(0, subtotal + shipping - discount)
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -427,6 +438,12 @@ export function CheckoutPage() {
                   <dt>Shipping</dt>
                   <dd>{formatEgp(shipping)}</dd>
                 </div>
+                {discount > 0 ? (
+                  <div className="flex items-center justify-between text-green-700">
+                    <dt>Discount {promo ? `(${promo.code})` : ''}</dt>
+                    <dd>-{formatEgp(discount)}</dd>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between border-t border-scnt-border pt-3 font-medium text-scnt-text">
                   <dt>Total</dt>
                   <dd>{formatEgp(total)}</dd>
