@@ -12,6 +12,7 @@ const connectDb = async () => {
     cached.promise = mongoose
       .connect(env.mongoUri, {
         autoIndex: env.nodeEnv !== "production",
+        serverSelectionTimeoutMS: 15_000,
       })
       .then(() => mongoose);
   }

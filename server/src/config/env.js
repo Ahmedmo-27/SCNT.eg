@@ -1,6 +1,8 @@
+const path = require("path");
 const dotenv = require("dotenv");
 
-dotenv.config();
+// Load server/.env regardless of cwd (Vercel monorepo root, `node` from repo root, etc.)
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
 const env = {
   nodeEnv: process.env.NODE_ENV || "development",
