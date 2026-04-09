@@ -7,6 +7,7 @@ import type { CollectionId } from '../../types/catalog'
 import type { ProductSummary } from '../../types/catalog'
 import { productImageFrameFull, productImageFrameTop } from './productImageFrame'
 import { EightPointStar } from '../ui/EightPointStar'
+import { useCollectionVisual } from '../../context/CollectionVisualContext'
 
 type ProductCardProps = {
   product: ProductSummary
@@ -29,7 +30,25 @@ export function ProductCard({ product, entrance = true }: ProductCardProps) {
   const [bottleFront] = product.galleryImages
   const accent = col?.accent ?? '#2a2622'
   const vivid = getCollectionVivid(product.collection as CollectionId)
-  const sweepBg = `linear-gradient(100deg, transparent 5%, ${hexToRgba(vivid, 0.5)} 50%, transparent 95%)`
+  const sweepBg = `linear-gradient(100deg, transparent 5%, ${hexToRgba(
+    vivid,
+    0.5,
+  )} 50%, transparent 95%)`
+
+  const currentCollectionId = product.collection as CollectionId
+  const { accentDeep } = useCollectionVisual()
+
+  const isExecutive = currentCollectionId === 'executive'
+  const isCharmer = currentCollectionId === 'charmer'
+  const isExplorer = currentCollectionId === 'explorer'
+  const isIcon = currentCollectionId === 'icon'
+
+  const hoverY =
+    isExecutive || isIcon
+      ? -6
+      : isExplorer
+        ? -4
+        : -5
 
   return (
     <motion.article
@@ -38,15 +57,30 @@ export function ProductCard({ product, entrance = true }: ProductCardProps) {
       whileInView={entrance ? { opacity: 1, y: 0 } : undefined}
       viewport={entrance ? { once: true, margin: '-40px' } : undefined}
       transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -6 }}
-      className="group"
+      whileHover={{
+        y: hoverY,
+        x: isExplorer ? 2 : 0,
+      }}
+      className={`group ${
+        isIcon ? 'lg:col-span-1' : ''
+      }`}
     >
       <Link
         to={`/product/${product.id}`}
-        className={`group/card relative block overflow-hidden border border-[rgba(42,38,34,0.1)] backdrop-blur-md transition-[box-shadow] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:shadow-[0_32px_80px_-36px_rgba(42,38,34,0.18)] ${productImageFrameFull}`}
+        className={`group/card relative block overflow-hidden border border-[rgba(42,38,34,0.1)] backdrop-blur-md transition-[box-shadow,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] ${
+          isExecutive
+            ? 'hover:shadow-[0_28px_88px_-40px_rgba(10,24,44,0.9)]'
+            : isCharmer
+              ? 'hover:shadow-[0_32px_90px_-44px_rgba(64,18,32,0.95)]'
+              : isExplorer
+                ? 'hover:shadow-[0_32px_90px_-44px_rgba(4,40,60,0.9)]'
+                : 'hover:shadow-[0_36px_96px_-48px_rgba(42,38,34,0.95)]'
+        } ${productImageFrameFull}`}
         style={{
           background: tintedBeigeGlass(accent),
-          boxShadow: `0 18px 50px -32px ${accent}14`,
+          boxShadow: isIcon
+            ? `0 22px 60px -36px ${accentDeep}26`
+            : `0 18px 50px -32px ${accent}14`,
         }}
       >
         <div
@@ -66,14 +100,26 @@ export function ProductCard({ product, entrance = true }: ProductCardProps) {
           <div
             className="absolute inset-0 opacity-0 transition-opacity duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:opacity-100"
             style={{
-              background: `radial-gradient(circle at 50% 115%, ${accent}40, transparent 58%)`,
+              background: isExecutive
+                ? `linear-gradient(180deg, transparent 30%, ${accent}45 100%)`
+                : isCharmer
+                  ? `radial-gradient(circle at 50% 115%, ${accent}50, transparent 60%)`
+                  : isExplorer
+                    ? `radial-gradient(circle at 50% 115%, ${accent}38, transparent 65%)`
+                    : `radial-gradient(circle at 50% 118%, ${accentDeep}40, transparent 62%)`,
             }}
             aria-hidden
           />
           <div
             className="absolute inset-0 opacity-0 mix-blend-overlay transition-opacity duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:opacity-100"
             style={{
-              background: `radial-gradient(circle at 30% 20%, rgba(255,255,255,0.25), transparent 45%)`,
+              background: isCharmer
+                ? `radial-gradient(circle at 30% 15%, rgba(255,255,255,0.32), transparent 48%)`
+                : isExplorer
+                  ? `radial-gradient(circle at 20% 10%, rgba(255,255,255,0.22), transparent 50%)`
+                  : isIcon
+                    ? `radial-gradient(circle at 10% 0%, rgba(255,255,255,0.4), transparent 55%)`
+                    : `radial-gradient(circle at 30% 20%, rgba(255,255,255,0.25), transparent 45%)`,
             }}
             aria-hidden
           />
@@ -96,19 +142,45 @@ export function ProductCard({ product, entrance = true }: ProductCardProps) {
           <div className="absolute right-4 top-4 z-[4] text-scnt-bg/90 opacity-0 transition-all duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:translate-y-0 group-hover:opacity-100 sm:translate-y-1">
             <motion.span
               initial={false}
-              whileHover={{ scale: 1.08, rotate: 12 }}
+              whileHover={
+                isExecutive || isIcon
+                  ? { scale: 1.04 }
+                  : { scale: 1.08, rotate: 12 }
+              }
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             >
               <EightPointStar size={18} />
             </motion.span>
           </div>
         </div>
-        <div className="space-y-2 px-5 py-6">
-          <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">
+        <div
+          className={`space-y-2 px-5 py-6 ${
+            isCharmer || isIcon ? 'text-center' : ''
+          }`}
+        >
+          <p
+            className={`text-xs uppercase text-scnt-text-muted ${
+              isExecutive
+                ? 'tracking-[0.24em]'
+                : isCharmer
+                  ? 'tracking-[0.2em]'
+                  : isExplorer
+                    ? 'tracking-[0.18em]'
+                    : 'tracking-[0.26em]'
+            }`}
+          >
             {col?.name ?? product.collection}
           </p>
           <h3 className="font-serif text-xl text-scnt-text">{product.name}</h3>
-          <p className="text-[0.65rem] uppercase tracking-[0.18em] text-scnt-text/45">
+          <p
+            className={`text-[0.65rem] uppercase text-scnt-text/45 ${
+              isCharmer
+                ? 'tracking-[0.16em]'
+                : isExplorer
+                  ? 'tracking-[0.14em]'
+                  : 'tracking-[0.18em]'
+            }`}
+          >
             Inspired by {product.inspiredBy}
           </p>
           <p className="line-clamp-2 text-xs italic leading-relaxed text-scnt-text-muted/95">
