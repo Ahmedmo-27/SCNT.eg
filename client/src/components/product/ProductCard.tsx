@@ -21,6 +21,7 @@ function formatEgp(n: number): string {
 export function ProductCard({ product, entrance = true }: ProductCardProps) {
   const col = getCollectionById(product.collection)
   const [g0, g1] = product.placeholderGradient
+  const [bottleFront] = product.galleryImages
   const accent = col?.accent ?? '#2a2622'
 
   return (
@@ -68,7 +69,14 @@ export function ProductCard({ product, entrance = true }: ProductCardProps) {
             }}
             aria-hidden
           />
-          <div className="absolute right-4 top-4 text-scnt-bg/90 opacity-0 transition-all duration-[750ms] group-hover:translate-y-0 group-hover:opacity-100 sm:translate-y-1">
+          <img
+            src={bottleFront}
+            alt=""
+            className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-contain p-6 sm:p-8"
+            loading="lazy"
+            decoding="async"
+          />
+          <div className="absolute right-4 top-4 z-[2] text-scnt-bg/90 opacity-0 transition-all duration-[750ms] group-hover:translate-y-0 group-hover:opacity-100 sm:translate-y-1">
             <motion.span
               initial={false}
               whileHover={{ scale: 1.08, rotate: 12 }}

@@ -1,5 +1,29 @@
 import type { CollectionId } from './collections'
 
+/** Bottle front, bottle back, box — paths under `public/Products` */
+const galleryByCollection: Record<CollectionId, readonly [string, string, string]> = {
+  executive: [
+    '/Products/The Executive Collection Bottle Mockup (Front).png',
+    '/Products/The Executive Collection Bottle Mockup (Back).png',
+    '/Products/The Executive Collection Box Mockup.png',
+  ],
+  explorer: [
+    '/Products/The Explorer Collection Bottle Mockup (Front).png',
+    '/Products/The Explorer Collection Bottle Mockup (Back).png',
+    '/Products/The Explorer Collection Box Mockup.png',
+  ],
+  charmer: [
+    '/Products/The Charmer Collection Bottle Mockup (Front).png',
+    '/Products/The Charmer Collection Bottle Mockup (Back).png',
+    '/Products/The Charmer Collection Box Mockup.png',
+  ],
+  icon: [
+    '/Products/The Icon Collection Bottle Mockup (Front).png',
+    '/Products/The Icon Collection Bottle Mockup (Back).png',
+    '/Products/The Icon Collection Box Mockup.png',
+  ],
+}
+
 /** Shared mood for soft “you might also like” matching */
 export type ScentMood =
   | 'crisp-tailored'
@@ -29,6 +53,8 @@ export type ProductSummary = {
   volume: string
   concentrationHint: string
   scentMood: ScentMood
+  /** Bottle front, bottle back, box */
+  galleryImages: readonly [string, string, string]
 }
 
 export const products: ProductSummary[] = [
@@ -37,7 +63,8 @@ export const products: ProductSummary[] = [
     name: 'Azure Code',
     collection: 'executive',
     inspiredBy: 'Bleu de Chanel EDP',
-    price: 2850,
+    price: 750,
+    galleryImages: galleryByCollection.executive,
     placeholderGradient: ['#e8edf2', '#9aa8b8'],
     topNotes: ['Bergamot', 'White pepper'],
     heartNotes: ['Iris', 'Lavender absolute'],
@@ -56,7 +83,8 @@ export const products: ProductSummary[] = [
     name: 'Deep Horizon',
     collection: 'explorer',
     inspiredBy: 'Acqua di Giò Profondo',
-    price: 2650,
+    price: 750,
+    galleryImages: galleryByCollection.explorer,
     placeholderGradient: ['#d4ecea', '#3d8f8f'],
     topNotes: ['Mediterranean fig', 'Sea spray'],
     heartNotes: ['Jasmine tea', 'Water lily'],
@@ -75,7 +103,8 @@ export const products: ProductSummary[] = [
     name: 'Midnight Code',
     collection: 'charmer',
     inspiredBy: 'Armani Code EDP',
-    price: 2950,
+    price: 750,
+    galleryImages: galleryByCollection.charmer,
     placeholderGradient: ['#f1d4e8', '#6b2a45'],
     topNotes: ['Blackcurrant', 'Pink pepper'],
     heartNotes: ['Orchid', 'Rose de Mai'],
@@ -94,7 +123,8 @@ export const products: ProductSummary[] = [
     name: 'Golden Bloom',
     collection: 'icon',
     inspiredBy: 'La Vie Est Belle',
-    price: 3450,
+    price: 750,
+    galleryImages: galleryByCollection.icon,
     placeholderGradient: ['#f3e8c8', '#a67c32'],
     topNotes: ['Saffron', 'Bergamot zest'],
     heartNotes: ['Turkish rose', 'Osmanthus'],
@@ -113,7 +143,8 @@ export const products: ProductSummary[] = [
     name: 'Cobalt Drive',
     collection: 'executive',
     inspiredBy: 'YSL Y EDP',
-    price: 2750,
+    price: 750,
+    galleryImages: galleryByCollection.executive,
     placeholderGradient: ['#ececee', '#787c88'],
     topNotes: ['Aldehydes', 'Green cardamom'],
     heartNotes: ['Metallic violet', 'Cedar'],
@@ -132,7 +163,8 @@ export const products: ProductSummary[] = [
     name: 'Lumière',
     collection: 'icon',
     inspiredBy: 'YSL Libre',
-    price: 2550,
+    price: 750,
+    galleryImages: galleryByCollection.icon,
     placeholderGradient: ['#dbeafe', '#3b6fb8'],
     topNotes: ['Yuzu', 'Coastal herbs'],
     heartNotes: ['Neroli', 'Blue ginger'],

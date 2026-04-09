@@ -46,6 +46,7 @@ export function ProductPage() {
 
   const col = getCollectionById(product.collection)
   const [g0, g1] = product.placeholderGradient
+  const [bottleFront, bottleBack, boxImage] = product.galleryImages
   const accent = col?.accent ?? '#2a2622'
   const related = getRelatedProducts(product.id, 3)
 
@@ -110,28 +111,73 @@ export function ProductPage() {
               }}
               aria-hidden
             />
-            <div
-              className="relative mx-auto aspect-[4/5] w-full max-w-md overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
-              style={{
-                background: `linear-gradient(145deg, ${g0}, ${g1})`,
-                boxShadow: `0 32px 90px -48px ${accent}55, inset 0 0 0 1px rgba(255,255,255,0.12)`,
-              }}
-            >
+            <div className="mx-auto flex w-full max-w-md flex-col gap-3">
               <div
-                className="pointer-events-none absolute inset-0 opacity-80"
+                className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
                 style={{
-                  background: `radial-gradient(ellipse 90% 75% at 50% 38%, rgba(255,255,255,0.42), transparent 52%), linear-gradient(210deg, rgba(255,255,255,0.28) 0%, transparent 48%, rgba(42,38,34,0.1) 100%)`,
+                  background: `linear-gradient(145deg, ${g0}, ${g1})`,
+                  boxShadow: `0 32px 90px -48px ${accent}55, inset 0 0 0 1px rgba(255,255,255,0.12)`,
                 }}
-                aria-hidden
-              />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <motion.div
-                  className="text-scnt-text/[0.06]"
-                  animate={{ scale: [1, 1.02, 1], opacity: [0.07, 0.1, 0.07] }}
-                  transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <div
+                  className="pointer-events-none absolute inset-0 opacity-80"
+                  style={{
+                    background: `radial-gradient(ellipse 90% 75% at 50% 38%, rgba(255,255,255,0.42), transparent 52%), linear-gradient(210deg, rgba(255,255,255,0.28) 0%, transparent 48%, rgba(42,38,34,0.1) 100%)`,
+                  }}
+                  aria-hidden
+                />
+                <img
+                  src={bottleFront}
+                  alt={`${product.name} — bottle front`}
+                  className="absolute inset-0 z-[1] h-full w-full object-contain p-6 sm:p-10"
+                  decoding="async"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div
+                  className="relative aspect-[4/5] overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
+                  style={{
+                    background: `linear-gradient(145deg, ${g0}, ${g1})`,
+                    boxShadow: `0 18px 48px -36px ${accent}40`,
+                  }}
                 >
-                  <EightPointStar size={100} />
-                </motion.div>
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-70"
+                    style={{
+                      background: `linear-gradient(200deg, rgba(255,255,255,0.28) 0%, transparent 45%)`,
+                    }}
+                    aria-hidden
+                  />
+                  <img
+                    src={bottleBack}
+                    alt={`${product.name} — bottle back`}
+                    className="absolute inset-0 z-[1] h-full w-full object-contain p-4 sm:p-6"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+                <div
+                  className="relative aspect-[4/5] overflow-hidden rounded-2xl ring-1 ring-scnt-border/90"
+                  style={{
+                    background: `linear-gradient(145deg, ${g0}, ${g1})`,
+                    boxShadow: `0 18px 48px -36px ${accent}40`,
+                  }}
+                >
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-70"
+                    style={{
+                      background: `linear-gradient(200deg, rgba(255,255,255,0.28) 0%, transparent 45%)`,
+                    }}
+                    aria-hidden
+                  />
+                  <img
+                    src={boxImage}
+                    alt={`${product.name} — box`}
+                    className="absolute inset-0 z-[1] h-full w-full object-contain p-4 sm:p-6"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
               </div>
             </div>
           </motion.div>

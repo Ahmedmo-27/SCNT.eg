@@ -46,6 +46,7 @@ export function ProductRecommendations({
         {items.map((p, i) => {
           const col = getCollectionById(p.collection)
           const [g0, g1] = p.placeholderGradient
+          const [bottleFront] = p.galleryImages
           const accent = col?.accent ?? '#2a2622'
 
           return (
@@ -84,6 +85,13 @@ export function ProductRecommendations({
                       background: `radial-gradient(circle at 50% 100%, ${accent}35, transparent 55%)`,
                     }}
                     aria-hidden
+                  />
+                  <img
+                    src={bottleFront}
+                    alt=""
+                    className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-contain p-5 sm:p-6"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
                 <div className="space-y-1.5 px-5 py-5">
