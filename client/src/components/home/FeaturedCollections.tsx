@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { collections } from '../../data/collections'
+import { useCatalog } from '../../context/CatalogContext'
 import { getCollectionVivid } from '../../data/collectionThemes'
 import { hexToRgba, tintedBeigeGlass } from '../../lib/colorUtils'
 import { EightPointStar } from '../ui/EightPointStar'
 import { StarDivider } from '../ui/StarDivider'
+import { StarLoader } from '../ui/StarLoader'
 
 const container = {
   hidden: {},
@@ -23,6 +24,16 @@ const item = {
 }
 
 export function FeaturedCollections() {
+  const { collections, loading } = useCatalog()
+
+  if (loading) {
+    return (
+      <section className="relative border-t border-scnt-border/80 bg-gradient-to-b from-scnt-bg-muted/25 via-scnt-bg/40 to-scnt-bg px-5 py-24 sm:px-8 sm:py-28">
+        <StarLoader className="py-16" label="Loading collections" />
+      </section>
+    )
+  }
+
   return (
     <section className="relative border-t border-scnt-border/80 bg-gradient-to-b from-scnt-bg-muted/25 via-scnt-bg/40 to-scnt-bg px-5 py-24 sm:px-8 sm:py-28">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-scnt-border to-transparent opacity-80" />
@@ -91,14 +102,13 @@ export function FeaturedCollections() {
                     <h3 className="mt-3 font-serif text-2xl text-scnt-text sm:text-3xl">
                       {c.name}
                     </h3>
-                    <p className="mt-2 max-w-md font-serif text-sm italic text-scnt-text/85 sm:text-base">
-                      {c.identityLine}
-                    </p>
+                    {c.subTagline ? (
+                      <p className="mt-2 max-w-md font-serif text-sm italic text-scnt-text/85 sm:text-base">
+                        {c.subTagline}
+                      </p>
+                    ) : null}
                     <p className="mt-3 max-w-md text-sm leading-relaxed text-scnt-text-muted">
                       {c.tagline}
-                    </p>
-                    <p className="mt-6 text-xs tracking-wide text-scnt-text/55">
-                      {c.mood}
                     </p>
                     <span className="mt-8 inline-flex items-center gap-2 text-sm text-scnt-text transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)]">
                       Enter collection

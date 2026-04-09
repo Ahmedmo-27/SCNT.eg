@@ -18,6 +18,8 @@ type ButtonProps = Omit<
   children: ReactNode
   /** When set, renders a React Router link styled as a button (no nested &lt;button&gt;). */
   to?: string
+  /** `state` on the router `<Link />` when `to` is set. */
+  linkState?: unknown
 }
 
 const base =
@@ -63,6 +65,7 @@ export function Button({
   children,
   type = 'button',
   to,
+  linkState,
   ...props
 }: ButtonProps) {
   const cls = `${base} ${variants[variant]} ${className}`.trim()
@@ -70,7 +73,7 @@ export function Button({
 
   if (to) {
     return (
-      <MotionLink to={to} className={cls} {...motionProps}>
+      <MotionLink to={to} state={linkState} className={cls} {...motionProps}>
         <LightSweep active={sweep} />
         <span className="relative z-[1]">{children}</span>
       </MotionLink>

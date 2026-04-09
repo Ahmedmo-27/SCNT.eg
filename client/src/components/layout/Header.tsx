@@ -1,11 +1,23 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { getStoredAuthToken } from '../../lib/authStorage'
 import { Logo } from '../brand/Logo'
-import { collections } from '../../data/collections'
-import { products as allProducts } from '../../data/products'
+import { useCatalog } from '../../context/CatalogContext'
+import { sortCollectionsForDisplay } from '../../lib/catalogDisplayOrder'
+import { fetchProductsByQuery } from '../../services/productSearch'
+import type { ApiProduct } from '../../types/catalog'
 
 const LANG_KEY = 'scnt-lang'
 const MEGA_LEAVE_MS = 28
+const SEARCH_DEBOUNCE_MS = 320
+
+function formatEgp(n: number): string {
+  return new Intl.NumberFormat('en-EG', {
+    style: 'currency',
+    currency: 'EGP',
+    maximumFractionDigits: 0,
+  }).format(n)
+}
 
 function IconPhone({ className }: { className?: string }) {
   return (
@@ -19,6 +31,15 @@ function IconCart({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h15l-1.5 9h-12zM6 6L5 3H2M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000-2z" />
+    </svg>
+  )
+}
+
+function IconSearch({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <circle cx="11" cy="11" r="7" />
+      <path strokeLinecap="round" d="M20 20l-3-3" />
     </svg>
   )
 }
@@ -53,7 +74,10 @@ const navLinkBase =
 const navText = 'text-scnt-text/90 hover:text-scnt-text'
 
 export function Header() {
+  const { collections, previewImageByCollectionId } = useCatalog()
+  const navCollections = useMemo(() => sortCollectionsForDisplay(collections), [collections])
   const location = useLocation()
+  const navigate = useNavigate()
   const headerRef = useRef<HTMLElement>(null)
   const [scrolled, setScrolled] = useState(false)
   const [sideOpen, setSideOpen] = useState(false)
@@ -62,6 +86,13 @@ export function Header() {
   const megaTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const overMega = useRef(false)
   const overTrigger = useRef(false)
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchExpanded, setSearchExpanded] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const [searchResults, setSearchResults] = useState<ApiProduct[]>([])
+  const [searchError, setSearchError] = useState<string | null>(null)
 
   const [lang] = useState<'en' | 'ar'>(() => {
     try {
@@ -81,7 +112,7 @@ export function Header() {
     ro.observe(el)
     document.documentElement.style.setProperty('--scnt-header-h', `${el.offsetHeight}px`)
     return () => ro.disconnect()
-  }, [megaOpen, sideOpen, scrolled])
+  }, [megaOpen, sideOpen, scrolled, searchOpen, searchExpanded])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -104,6 +135,11 @@ export function Header() {
     setSideOpen(false)
     setMobileCollectionsOpen(false)
     setMegaOpen(false)
+    setSearchOpen(false)
+    setSearchQuery('')
+    setSearchResults([])
+    setSearchError(null)
+    setSearchExpanded(false)
   }, [location.pathname])
 
   useEffect(() => {
@@ -111,11 +147,72 @@ export function Header() {
       if (e.key === 'Escape') {
         setSideOpen(false)
         setMegaOpen(false)
+        setSearchOpen(false)
+        setSearchQuery('')
+        setSearchResults([])
+        setSearchError(null)
+        setSearchLoading(false)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
+
+  useEffect(() => {
+    const q = searchQuery.trim()
+    if (!q) {
+      setSearchResults([])
+      setSearchError(null)
+      setSearchLoading(false)
+      return
+    }
+    setSearchLoading(true)
+    setSearchError(null)
+    const id = window.setTimeout(() => {
+      fetchProductsByQuery(q, 8)
+        .then((res) => setSearchResults(res.items))
+        .catch((err) => {
+          setSearchError(err instanceof Error ? err.message : 'Search failed')
+          setSearchResults([])
+        })
+        .finally(() => setSearchLoading(false))
+    }, SEARCH_DEBOUNCE_MS)
+    return () => clearTimeout(id)
+  }, [searchQuery])
+
+  useEffect(() => {
+    if (searchQuery.trim()) setSearchExpanded(true)
+  }, [searchQuery])
+
+  const groupedResults = useMemo(() => {
+    const m = new Map<string, ApiProduct[]>()
+    for (const p of searchResults) {
+      const key = p.collection?.name?.trim() || 'Catalogue'
+      if (!m.has(key)) m.set(key, [])
+      m.get(key)!.push(p)
+    }
+    return [...m.entries()]
+  }, [searchResults])
+
+  const onSearchInput = (value: string, opts?: { keepOpenWhenEmpty?: boolean }) => {
+    setSearchQuery(value)
+    if (value.trim()) setSearchOpen(true)
+    else if (!opts?.keepOpenWhenEmpty) {
+      setSearchOpen(false)
+      setSearchResults([])
+      setSearchError(null)
+      setSearchLoading(false)
+    }
+  }
+
+  const closeSearch = () => {
+    setSearchOpen(false)
+    setSearchQuery('')
+    setSearchResults([])
+    setSearchError(null)
+    setSearchLoading(false)
+    setSearchExpanded(false)
+  }
 
   const scheduleMegaClose = () => {
     if (megaTimer.current) clearTimeout(megaTimer.current)
@@ -124,18 +221,9 @@ export function Header() {
     }, MEGA_LEAVE_MS)
   }
 
-  const collectionImages = useMemo(() => {
-    const map: Record<string, string> = {}
-    for (const c of collections) {
-      const p = allProducts.find((x) => x.collection === c.id)
-      map[c.id] = p?.galleryImages[0] ?? ''
-    }
-    return map
-  }, [])
-
   const iconBtn =
     'inline-flex items-center justify-center rounded-full p-2 text-scnt-text-muted transition-colors hover:bg-scnt-border/40 hover:text-scnt-text'
-  const topTransparent = !scrolled && !sideOpen && !megaOpen
+  const topTransparent = !scrolled && !sideOpen && !megaOpen && !searchOpen
   const iconBtnClass = iconBtn
   const navTone = navText
 
@@ -180,12 +268,58 @@ export function Header() {
           </div>
 
           <div className="absolute right-5 top-1/2 flex -translate-y-1/2 items-center justify-end gap-1 sm:right-8 sm:gap-2">
+            <div
+              className={`relative mr-0.5 hidden overflow-hidden rounded-full border transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:grid sm:items-stretch ${
+                searchExpanded
+                  ? 'w-[min(220px,40vw)] grid-cols-[minmax(0,1fr)_2.5rem]'
+                  : 'h-10 w-10 grid-cols-1 place-items-center'
+              } ${
+                topTransparent
+                  ? 'border-scnt-border/55 bg-scnt-bg/25 backdrop-blur-md'
+                  : 'border-scnt-border/80 bg-scnt-bg-elevated/65'
+              }`}
+            >
+              {searchExpanded ? (
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => onSearchInput(e.target.value)}
+                  placeholder="Search"
+                  className="col-start-1 min-w-0 border-0 bg-transparent py-2 pl-3 text-xs text-scnt-text placeholder:text-scnt-text-muted/75 focus:outline-none focus:ring-0"
+                  aria-label="Search products"
+                  autoComplete="off"
+                />
+              ) : null}
+              <button
+                type="button"
+                className={`inline-flex size-10 shrink-0 items-center justify-center text-scnt-text-muted transition-colors hover:text-scnt-text ${
+                  searchExpanded ? 'col-start-2 row-start-1' : 'col-start-1 row-start-1'
+                }`}
+                aria-label={searchExpanded ? 'Collapse search' : 'Expand search'}
+                onClick={() => setSearchExpanded((prev) => !prev)}
+              >
+                <IconSearch className="pointer-events-none h-4 w-4" />
+              </button>
+            </div>
+            <button
+              type="button"
+              className={`${iconBtnClass} sm:hidden`}
+              aria-label="Open search"
+              onClick={() => setSearchOpen(true)}
+            >
+              <IconSearch className="h-5 w-5" />
+            </button>
             <Link to="/contact" className={`${iconBtnClass} !hidden lg:!inline-flex`} aria-label="Contact">
               <IconPhone className="h-5 w-5" />
             </Link>
-            <Link to="/profile" className={`${iconBtnClass} !hidden lg:!inline-flex`} aria-label="Profile">
+            <button
+              type="button"
+              className={iconBtnClass}
+              aria-label="Profile"
+              onClick={() => navigate(getStoredAuthToken() ? '/profile' : '/login')}
+            >
               <IconUser className="h-5 w-5" />
-            </Link>
+            </button>
             <Link to="/cart" className={`${iconBtnClass} !hidden lg:!inline-flex`} aria-label="Cart">
               <IconCart className="h-5 w-5" />
             </Link>
@@ -193,7 +327,9 @@ export function Header() {
         </div>
 
         <div
-          className={`mx-auto hidden w-full max-w-6xl px-5 transition-[border-color,transform,opacity,padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-8 lg:block ${
+          className={`mx-auto w-full max-w-6xl px-5 transition-[border-color,transform,opacity,padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-8 hidden ${
+            searchOpen ? 'lg:hidden' : 'lg:block'
+          } ${
             topTransparent
               ? 'border-t border-white/20 py-3 text-white/95'
               : 'border-t border-scnt-border/50 py-2.5'
@@ -255,20 +391,12 @@ export function Header() {
               About
             </NavLink>
             <NavLink
-              to="/login"
+              to="/faqs"
               className={({ isActive }) =>
                 `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
               }
             >
-              Login
-            </NavLink>
-            <NavLink
-              to="/register"
-              className={({ isActive }) =>
-                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
-              }
-            >
-              Create account
+              FAQs
             </NavLink>
           </nav>
         </div>
@@ -288,7 +416,7 @@ export function Header() {
             <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-8 sm:flex-row sm:px-8">
               <div className="flex shrink-0 flex-col gap-3 border-scnt-border/60 sm:border-e sm:pe-8">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-scnt-text">Collections</p>
-                {collections.map((c) => (
+                {navCollections.map((c) => (
                   <Link
                     key={c.id}
                     to={`/collections/${c.id}`}
@@ -307,7 +435,7 @@ export function Header() {
                 </Link>
               </div>
               <div className="grid flex-1 grid-cols-2 gap-3 lg:grid-cols-4">
-                {collections.map((c) => (
+                {navCollections.map((c) => (
                   <Link
                     key={c.id}
                     to={`/collections/${c.id}`}
@@ -315,9 +443,9 @@ export function Header() {
                     onClick={() => setMegaOpen(false)}
                   >
                     <div className="aspect-[3/4] w-full overflow-hidden bg-scnt-bg-muted/50">
-                      {collectionImages[c.id] ? (
+                      {previewImageByCollectionId[c.id] ? (
                         <img
-                          src={collectionImages[c.id]}
+                          src={previewImageByCollectionId[c.id]}
                           alt=""
                           className="h-full w-full object-cover transition-[filter,transform] duration-500 group-hover:scale-[1.03] group-hover:brightness-[0.92]"
                         />
@@ -329,6 +457,93 @@ export function Header() {
                   </Link>
                 ))}
               </div>
+            </div>
+          </div>
+        ) : null}
+
+        {searchOpen ? (
+          <div className="absolute left-0 right-0 top-full z-[110] max-h-[min(80vh,560px)] overflow-y-auto border-t border-scnt-border/80 bg-scnt-bg shadow-[0_28px_60px_-28px_var(--color-scnt-shadow)]">
+            <div className="relative mx-auto max-w-6xl px-5 py-8 sm:px-8">
+              <button
+                type="button"
+                className="absolute end-4 top-5 inline-flex rounded-full p-2 text-scnt-text-muted transition-colors hover:bg-scnt-border/35 hover:text-scnt-text"
+                onClick={closeSearch}
+                aria-label="Close search"
+              >
+                <IconX className="h-5 w-5" />
+              </button>
+              <h2 className="pr-12 font-serif text-xl font-normal tracking-[0.08em] text-scnt-text sm:text-2xl">Products</h2>
+              <p className="mt-1 max-w-xl text-sm text-scnt-text-muted">Search the live catalogue — names, notes, and descriptions.</p>
+
+              <div className="mt-5 sm:hidden">
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onChange={(e) => onSearchInput(e.target.value, { keepOpenWhenEmpty: true })}
+                  placeholder="Search fragrances…"
+                  className="w-full rounded-xl border border-scnt-border/80 bg-scnt-bg-elevated/70 px-4 py-3 text-sm text-scnt-text placeholder:text-scnt-text-muted/75 focus:border-scnt-text/20 focus:outline-none focus:ring-2 focus:ring-scnt-text/10"
+                  aria-label="Search products"
+                  autoComplete="off"
+                  autoFocus
+                />
+              </div>
+
+              <div className="mt-8 space-y-8">
+                {searchLoading ? (
+                  <p className="text-sm text-scnt-text-muted">Searching…</p>
+                ) : searchError ? (
+                  <p className="text-sm text-scnt-text-muted">{searchError}</p>
+                ) : !searchQuery.trim() ? (
+                  <p className="text-sm text-scnt-text-muted">Type to see products from the server.</p>
+                ) : searchResults.length === 0 ? (
+                  <div className="rounded-xl border border-scnt-border/70 bg-scnt-bg-elevated/40 px-5 py-8 text-center">
+                    <p className="text-sm font-medium text-scnt-text">No matches for “{searchQuery.trim()}”</p>
+                    <p className="mt-2 text-xs text-scnt-text-muted">
+                      Try a note, collection name, or part of a product name.
+                    </p>
+                  </div>
+                ) : (
+                  groupedResults.map(([brand, items]) => (
+                    <div key={brand}>
+                      <h3 className="border-b border-scnt-border/70 pb-2 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-scnt-text-muted">
+                        {brand}
+                      </h3>
+                      <ul className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap" role="listbox">
+                        {items.map((p) => (
+                          <li key={p._id} className="sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.5rem)]">
+                            <Link
+                              to={`/product/${p.slug}`}
+                              className="flex gap-3 rounded-xl border border-scnt-border/60 bg-scnt-bg-elevated/35 p-3 transition-[background-color,box-shadow,border-color] duration-300 hover:border-scnt-text/15 hover:bg-scnt-bg-muted/45 hover:shadow-[0_14px_40px_-24px_var(--color-scnt-shadow)]"
+                              onClick={closeSearch}
+                              role="option"
+                            >
+                              <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-scnt-bg-muted/60 ring-1 ring-scnt-border/50">
+                                {p.images?.[0] ? (
+                                  <img src={p.images[0]} alt="" className="h-full w-full object-cover" />
+                                ) : null}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-scnt-text">{p.name}</p>
+                                <p className="text-xs text-scnt-text-muted">{formatEgp(p.price)}</p>
+                              </div>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {searchQuery.trim() && searchResults.length > 0 ? (
+                <Link
+                  to={`/shop?q=${encodeURIComponent(searchQuery.trim())}`}
+                  className="mt-8 inline-flex text-sm font-medium text-scnt-text-muted underline-offset-4 transition-colors hover:text-scnt-text hover:underline"
+                  onClick={closeSearch}
+                >
+                  View all results for “{searchQuery.trim()}”
+                </Link>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -373,7 +588,7 @@ export function Header() {
               Collections
             </button>
             {mobileCollectionsOpen
-              ? collections.map((c) => (
+              ? navCollections.map((c) => (
                   <Link
                     key={c.id}
                     to={`/collections/${c.id}`}
@@ -392,17 +607,11 @@ export function Header() {
             <Link to="/about" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               About
             </Link>
+            <Link to="/faqs" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
+              FAQs
+            </Link>
             <Link to="/contact" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               Contact
-            </Link>
-            <Link to="/login" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
-              Login
-            </Link>
-            <Link to="/register" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
-              Create account
-            </Link>
-            <Link to="/profile" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
-              Profile
             </Link>
             <Link to="/cart" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               Cart

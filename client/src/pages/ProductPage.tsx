@@ -2,14 +2,17 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Layout } from '../components/layout/Layout'
-import { getProductById, getRelatedProducts } from '../data/products'
-import { getCollectionById } from '../data/collections'
+import { useCatalog } from '../context/CatalogContext'
+import { getRelatedProducts, mapApiProductToSummary } from '../lib/catalogMappers'
+import { apiGetData } from '../services/api'
+import type { ApiProduct, ProductSummary } from '../types/catalog'
 import { Button } from '../components/ui/Button'
 import { EightPointStar } from '../components/ui/EightPointStar'
 import { ScentPyramid } from '../components/product/ScentPyramid'
 import { ProductImageCarousel } from '../components/product/ProductImageCarousel'
 import { ProductRecommendations } from '../components/product/ProductRecommendations'
 import { StarDivider } from '../components/ui/StarDivider'
+import { StarLoader } from '../components/ui/StarLoader'
 import { useCartStore } from '../store/cartStore'
 import { PlaceholderPage } from './PlaceholderPage'
 
@@ -26,7 +29,9 @@ const cardShell =
 
 export function ProductPage() {
   const { id } = useParams()
-  const product = id ? getProductById(id) : undefined
+  const { collections, products } = useCatalog()
+  const [product, setProduct] = useState<ProductSummary | undefined>()
+  const [pending, setPending] = useState(true)
   const addItem = useCartStore((s) => s.addItem)
   const [justAdded, setJustAdded] = useState(false)
 
@@ -35,6 +40,37 @@ export function ProductPage() {
     const t = window.setTimeout(() => setJustAdded(false), 2400)
     return () => window.clearTimeout(t)
   }, [justAdded])
+
+  useEffect(() => {
+    if (!id) {
+      setProduct(undefined)
+      setPending(false)
+      return
+    }
+    let cancelled = false
+    setPending(true)
+    apiGetData<ApiProduct>(`/products/${id}`)
+      .then((raw) => {
+        if (!cancelled) setProduct(mapApiProductToSummary(raw))
+      })
+      .catch(() => {
+        if (!cancelled) setProduct(undefined)
+      })
+      .finally(() => {
+        if (!cancelled) setPending(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  if (pending) {
+    return (
+      <Layout>
+        <StarLoader className="py-32" label="Loading product" />
+      </Layout>
+    )
+  }
 
   if (!product) {
     return (
@@ -45,9 +81,9 @@ export function ProductPage() {
     )
   }
 
-  const col = getCollectionById(product.collection)
+  const col = collections.find((x) => x.id === product.collection)
   const accent = col?.accent ?? '#2a2622'
-  const related = getRelatedProducts(product.id, 3)
+  const related = getRelatedProducts(products, product.id, 3)
 
   function handleAddToCart() {
     if (!product) return

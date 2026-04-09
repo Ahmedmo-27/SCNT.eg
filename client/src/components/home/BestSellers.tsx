@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion'
-import { getBestsellers } from '../../data/products'
+import { useCatalog } from '../../context/CatalogContext'
 import { ProductCard } from '../product/ProductCard'
 import { EightPointStar } from '../ui/EightPointStar'
 import { StarDivider } from '../ui/StarDivider'
+import { StarLoader } from '../ui/StarLoader'
 
 const grid = {
   hidden: {},
@@ -21,7 +22,16 @@ const cell = {
 }
 
 export function BestSellers() {
-  const list = getBestsellers(4)
+  const { products, loading } = useCatalog()
+  const list = products.slice(0, 4)
+
+  if (loading) {
+    return (
+      <section className="relative px-5 py-24 sm:px-8 sm:py-28">
+        <StarLoader className="py-16" label="Loading products" />
+      </section>
+    )
+  }
 
   return (
     <section className="relative px-5 py-24 sm:px-8 sm:py-28">

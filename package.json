@@ -1,0 +1,10 @@
+{
+  "name": "scnt-eg-website",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c cyan,magenta \"npm run dev --prefix server\" \"npm run dev --prefix client\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

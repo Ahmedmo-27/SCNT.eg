@@ -1,12 +1,15 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Layout } from '../components/layout/Layout'
-import { collections, type CollectionId } from '../data/collections'
-import { products } from '../data/products'
+import { useCatalog } from '../context/CatalogContext'
+import { mapApiProductToSummary } from '../lib/catalogMappers'
+import { parseCollectionIdParam, type ApiProductListResponse, type CollectionId, type ProductSummary } from '../types/catalog'
+import { apiGetData } from '../services/api'
 import { ProductCard } from '../components/product/ProductCard'
 import { EightPointStar } from '../components/ui/EightPointStar'
 import { StarDivider } from '../components/ui/StarDivider'
+import { StarLoader } from '../components/ui/StarLoader'
 
 const grid = {
   hidden: {},
@@ -24,26 +27,62 @@ const cell = {
   },
 }
 
-function isCollectionId(v: string | null): v is CollectionId {
-  return v !== null && collections.some((c) => c.id === v)
+function collectionFilter(v: string | null): CollectionId | null {
+  if (v === null) return null
+  return parseCollectionIdParam(v)
 }
 
 export function ShopAllPage() {
+  const { collections, products, loading } = useCatalog()
   const [searchParams, setSearchParams] = useSearchParams()
   const filterRaw = searchParams.get('collection')
-  const filter = isCollectionId(filterRaw) ? filterRaw : null
+  const filter = collectionFilter(filterRaw)
+  const qRaw = searchParams.get('q')
+  const qParam = qRaw?.trim() ?? ''
+
+  const [shopQueryResults, setShopQueryResults] = useState<ProductSummary[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+
+  useEffect(() => {
+    if (!qParam) {
+      setShopQueryResults([])
+      setSearchLoading(false)
+      return
+    }
+    let cancelled = false
+    setSearchLoading(true)
+    apiGetData<ApiProductListResponse>(`/products?q=${encodeURIComponent(qParam)}&limit=48&page=1`)
+      .then((data) => {
+        if (!cancelled) setShopQueryResults(data.items.map(mapApiProductToSummary))
+      })
+      .catch(() => {
+        if (!cancelled) setShopQueryResults([])
+      })
+      .finally(() => {
+        if (!cancelled) setSearchLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [qParam])
+
+  const catalogueList = qParam ? shopQueryResults : products
 
   const visible = useMemo(
-    () => (filter ? products.filter((p) => p.collection === filter) : products),
-    [filter],
+    () => (filter ? catalogueList.filter((p) => p.collection === filter) : catalogueList),
+    [filter, catalogueList],
   )
 
+  const gridLoading = loading || (qParam !== '' && searchLoading)
+
   const setFilter = (next: CollectionId | null) => {
+    const nextParams = new URLSearchParams(searchParams)
     if (next === null) {
-      setSearchParams({})
+      nextParams.delete('collection')
     } else {
-      setSearchParams({ collection: next })
+      nextParams.set('collection', next)
     }
+    setSearchParams(nextParams)
   }
 
   return (
@@ -59,9 +98,17 @@ export function ShopAllPage() {
             Every bottle in the house — filter by line, or wander the full grid.
           </p>
           <p className="mt-2 text-sm text-scnt-text/60">
-            {visible.length === products.length
-              ? `${products.length} fragrances`
-              : `${visible.length} in this line · ${products.length} total`}
+            {gridLoading
+              ? qParam
+                ? 'Searching catalogue…'
+                : 'Loading catalogue…'
+              : qParam
+                ? visible.length === catalogueList.length
+                  ? `${visible.length} match${visible.length === 1 ? '' : 'es'} for “${qParam}”`
+                  : `${visible.length} in this line · ${catalogueList.length} matches`
+                : visible.length === products.length
+                  ? `${products.length} fragrances`
+                  : `${visible.length} in this line · ${products.length} total`}
           </p>
         </header>
 
@@ -105,8 +152,12 @@ export function ShopAllPage() {
           </div>
         </div>
 
-        {visible.length === 0 ? (
-          <p className="text-sm text-scnt-text-muted">Nothing in this line yet.</p>
+        {gridLoading ? (
+          <StarLoader className="py-20" label={qParam ? 'Searching' : 'Loading shop'} />
+        ) : visible.length === 0 ? (
+          <p className="text-sm text-scnt-text-muted">
+            {qParam ? `No products found for “${qParam}”.` : 'Nothing in this line yet.'}
+          </p>
         ) : (
           <motion.div
             key={filter ?? 'all'}

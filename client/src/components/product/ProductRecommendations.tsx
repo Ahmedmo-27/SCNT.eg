@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import type { ProductSummary } from '../../data/products'
-import { getCollectionById } from '../../data/collections'
+import { useCatalog } from '../../context/CatalogContext'
+import type { ProductSummary } from '../../types/catalog'
 import { productImageFrameFull, productImageFrameTop } from './productImageFrame'
 import { EightPointStar } from '../ui/EightPointStar'
 
@@ -24,6 +24,7 @@ export function ProductRecommendations({
   title = 'You might also like',
   subtitle = 'Chosen for a similar mood — not a formula.',
 }: Props) {
+  const { collections } = useCatalog()
   if (items.length === 0) return null
 
   return (
@@ -45,7 +46,7 @@ export function ProductRecommendations({
 
       <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((p, i) => {
-          const col = getCollectionById(p.collection)
+          const col = collections.find((c) => c.id === p.collection)
           const [g0, g1] = p.placeholderGradient
           const [bottleFront] = p.galleryImages
           const accent = col?.accent ?? '#2a2622'

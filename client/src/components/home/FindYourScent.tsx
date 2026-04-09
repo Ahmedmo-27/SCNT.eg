@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { collections, type CollectionId } from '../../data/collections'
-import { products } from '../../data/products'
+import { useCatalog } from '../../context/CatalogContext'
+import type { CollectionId } from '../../types/catalog'
+import type { ProductSummary } from '../../types/catalog'
 import { Button } from '../ui/Button'
 import { EightPointStar } from '../ui/EightPointStar'
 
@@ -31,12 +32,13 @@ const questions: {
   },
 ]
 
-function pickSpotlight(collection: CollectionId) {
+function pickSpotlight(collection: CollectionId, products: ProductSummary[]) {
   const line = products.filter((p) => p.collection === collection)
   return line[0] ?? products[0]
 }
 
 export function FindYourScent() {
+  const { collections, products, loading } = useCatalog()
   const [step, setStep] = useState<Step>(0)
   const [scores, setScores] = useState<Record<CollectionId, number>>({
     executive: 0,
@@ -54,8 +56,9 @@ export function FindYourScent() {
         best = k
       }
     })
-    return { collectionId: best, product: pickSpotlight(best) }
-  }, [scores])
+    const product = products.length ? pickSpotlight(best, products) : undefined
+    return { collectionId: best, product }
+  }, [scores, products])
 
   const col = collections.find((c) => c.id === result.collectionId)
 
@@ -73,6 +76,17 @@ export function FindYourScent() {
       charmer: 0,
       icon: 0,
     })
+  }
+
+  if (loading) {
+    return (
+      <section
+        id="find-your-scent"
+        className="relative scroll-mt-24 border-t border-scnt-border/80 bg-gradient-to-b from-scnt-bg-muted/20 via-transparent to-scnt-bg px-5 py-24 sm:px-8 sm:py-28"
+      >
+        <p className="text-center text-sm text-scnt-text-muted">Loading…</p>
+      </section>
+    )
   }
 
   return (
@@ -131,13 +145,15 @@ export function FindYourScent() {
               transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
               className="rounded-2xl bg-scnt-bg-elevated/55 p-8 ring-1 ring-scnt-border/90"
             >
-              {col ? (
+              {col && result.product ? (
                 <>
                   <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">
                     We’d start you here
                   </p>
                   <h3 className="mt-3 font-serif text-2xl text-scnt-text">{col.name}</h3>
-                  <p className="mt-2 text-sm italic text-scnt-text-muted">{col.identityLine}</p>
+                  {col.subTagline ? (
+                    <p className="mt-2 text-sm italic text-scnt-text-muted">{col.subTagline}</p>
+                  ) : null}
                   <p className="mt-4 text-sm leading-relaxed text-scnt-text-muted">
                     {col.tagline}
                   </p>

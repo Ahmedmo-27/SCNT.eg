@@ -6,6 +6,7 @@ import { CollectionsPage } from './pages/CollectionsPage'
 import { AboutPage } from './pages/AboutPage'
 import { CheckoutPage } from './pages/CheckoutPage'
 import { ContactPage } from './pages/ContactPage'
+import { FaqPage } from './pages/FaqPage'
 import { Home } from './pages/Home'
 import { LoginPage } from './pages/LoginPage'
 import { ProductPage } from './pages/ProductPage'
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/faqs" element={<FaqPage />} />
         <Route path="/find-your-scnt" element={<FindYourScntPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />

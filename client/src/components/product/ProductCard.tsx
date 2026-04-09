@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import type { CollectionId } from '../../data/collections'
-import { getCollectionById } from '../../data/collections'
+import { useCatalog } from '../../context/CatalogContext'
 import { getCollectionVivid } from '../../data/collectionThemes'
 import { hexToRgba, tintedBeigeGlass } from '../../lib/colorUtils'
-import type { ProductSummary } from '../../data/products'
+import type { CollectionId } from '../../types/catalog'
+import type { ProductSummary } from '../../types/catalog'
 import { productImageFrameFull, productImageFrameTop } from './productImageFrame'
 import { EightPointStar } from '../ui/EightPointStar'
 
@@ -23,7 +23,8 @@ function formatEgp(n: number): string {
 }
 
 export function ProductCard({ product, entrance = true }: ProductCardProps) {
-  const col = getCollectionById(product.collection)
+  const { collections } = useCatalog()
+  const col = collections.find((c) => c.id === product.collection)
   const [g0, g1] = product.placeholderGradient
   const [bottleFront] = product.galleryImages
   const accent = col?.accent ?? '#2a2622'

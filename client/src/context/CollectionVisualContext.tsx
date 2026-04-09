@@ -1,8 +1,8 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
-import type { CollectionId } from '../data/collections'
-import { getCollectionById } from '../data/collections'
 import { getCollectionVivid } from '../data/collectionThemes'
+import { useCatalog } from './CatalogContext'
 import { darkenHex } from '../lib/colorUtils'
+import type { CollectionId } from '../types/catalog'
 
 export type CollectionVisualTokens = {
   accent: string
@@ -26,16 +26,17 @@ export function CollectionVisualProvider({
   collectionId: CollectionId | null | undefined
   children: ReactNode
 }) {
+  const { collections } = useCatalog()
   const value = useMemo<CollectionVisualTokens>(() => {
     if (!collectionId) return DEFAULT_TOKENS
-    const col = getCollectionById(collectionId)
+    const col = collections.find((c) => c.id === collectionId)
     const accent = col?.accent ?? DEFAULT_TOKENS.accent
     return {
       accent,
       vivid: getCollectionVivid(collectionId),
       accentDeep: darkenHex(accent, 0.2),
     }
-  }, [collectionId])
+  }, [collectionId, collections])
 
   return (
     <CollectionVisualContext.Provider value={value}>

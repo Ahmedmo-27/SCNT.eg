@@ -6,7 +6,7 @@ import {
   useSpring,
   useTransform,
 } from 'framer-motion'
-import type { CollectionId } from '../../data/collections'
+import type { CollectionId } from '../../types/catalog'
 import { collectionTheme } from '../../data/collectionThemes'
 import { EightPointStar } from '../ui/EightPointStar'
 

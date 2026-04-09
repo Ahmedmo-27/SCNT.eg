@@ -1,16 +1,27 @@
 import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Layout } from '../components/layout/Layout'
-import { getCollectionById } from '../data/collections'
-import { products } from '../data/products'
+import { useCatalog } from '../context/CatalogContext'
 import { ProductCard } from '../components/product/ProductCard'
 import { EightPointStar } from '../components/ui/EightPointStar'
 import { StarDivider } from '../components/ui/StarDivider'
+import { StarLoader } from '../components/ui/StarLoader'
+import { parseCollectionIdParam } from '../types/catalog'
 import { PlaceholderPage } from './PlaceholderPage'
 
 export function CollectionDetailPage() {
   const { id } = useParams()
-  const c = id ? getCollectionById(id) : undefined
+  const { collections, products, loading } = useCatalog()
+  const collectionId = id ? parseCollectionIdParam(id) : null
+  const c = collectionId ? collections.find((x) => x.id === collectionId) : undefined
+
+  if (loading) {
+    return (
+      <Layout>
+        <StarLoader className="py-32" label="Loading collection" />
+      </Layout>
+    )
+  }
 
   if (!c) {
     return (
@@ -54,13 +65,16 @@ export function CollectionDetailPage() {
               {c.name}
             </h1>
             <p className="mt-4 max-w-xl font-serif text-xl italic text-scnt-text-muted sm:text-2xl">
-              {c.identityLine}
+              {c.subTagline || c.tagline}
             </p>
+            {c.subTagline ? (
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-scnt-text-muted sm:text-base">
+                {c.tagline}
+              </p>
+            ) : null}
             <p className="mt-6 max-w-2xl text-base leading-relaxed text-scnt-text sm:text-[1.05rem]">
               {c.worldIntro}
             </p>
-            <p className="mt-4 max-w-xl text-sm text-scnt-text-muted">{c.tagline}</p>
-            <p className="mt-5 text-xs tracking-wide text-scnt-text/55">{c.mood}</p>
             <Link
               to="/collections"
               className="mt-10 inline-flex items-center gap-2 text-sm text-scnt-text-muted underline-offset-4 transition-colors duration-[550ms] hover:text-scnt-text"

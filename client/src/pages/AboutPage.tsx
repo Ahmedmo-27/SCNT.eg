@@ -10,14 +10,14 @@ export function AboutPage() {
   return (
     <Layout>
       <div className="flex flex-col">
-        <div className="flex min-h-[min(52vh,32rem)] items-center justify-center px-5 sm:px-8">
-          <h1 className="w-full max-w-[100vw] text-center font-serif text-[clamp(0.7rem,2.85vw+0.2rem,2.85rem)] leading-none tracking-tight text-scnt-text whitespace-nowrap">
+        <div className="flex min-h-0 items-center justify-center px-4 py-6 sm:px-5 md:min-h-[min(34vh,18rem)] md:py-0">
+          <h1 className="m-0 w-full max-w-md text-balance text-center font-serif text-3xl leading-snug tracking-tight text-scnt-text sm:max-w-xl sm:text-4xl md:max-w-none md:text-[clamp(0.7rem,2.85vw+0.2rem,2.85rem)] md:leading-none md:whitespace-nowrap">
             Beyond the Bottle: Engineering the Essence
           </h1>
         </div>
 
         <div className="mx-auto w-full max-w-6xl px-5 pb-16 sm:px-8 sm:pb-20">
-        <StarDivider className="py-8 sm:py-10" />
+        <StarDivider className="pt-2 pb-6 md:py-10" />
 
         <div className="mx-auto max-w-2xl space-y-12">
           <motion.section

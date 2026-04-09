@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { CollectionId } from '../../data/collections'
+import type { CollectionId } from '../../types/catalog'
 import { CollectionVisualProvider } from '../../context/CollectionVisualContext'
 import { CollectionAura } from '../atmosphere/CollectionAura'
 import { CollectionWorld } from '../atmosphere/CollectionWorld'

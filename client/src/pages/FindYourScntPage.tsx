@@ -2,8 +2,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useMemo, useState } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
-import { collections, type CollectionId, type CollectionSummary } from '../data/collections'
-import { products, type ProductSummary } from '../data/products'
+import { useCatalog } from '../context/CatalogContext'
+import type { CollectionId, CollectionSummary, ProductSummary } from '../types/catalog'
 
 type Choice = {
   id: string
@@ -349,15 +349,23 @@ function strongestIds(scores: Record<CollectionId, number>): [CollectionId, Coll
   return [ranked[0], ranked[1]]
 }
 
+function leadLine(c: CollectionSummary): string {
+  return (c.subTagline || c.tagline).trim()
+}
+
 function buildCharacterParagraph(primary: CollectionSummary, secondary: CollectionSummary): string {
-  return `You move with ${primary.identityLine.toLowerCase()} Your style blends ${primary.mood.toLowerCase()} with subtle notes of ${secondary.mood.toLowerCase()}, so your presence feels intentional, memorable, and naturally confident in both everyday moments and big entrances.`
+  return `You move with ${leadLine(primary).toLowerCase()} Your style blends ${primary.mood.toLowerCase()} with subtle notes of ${secondary.mood.toLowerCase()}, so your presence feels intentional, memorable, and naturally confident in both everyday moments and big entrances.`
 }
 
 function buildCollectionWhy(primary: CollectionSummary, secondary: CollectionSummary): string {
-  return `${primary.name} fits you best because your answers consistently favored ${primary.tagline.toLowerCase()} We also picked up a secondary influence from ${secondary.name}, which adds extra dimension to your profile and keeps your scent identity unique rather than one-dimensional.`
+  return `${primary.name} fits you best because your answers consistently favored ${leadLine(primary).toLowerCase()} We also picked up a secondary influence from ${secondary.name}, which adds extra dimension to your profile and keeps your scent identity unique rather than one-dimensional.`
 }
 
-function pickFragrance(collectionId: CollectionId, scores: Record<CollectionId, number>): ProductSummary {
+function pickFragrance(
+  collectionId: CollectionId,
+  scores: Record<CollectionId, number>,
+  products: ProductSummary[],
+): ProductSummary {
   const candidates = products.filter((p) => p.collection === collectionId)
   const top = candidates[0] ?? products[0]
   if (!top) {
@@ -376,11 +384,16 @@ function buildFragranceWhy(fragrance: ProductSummary, primary: CollectionSummary
   return `${fragrance.name} is your strongest match because it opens with ${top}, then settles into ${base}. This mirrors your ${primary.mood.toLowerCase()} profile: noticeable at first impression, then deeply personal as it lingers.`
 }
 
-function calculateResult(scores: Record<CollectionId, number>): QuizResult {
+function calculateResult(
+  scores: Record<CollectionId, number>,
+  collections: CollectionSummary[],
+  products: ProductSummary[],
+): QuizResult | null {
+  if (collections.length === 0 || products.length === 0) return null
   const [primaryId, secondaryId] = strongestIds(scores)
   const primary = collections.find((c) => c.id === primaryId) ?? collections[0]
   const secondary = collections.find((c) => c.id === secondaryId) ?? collections[1]
-  const fragrance = pickFragrance(primary.id, scores)
+  const fragrance = pickFragrance(primary.id, scores, products)
 
   return {
     collection: primary,
@@ -393,6 +406,7 @@ function calculateResult(scores: Record<CollectionId, number>): QuizResult {
 }
 
 export function FindYourScntPage() {
+  const { collections, products, loading } = useCatalog()
   const [step, setStep] = useState(0)
   const [scores, setScores] = useState<Record<CollectionId, number>>(initialScores)
   const [selections, setSelections] = useState<Record<string, string>>({})
@@ -403,7 +417,10 @@ export function FindYourScntPage() {
   const isDone = step >= total
   const current = quizQuestions[Math.min(step, total - 1)]
 
-  const result = useMemo(() => calculateResult(scores), [scores])
+  const result = useMemo(
+    () => calculateResult(scores, collections, products),
+    [scores, collections, products],
+  )
 
   const answeredCount = Object.keys(selections).length
 
@@ -492,6 +509,16 @@ export function FindYourScntPage() {
                     ))}
                   </div>
                 </motion.div>
+              ) : loading || !result ? (
+                <motion.div
+                  key="result-pending"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-7 text-center text-sm text-scnt-text-muted"
+                >
+                  {loading ? 'Preparing your result…' : 'Catalogue could not be loaded. Refresh and try again.'}
+                </motion.div>
               ) : (
                 <motion.div
                   key="result"
@@ -511,7 +538,10 @@ export function FindYourScntPage() {
                   <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/70 p-5">
                     <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">Collection match</p>
                     <h3 className="mt-3 font-serif text-2xl text-scnt-text">{result.collection.name}</h3>
-                    <p className="mt-2 text-sm text-scnt-text-muted">{result.collection.identityLine}</p>
+                    {result.collection.subTagline ? (
+                      <p className="mt-2 text-sm italic text-scnt-text-muted">{result.collection.subTagline}</p>
+                    ) : null}
+                    <p className="mt-3 text-sm text-scnt-text-muted">{result.collection.tagline}</p>
                     <p className="mt-3 text-sm leading-relaxed text-scnt-text-muted sm:text-base">{result.collectionWhy}</p>
                   </div>
 

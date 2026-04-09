@@ -1,4 +1,4 @@
-import type { CollectionId } from './collections'
+import type { CollectionId } from '../types/catalog'
 
 /** Visual tokens for immersive collection backdrops — keep opacity low for luxury control. */
 export const collectionTheme = {

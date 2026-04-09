@@ -52,6 +52,11 @@ export function Footer() {
                   Contact
                 </Link>
               </li>
+              <li>
+                <Link className="transition-colors hover:text-scnt-text" to="/faqs">
+                  FAQs
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

@@ -1,18 +1,41 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { EightPointStar } from '../components/ui/EightPointStar'
+import { setStoredAuthToken } from '../lib/authStorage'
+import { login as loginRequest } from '../services/authApi'
+
+type LoginLocationState = { from?: string }
 
 export function LoginPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const returnTo = (location.state as LoginLocationState | null)?.from
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setSubmitted(true)
+    setError(null)
+    setLoading(true)
+    try {
+      const { token } = await loginRequest({
+        email: email.trim(),
+        password,
+      })
+      setStoredAuthToken(token)
+      const destination =
+        returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/profile'
+      navigate(destination, { replace: true })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Sign in failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -40,7 +63,9 @@ export function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-scnt-border/70 bg-scnt-bg px-4 py-3 text-scnt-text outline-none transition-colors focus:border-scnt-text/60"
+                  autoComplete="email"
+                  disabled={loading}
+                  className="w-full rounded-xl border border-scnt-border/70 bg-scnt-bg px-4 py-3 text-scnt-text outline-none transition-colors focus:border-scnt-text/60 disabled:opacity-60"
                   placeholder="you@example.com"
                 />
               </div>
@@ -55,19 +80,21 @@ export function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-scnt-border/70 bg-scnt-bg px-4 py-3 text-scnt-text outline-none transition-colors focus:border-scnt-text/60"
+                  autoComplete="current-password"
+                  disabled={loading}
+                  className="w-full rounded-xl border border-scnt-border/70 bg-scnt-bg px-4 py-3 text-scnt-text outline-none transition-colors focus:border-scnt-text/60 disabled:opacity-60"
                   placeholder="Enter your password"
                 />
               </div>
 
-              <Button type="submit" className="w-full">
-                Sign in
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Signing in…' : 'Sign in'}
               </Button>
             </form>
 
-            {submitted ? (
-              <p className="mt-4 rounded-xl border border-scnt-border/70 bg-scnt-bg-muted/60 px-4 py-3 text-sm text-scnt-text-muted">
-                Login form submitted. Connect this to your backend auth endpoint next.
+            {error ? (
+              <p className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-scnt-text" role="alert">
+                {error}
               </p>
             ) : null}
           </Card>

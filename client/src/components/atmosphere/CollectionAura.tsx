@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
-import type { CollectionId } from '../../data/collections'
-import { getCollectionById } from '../../data/collections'
+import { useCatalog } from '../../context/CatalogContext'
+import type { CollectionId } from '../../types/catalog'
 import { hexToRgba } from '../../lib/colorUtils'
 
 const EASE_SCNT: [number, number, number, number] = [0.22, 1, 0.36, 1]
@@ -21,7 +21,8 @@ type Props = {
  * Soft collection-colored glow behind content — large radial, accent at ~6% opacity.
  */
 export function CollectionAura({ id }: Props) {
-  const col = getCollectionById(id)
+  const { collections } = useCatalog()
+  const col = collections.find((c) => c.id === id)
   const accent = col?.accent ?? '#2a2622'
   const pos = AURA_CENTER[id]
   const core = hexToRgba(accent, 0.065)
