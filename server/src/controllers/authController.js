@@ -22,9 +22,22 @@ const updateMe = asyncHandler(async (req, res) => {
   res.status(200).json(successResponse(user, "Profile updated"));
 });
 
+const verifyEmail = asyncHandler(async (req, res) => {
+  const token = req.body?.token || req.query?.token;
+  const user = await authService.verifyEmail({ token });
+  res.status(200).json(successResponse(user, "Email verified successfully"));
+});
+
+const resendVerificationEmail = asyncHandler(async (req, res) => {
+  const result = await authService.resendVerificationEmail(req.user.userId);
+  res.status(200).json(successResponse(result, "Verification email sent"));
+});
+
 module.exports = {
   register,
   login,
   me,
   updateMe,
+  verifyEmail,
+  resendVerificationEmail,
 };

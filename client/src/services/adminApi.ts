@@ -61,6 +61,36 @@ export type AdminProduct = {
   stock: number
 }
 
+export type PromotionalMailPayload = {
+  subject: string
+  preheader?: string
+  contentHtml: string
+  onlyVerified?: boolean
+}
+
+export type PromotionalMailResult = {
+  totalUsers: number
+  targetedRecipients: number
+  attemptedCount: number
+  processedCount: number
+  sentCount: number
+  failedCount: number
+  skippedCount: number
+  omittedCount: number
+  omittedBreakdown: {
+    missingEmailCount: number
+    invalidEmailCount: number
+    duplicateEmailCount: number
+  }
+  skippedBreakdown: Record<string, number>
+  failureSamples: Array<{
+    email: string
+    reason: string
+  }>
+  onlyVerified: boolean
+  processingMs: number
+}
+
 export type ProductListEnvelope = {
   items: AdminProduct[]
   pagination: {
@@ -141,4 +171,8 @@ export function updateAdminProduct(id: string, payload: Omit<AdminProduct, '_id'
 
 export function deleteAdminProduct(id: string): Promise<null> {
   return apiDeleteDataAuthed<null>(`/products/${id}`)
+}
+
+export function sendPromotionalMail(payload: PromotionalMailPayload): Promise<PromotionalMailResult> {
+  return apiPostDataAuthed<PromotionalMailResult>('/admin/mail/promotional', payload)
 }

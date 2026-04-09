@@ -1,16 +1,34 @@
 const bcrypt = require("bcrypt");
+const crypto = require("crypto");
 const userRepository = require("../repositories/userRepository");
 const ApiError = require("../utils/ApiError");
 const { signToken } = require("../utils/jwt");
+const env = require("../config/env");
+const { sendVerificationEmail } = require("./emailService");
 
 const sanitizeUser = (user) => ({
   id: user._id,
   full_name: user.full_name,
   email: user.email,
   role: user.role,
+  isEmailVerified: Boolean(user.isEmailVerified),
   address: user.address,
   createdAt: user.createdAt,
 });
+
+const createEmailVerificationData = () => {
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const expiresAt = new Date(
+    Date.now() + env.emailVerificationTokenExpiresInMinutes * 60 * 1000
+  );
+
+  return {
+    token,
+    tokenHash,
+    expiresAt,
+  };
+};
 
 const normalizeAddress = (addressInput, full_name) => {
   if (!addressInput || typeof addressInput !== "object") return undefined;
@@ -43,18 +61,38 @@ const register = async ({ full_name, email, password, address: addressInput }) =
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
+  const verificationData = createEmailVerificationData();
   const payload = {
     full_name,
     email: email.toLowerCase(),
     password: hashedPassword,
+    isEmailVerified: false,
+    emailVerificationToken: verificationData.tokenHash,
+    emailVerificationExpiresAt: verificationData.expiresAt,
   };
   const address = normalizeAddress(addressInput, full_name);
   if (address) payload.address = address;
 
   const user = await userRepository.createUser(payload);
 
+  sendVerificationEmail({
+    to: user.email,
+    fullName: user.full_name,
+    token: verificationData.token,
+  }).catch((error) => {
+    console.error("Failed to send verification email:", error.message);
+  });
+
   const token = signToken({ userId: user._id, role: user.role });
-  return { user: sanitizeUser(user), token };
+  return {
+    user: sanitizeUser(user),
+    token,
+    emailVerification: {
+      required: true,
+      queued: true,
+      message: "Verification email queued. You can verify later.",
+    },
+  };
 };
 
 const login = async ({ email, password }) => {
@@ -133,9 +171,62 @@ const updateMe = async (userId, body) => {
   return sanitizeUser(updated);
 };
 
+const verifyEmail = async ({ token }) => {
+  const cleanToken = typeof token === "string" ? token.trim() : "";
+  if (!cleanToken) throw new ApiError(400, "Verification token is required");
+
+  const tokenHash = crypto.createHash("sha256").update(cleanToken).digest("hex");
+  const user = await userRepository.findByVerificationToken(tokenHash);
+
+  if (!user) {
+    throw new ApiError(400, "Invalid or expired verification token");
+  }
+
+  const updatedUser = await userRepository.updateById(user._id, {
+    isEmailVerified: true,
+    emailVerificationToken: null,
+    emailVerificationExpiresAt: null,
+  });
+
+  return sanitizeUser(updatedUser);
+};
+
+const resendVerificationEmail = async (userId) => {
+  const user = await userRepository.findById(userId);
+  if (!user) throw new ApiError(404, "User not found");
+
+  if (user.isEmailVerified) {
+    return {
+      alreadyVerified: true,
+      message: "Email is already verified",
+    };
+  }
+
+  const verificationData = createEmailVerificationData();
+  await userRepository.updateById(userId, {
+    emailVerificationToken: verificationData.tokenHash,
+    emailVerificationExpiresAt: verificationData.expiresAt,
+  });
+
+  sendVerificationEmail({
+    to: user.email,
+    fullName: user.full_name,
+    token: verificationData.token,
+  }).catch((error) => {
+    console.error("Failed to resend verification email:", error.message);
+  });
+
+  return {
+    sent: true,
+    message: "Verification email queued",
+  };
+};
+
 module.exports = {
   register,
   login,
   getMe,
   updateMe,
+  verifyEmail,
+  resendVerificationEmail,
 };

@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "check": "node --check src/server.js",
+    "test:smtp": "node scripts/testSmtp.js",
     "seed:collections": "node seed/seedCollections.js",
     "seed:products": "node seed/seedProducts.js",
     "seed:promo-codes": "node seed/seedPromoCodes.js"
@@ -23,7 +24,8 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.3",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "nodemailer": "^8.0.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

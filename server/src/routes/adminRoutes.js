@@ -20,5 +20,6 @@ router.get("/promo-codes", adminController.listPromoCodes);
 router.post("/promo-codes", adminController.createPromoCode);
 router.put("/promo-codes/:id", adminController.updatePromoCode);
 router.delete("/promo-codes/:id", adminController.deletePromoCode);
+router.post("/mail/promotional", adminController.sendPromotionalBroadcast);
 
 module.exports = router;

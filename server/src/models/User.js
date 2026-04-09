@@ -30,6 +30,9 @@ const userSchema = new mongoose.Schema(
     wishlist: { type: [wishlistItemSchema], default: [] },
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
     role: { type: String, enum: ["user", "admin"], default: "user" },
+    isEmailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String, default: null },
+    emailVerificationExpiresAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

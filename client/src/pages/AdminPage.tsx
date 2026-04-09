@@ -19,6 +19,7 @@ import {
   fetchAdminProducts,
   fetchAdminPromoCodes,
   fetchAdminUsers,
+  sendPromotionalMail,
   updateAdminCollection,
   updateAdminOrderStatus,
   updateAdminProduct,
@@ -30,9 +31,10 @@ import {
   type AdminProduct,
   type AdminPromo,
   type AdminUser,
+  type PromotionalMailResult,
 } from '../services/adminApi'
 
-type TabKey = 'overview' | 'products' | 'collections' | 'orders' | 'promos' | 'users'
+type TabKey = 'overview' | 'products' | 'collections' | 'orders' | 'promos' | 'users' | 'mailing'
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
@@ -41,6 +43,7 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: 'orders', label: 'Orders' },
   { key: 'promos', label: 'Promo codes' },
   { key: 'users', label: 'Users' },
+  { key: 'mailing', label: 'Mailing' },
 ]
 
 function toCsvList(input: string): string[] {
@@ -117,6 +120,26 @@ const emptyPromoForm: PromoForm = {
   expiresAt: '',
 }
 
+type PromoMailForm = {
+  subject: string
+  preheader: string
+  contentHtml: string
+  onlyVerified: boolean
+}
+
+const emptyPromoMailForm: PromoMailForm = {
+  subject: '',
+  preheader: '',
+  contentHtml: `<p>Discover this week’s curated SCNT picks.</p>
+<ul>
+  <li>Limited promo code for members</li>
+  <li>Fresh fragrance drops</li>
+  <li>Exclusive checkout offers</li>
+</ul>
+<p><a href="https://scnt.eg/shop">Shop now</a></p>`,
+  onlyVerified: true,
+}
+
 export function AdminPage() {
   const token = getStoredAuthToken()
   const [activeTab, setActiveTab] = useState<TabKey>('overview')
@@ -138,6 +161,8 @@ export function AdminPage() {
   const [collectionForm, setCollectionForm] = useState<CollectionForm>(emptyCollectionForm)
   const [editingPromoId, setEditingPromoId] = useState<string | null>(null)
   const [promoForm, setPromoForm] = useState<PromoForm>(emptyPromoForm)
+  const [promoMailForm, setPromoMailForm] = useState<PromoMailForm>(emptyPromoMailForm)
+  const [promoMailResult, setPromoMailResult] = useState<PromotionalMailResult | null>(null)
 
   const loadAll = useCallback(async () => {
     setBusy(true)
@@ -411,6 +436,26 @@ export function AdminPage() {
     }
   }
 
+  const submitPromotionalMail = async (e: FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    setPromoMailResult(null)
+    try {
+      const result = await sendPromotionalMail({
+        subject: promoMailForm.subject.trim(),
+        preheader: promoMailForm.preheader.trim(),
+        contentHtml: promoMailForm.contentHtml.trim(),
+        onlyVerified: promoMailForm.onlyVerified,
+      })
+      setPromoMailResult(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Promotional email send failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <Layout>
       <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 sm:py-18">
@@ -604,6 +649,137 @@ export function AdminPage() {
               ))}
             </ul>
           </Card>
+        ) : null}
+
+        {activeTab === 'mailing' ? (
+          <div className="space-y-4">
+            <Card asMotion={false} className="p-5">
+              <form className="grid gap-3" onSubmit={submitPromotionalMail}>
+                <input
+                  className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2"
+                  placeholder="Email subject"
+                  value={promoMailForm.subject}
+                  onChange={(e) => setPromoMailForm((s) => ({ ...s, subject: e.target.value }))}
+                  required
+                />
+                <input
+                  className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2"
+                  placeholder="Preheader (short intro text)"
+                  value={promoMailForm.preheader}
+                  onChange={(e) => setPromoMailForm((s) => ({ ...s, preheader: e.target.value }))}
+                />
+                <textarea
+                  className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 font-mono text-xs"
+                  placeholder="Campaign HTML body"
+                  value={promoMailForm.contentHtml}
+                  onChange={(e) => setPromoMailForm((s) => ({ ...s, contentHtml: e.target.value }))}
+                  rows={14}
+                  required
+                />
+                <label className="flex items-center gap-2 rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={promoMailForm.onlyVerified}
+                    onChange={(e) => setPromoMailForm((s) => ({ ...s, onlyVerified: e.target.checked }))}
+                  />
+                  Send to verified users only
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" disabled={busy}>Send campaign</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setPromoMailForm(emptyPromoMailForm)
+                      setPromoMailResult(null)
+                    }}
+                    disabled={busy}
+                  >
+                    Reset
+                  </Button>
+                </div>
+              </form>
+            </Card>
+
+            {promoMailResult ? (
+              <Card asMotion={false} className="p-5">
+                <p className="text-xs uppercase tracking-[0.12em] text-scnt-text-muted">Campaign result</p>
+                <p className="mt-1 text-xs text-scnt-text-muted">
+                  Audience: {promoMailResult.onlyVerified ? 'Verified users only' : 'All users'} · Processing time:{' '}
+                  {promoMailResult.processingMs} ms
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                  <div className="rounded-lg border border-scnt-border/70 px-3 py-2">
+                    <p className="text-xs text-scnt-text-muted">Users</p>
+                    <p className="text-lg">{promoMailResult.totalUsers}</p>
+                  </div>
+                  <div className="rounded-lg border border-scnt-border/70 px-3 py-2">
+                    <p className="text-xs text-scnt-text-muted">Targeted / attempted</p>
+                    <p className="text-lg">{promoMailResult.targetedRecipients}</p>
+                  </div>
+                  <div className="rounded-lg border border-scnt-border/70 px-3 py-2">
+                    <p className="text-xs text-scnt-text-muted">Processed</p>
+                    <p className="text-lg">{promoMailResult.processedCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-scnt-border/70 px-3 py-2">
+                    <p className="text-xs text-scnt-text-muted">Sent</p>
+                    <p className="text-lg">{promoMailResult.sentCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-scnt-border/70 px-3 py-2">
+                    <p className="text-xs text-scnt-text-muted">Skipped</p>
+                    <p className="text-lg">{promoMailResult.skippedCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-scnt-border/70 px-3 py-2">
+                    <p className="text-xs text-scnt-text-muted">Failed</p>
+                    <p className="text-lg">{promoMailResult.failedCount}</p>
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="rounded-lg border border-scnt-border/70 px-3 py-2">
+                    <p className="text-xs text-scnt-text-muted">Omitted total</p>
+                    <p className="text-lg">{promoMailResult.omittedCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-scnt-border/70 px-3 py-2">
+                    <p className="text-xs text-scnt-text-muted">Missing email</p>
+                    <p className="text-lg">{promoMailResult.omittedBreakdown.missingEmailCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-scnt-border/70 px-3 py-2">
+                    <p className="text-xs text-scnt-text-muted">Invalid email</p>
+                    <p className="text-lg">{promoMailResult.omittedBreakdown.invalidEmailCount}</p>
+                  </div>
+                  <div className="rounded-lg border border-scnt-border/70 px-3 py-2">
+                    <p className="text-xs text-scnt-text-muted">Duplicates</p>
+                    <p className="text-lg">{promoMailResult.omittedBreakdown.duplicateEmailCount}</p>
+                  </div>
+                </div>
+                {Object.keys(promoMailResult.skippedBreakdown || {}).length > 0 ? (
+                  <div className="mt-4 rounded-lg border border-scnt-border/70 px-3 py-3">
+                    <p className="text-xs uppercase tracking-[0.12em] text-scnt-text-muted">Skipped reasons</p>
+                    <ul className="mt-2 space-y-1 text-sm">
+                      {Object.entries(promoMailResult.skippedBreakdown).map(([reason, count]) => (
+                        <li key={reason} className="flex items-center justify-between gap-3">
+                          <span className="text-scnt-text-muted">{reason}</span>
+                          <span>{count}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {promoMailResult.failureSamples?.length ? (
+                  <div className="mt-4 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-3">
+                    <p className="text-xs uppercase tracking-[0.12em] text-scnt-text-muted">Failure samples (up to 5)</p>
+                    <ul className="mt-2 space-y-1 text-sm">
+                      {promoMailResult.failureSamples.map((sample, index) => (
+                        <li key={`${sample.email}-${index}`} className="text-scnt-text-muted">
+                          {sample.email}: {sample.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </Card>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </Layout>

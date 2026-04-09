@@ -7,6 +7,8 @@ const User = require("../models/User");
 const Product = require("../models/Product");
 const Collection = require("../models/Collection");
 const Order = require("../models/Order");
+const userRepository = require("../repositories/userRepository");
+const { sendPromotionalEmail } = require("../services/emailService");
 
 const getAllOrders = asyncHandler(async (req, res) => {
   const orders = await orderService.getAllOrders();
@@ -85,7 +87,9 @@ const getDashboardSummary = asyncHandler(async (_req, res) => {
 });
 
 const listUsers = asyncHandler(async (_req, res) => {
-  const users = await User.find({}).select("-password").sort({ createdAt: -1 });
+  const users = await User.find({})
+    .select("-password -emailVerificationToken")
+    .sort({ createdAt: -1 });
   res.status(200).json(successResponse(users));
 });
 
@@ -95,7 +99,9 @@ const updateUserRole = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Role must be either user or admin");
   }
 
-  const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select("-password");
+  const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select(
+    "-password -emailVerificationToken"
+  );
   if (!user) throw new ApiError(404, "User not found");
   res.status(200).json(successResponse(user, "User role updated"));
 });
@@ -154,6 +160,111 @@ const deleteCollection = asyncHandler(async (req, res) => {
   res.status(200).json(successResponse(null, "Collection deleted"));
 });
 
+const sendPromotionalBroadcast = asyncHandler(async (req, res) => {
+  const subject = String(req.body?.subject || "").trim();
+  const preheader = String(req.body?.preheader || "").trim();
+  const contentHtml = String(req.body?.contentHtml || "").trim();
+  const onlyVerified = Boolean(req.body?.onlyVerified);
+  const startedAt = Date.now();
+
+  if (!subject || !contentHtml) {
+    throw new ApiError(400, "subject and contentHtml are required");
+  }
+
+  const users = await userRepository.findUsersForPromotion({ onlyVerified });
+  const baseAudienceCount = users.length;
+  const validEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const seenEmails = new Set();
+  let missingEmailCount = 0;
+  let invalidEmailCount = 0;
+  let duplicateEmailCount = 0;
+  const recipients = [];
+
+  for (const user of users) {
+    const normalizedEmail = String(user.email || "")
+      .trim()
+      .toLowerCase();
+    if (!normalizedEmail) {
+      missingEmailCount += 1;
+      continue;
+    }
+    if (!validEmailRegex.test(normalizedEmail)) {
+      invalidEmailCount += 1;
+      continue;
+    }
+    if (seenEmails.has(normalizedEmail)) {
+      duplicateEmailCount += 1;
+      continue;
+    }
+    seenEmails.add(normalizedEmail);
+    recipients.push(normalizedEmail);
+  }
+
+  let sentCount = 0;
+  let failedCount = 0;
+  let skippedCount = 0;
+  const failureSamples = [];
+  const skippedReasons = {};
+
+  await Promise.all(
+    recipients.map(async (email) => {
+      try {
+        const result = await sendPromotionalEmail({
+          to: email,
+          subject,
+          preheader,
+          contentHtml,
+        });
+        if (result?.sent) {
+          sentCount += 1;
+          return;
+        }
+        skippedCount += 1;
+        const reason = result?.reason || "unknown";
+        skippedReasons[reason] = (skippedReasons[reason] || 0) + 1;
+      } catch (error) {
+        failedCount += 1;
+        if (failureSamples.length < 5) {
+          failureSamples.push({
+            email,
+            reason: error?.message || "Unexpected mailer error",
+          });
+        }
+      }
+    })
+  );
+
+  const attemptedCount = recipients.length;
+  const processedCount = sentCount + failedCount + skippedCount;
+  const processingMs = Date.now() - startedAt;
+
+  res.status(200).json(
+    successResponse(
+      {
+        totalUsers: baseAudienceCount,
+        targetedRecipients: attemptedCount,
+        attemptedCount,
+        processedCount,
+        sentCount,
+        failedCount,
+        skippedCount,
+        omittedCount: missingEmailCount + invalidEmailCount + duplicateEmailCount,
+        omittedBreakdown: {
+          missingEmailCount,
+          invalidEmailCount,
+          duplicateEmailCount,
+        },
+        skippedBreakdown: skippedReasons,
+        failureSamples,
+        onlyVerified,
+        processingMs,
+      },
+      "Promotional campaign processed"
+    )
+  );
+});
+
 module.exports = {
   getAllOrders,
   updateOrderStatus,
@@ -169,4 +280,5 @@ module.exports = {
   createPromoCode,
   updatePromoCode,
   deletePromoCode,
+  sendPromotionalBroadcast,
 };
