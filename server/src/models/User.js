@@ -12,14 +12,6 @@ const addressSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const cartItemSchema = new mongoose.Schema(
-  {
-    product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
-    quantity: { type: Number, required: true, min: 1, default: 1 },
-  },
-  { _id: false }
-);
-
 const wishlistItemSchema = new mongoose.Schema(
   {
     product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
@@ -34,8 +26,7 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
     address: { type: addressSchema, default: () => ({}) },
-    cart: { type: [cartItemSchema], default: [] },
-    cartPromoCode: { type: String, default: "", uppercase: true, trim: true },
+    cart: { type: mongoose.Schema.Types.ObjectId, ref: "Cart", default: null },
     wishlist: { type: [wishlistItemSchema], default: [] },
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
     role: { type: String, enum: ["user", "admin"], default: "user" },

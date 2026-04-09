@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button'
 import { EGYPT_GOVERNORATES, getCitiesForGovernorate } from '../data/egyptLocations'
 import { getStoredAuthToken } from '../lib/authStorage'
 import { fetchProfile, type AuthUser } from '../services/authApi'
-import { replaceServerCart } from '../services/cartApi'
+import { fetchServerCart, replaceServerCart } from '../services/cartApi'
 import { createOrder } from '../services/ordersApi'
 import { useCartStore } from '../store/cartStore'
 
@@ -84,6 +84,8 @@ function orderRef(id: string): string {
 export function CheckoutPage() {
   const items = useCartStore((s) => s.items)
   const promo = useCartStore((s) => s.promo)
+  const hydrateFromServer = useCartStore((s) => s.hydrateFromServer)
+  const summary = useCartStore((s) => s.summary)
   const clear = useCartStore((s) => s.clear)
 
   const [form, setForm] = useState<CheckoutFormState>(initialForm)
@@ -93,6 +95,37 @@ export function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false)
 
   const authed = Boolean(getStoredAuthToken())
+
+  useEffect(() => {
+    if (!authed || placedOrder) return
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const serverCart = await fetchServerCart()
+        if (cancelled) return
+        const mapped =
+          serverCart.lines?.map((line) => ({
+            productId: line.productId,
+            name: line.name,
+            price: Number(line.unitPrice || 0),
+            quantity: Number(line.quantity || 0),
+            image: line.image || '',
+          })) ?? []
+        hydrateFromServer({
+          items: mapped,
+          promo: serverCart.appliedPromo,
+          summary: serverCart.summary ?? null,
+        })
+      } catch {
+        /* keep local state when sync fails */
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [authed, hydrateFromServer, placedOrder])
 
   useEffect(() => {
     if (!authed || items.length === 0 || placedOrder) return
@@ -123,7 +156,18 @@ export function CheckoutPage() {
     [items],
   )
   const discount = useMemo(() => {
+    if (
+      summary &&
+      Math.abs(Number(summary.subtotal || 0) - subtotal) < 0.001 &&
+      Number.isFinite(Number(summary.discount))
+    ) {
+      return Math.min(subtotal, Math.max(0, Number(summary.discount)))
+    }
     if (!promo || subtotal <= 0) return 0
+    const serverDiscount = Number(promo.discountAmount)
+    if (Number.isFinite(serverDiscount) && serverDiscount > 0) {
+      return Math.min(subtotal, Math.max(0, serverDiscount))
+    }
     if (promo.discountType === 'PERCENTAGE') {
       const percentageValue = (subtotal * promo.discountValue) / 100
       const capped =
@@ -131,9 +175,12 @@ export function CheckoutPage() {
       return Math.min(subtotal, Math.max(0, capped))
     }
     return Math.min(subtotal, Math.max(0, promo.discountValue))
-  }, [promo, subtotal])
+  }, [promo, subtotal, summary])
   const shipping = items.length > 0 ? 80 : 0
-  const total = Math.max(0, subtotal + shipping - discount)
+  const total =
+    summary && Math.abs(Number(summary.subtotal || 0) - subtotal) < 0.001
+      ? Math.max(0, Number(summary.total || 0))
+      : Math.max(0, subtotal + shipping - discount)
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -444,8 +491,14 @@ export function CheckoutPage() {
                     <dd>-{formatEgp(discount)}</dd>
                   </div>
                 ) : null}
+                {discount > 0 ? (
+                  <div className="flex items-center justify-between text-scnt-text-muted">
+                    <dt>Old total</dt>
+                    <dd className="line-through">{formatEgp(subtotal + shipping)}</dd>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between border-t border-scnt-border pt-3 font-medium text-scnt-text">
-                  <dt>Total</dt>
+                  <dt>{discount > 0 ? 'New total' : 'Total'}</dt>
                   <dd>{formatEgp(total)}</dd>
                 </div>
               </dl>

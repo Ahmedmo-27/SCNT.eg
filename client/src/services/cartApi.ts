@@ -1,4 +1,4 @@
-import { apiPostDataAuthed } from './api'
+import { apiGetDataAuthed, apiPostDataAuthed } from './api'
 
 export type CartPromo = {
   code: string
@@ -15,6 +15,14 @@ export type ServerCart = {
     product: string | { _id: string }
     quantity: number
   }>
+  lines?: Array<{
+    productId: string
+    quantity: number
+    unitPrice: number
+    lineTotal: number
+    name: string
+    image: string
+  }>
   promoCode: string
   appliedPromo: CartPromo | null
   summary: {
@@ -23,6 +31,10 @@ export type ServerCart = {
     discount: number
     total: number
   }
+}
+
+export async function fetchServerCart(): Promise<ServerCart> {
+  return apiGetDataAuthed<ServerCart>('/cart')
 }
 
 export async function clearServerCart(): Promise<void> {

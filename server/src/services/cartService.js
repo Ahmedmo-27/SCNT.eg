@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const cartRepository = require("../repositories/cartRepository");
 const productRepository = require("../repositories/productRepository");
 const PromoCode = require("../models/PromoCode");
+const Order = require("../models/Order");
 const ApiError = require("../utils/ApiError");
 
 const SHIPPING_FEE_EGP = 80;
@@ -15,6 +16,20 @@ const ensureProductExists = async (productId) => {
 };
 
 const normalizePromoCode = (code = "") => String(code).trim().toUpperCase();
+
+const formatMoney = (value) => {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return "0";
+  return n.toFixed(0);
+};
+
+const getItemProductId = (item) => {
+  const raw = item?.product;
+  if (!raw) return "";
+  if (typeof raw === "string") return raw;
+  if (typeof raw === "object" && raw._id) return raw._id.toString();
+  return raw.toString();
+};
 
 const getPromoIfValid = async (promoCode, subtotal) => {
   const normalized = normalizePromoCode(promoCode);
@@ -50,12 +65,13 @@ const calculateDiscount = (promo, subtotal) => {
 };
 
 const buildCartResponse = async (userId, items, promoCode) => {
-  const productIds = items.map((item) => item.product);
+  const productIds = items.map((item) => getItemProductId(item)).filter(Boolean);
   const products = productIds.length > 0 ? await productRepository.findByIds(productIds) : [];
   const productMap = new Map(products.map((product) => [product._id.toString(), product]));
 
   const subtotal = items.reduce((sum, item) => {
-    const product = productMap.get(item.product.toString());
+    const productId = getItemProductId(item);
+    const product = productMap.get(productId);
     const price = Number(product?.price ?? 0);
     return sum + price * Number(item.quantity || 0);
   }, 0);
@@ -65,9 +81,25 @@ const buildCartResponse = async (userId, items, promoCode) => {
   const shipping = items.length > 0 ? SHIPPING_FEE_EGP : 0;
   const total = Math.max(0, subtotal + shipping - discount);
 
+  const lines = items.map((item) => {
+    const productId = getItemProductId(item);
+    const product = productMap.get(productId);
+    const unitPrice = Number(product?.price ?? 0);
+    const quantity = Number(item.quantity || 0);
+    return {
+      productId,
+      quantity,
+      unitPrice,
+      lineTotal: unitPrice * quantity,
+      name: product?.name || "",
+      image: Array.isArray(product?.images) ? product.images[0] || "" : "",
+    };
+  });
+
   return {
     user: userId,
     items,
+    lines,
     promoCode: promo?.code || "",
     summary: {
       subtotal,
@@ -174,9 +206,40 @@ const applyPromoCode = async (userId, code) => {
   const cart = (await cartRepository.findRawByUserId(userId)) || { items: [], promoCode: "" };
   if (!cart.items.length) throw new ApiError(400, "Cart is empty");
 
-  const preview = await buildCartResponse(userId, cart.items, normalized);
-  if (!preview.appliedPromo) {
-    throw new ApiError(400, "Invalid or expired promo code");
+  const promo = await PromoCode.findOne({ code: normalized });
+  if (!promo) {
+    throw new ApiError(400, "Promo code does not exist.");
+  }
+
+  const rejectionReasons = [];
+  if (!promo.isActive) rejectionReasons.push("This promo code is inactive.");
+
+  const now = Date.now();
+  if (promo.startsAt && new Date(promo.startsAt).getTime() > now) {
+    rejectionReasons.push("This promo code is not active yet.");
+  }
+  if (promo.expiresAt && new Date(promo.expiresAt).getTime() < now) {
+    rejectionReasons.push("This promo code has expired.");
+  }
+
+  const preview = await buildCartResponse(userId, cart.items, "");
+  const subtotal = Number(preview.summary?.subtotal || 0);
+  if (subtotal < Number(promo.minSubtotal || 0)) {
+    rejectionReasons.push(
+      `Minimum subtotal is EGP ${formatMoney(promo.minSubtotal)} (current: EGP ${formatMoney(subtotal)}).`
+    );
+  }
+
+  const usedBefore = await Order.exists({
+    user: userId,
+    promoCode: normalized,
+  });
+  if (usedBefore) {
+    rejectionReasons.push("You have already used this promo code before.");
+  }
+
+  if (rejectionReasons.length > 0) {
+    throw new ApiError(400, rejectionReasons.join(" "));
   }
 
   await cartRepository.upsertByUserId(userId, cart.items, normalized);

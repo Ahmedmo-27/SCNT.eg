@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
 import { StarDivider } from '../components/ui/StarDivider'
 import { getStoredAuthToken } from '../lib/authStorage'
+import { fetchServerCart } from '../services/cartApi'
 import { useCartStore } from '../store/cartStore'
 
 function formatEgp(n: number): string {
@@ -17,16 +18,63 @@ function formatEgp(n: number): string {
 export function CartPage() {
   const items = useCartStore((s) => s.items)
   const promo = useCartStore((s) => s.promo)
+  const summary = useCartStore((s) => s.summary)
+  const hydrateFromServer = useCartStore((s) => s.hydrateFromServer)
   const applyPromo = useCartStore((s) => s.applyPromo)
   const removePromo = useCartStore((s) => s.removePromo)
   const clear = useCartStore((s) => s.clear)
   const [promoInput, setPromoInput] = useState('')
   const [promoError, setPromoError] = useState<string | null>(null)
+  const [promoMessage, setPromoMessage] = useState<string | null>(null)
   const [promoLoading, setPromoLoading] = useState(false)
+
+  useEffect(() => {
+    if (!getStoredAuthToken()) return
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const serverCart = await fetchServerCart()
+        if (cancelled) return
+
+        const mapped =
+          serverCart.lines?.map((line) => ({
+            productId: line.productId,
+            name: line.name,
+            price: Number(line.unitPrice || 0),
+            quantity: Number(line.quantity || 0),
+            image: line.image || '',
+          })) ?? []
+
+        hydrateFromServer({
+          items: mapped,
+          promo: serverCart.appliedPromo,
+          summary: serverCart.summary ?? null,
+        })
+      } catch {
+        /* keep local state if server sync fails */
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [hydrateFromServer])
 
   const subtotal = items.reduce((acc, i) => acc + i.price * i.quantity, 0)
   const discount = useMemo(() => {
+    if (
+      summary &&
+      Math.abs(Number(summary.subtotal || 0) - subtotal) < 0.001 &&
+      Number.isFinite(Number(summary.discount))
+    ) {
+      return Math.min(subtotal, Math.max(0, Number(summary.discount)))
+    }
     if (!promo || subtotal <= 0) return 0
+    const serverDiscount = Number(promo.discountAmount)
+    if (Number.isFinite(serverDiscount) && serverDiscount > 0) {
+      return Math.min(subtotal, Math.max(0, serverDiscount))
+    }
     if (promo.discountType === 'PERCENTAGE') {
       const percentageValue = (subtotal * promo.discountValue) / 100
       const capped =
@@ -34,12 +82,16 @@ export function CartPage() {
       return Math.min(subtotal, Math.max(0, capped))
     }
     return Math.min(subtotal, Math.max(0, promo.discountValue))
-  }, [promo, subtotal])
+  }, [promo, subtotal, summary])
   const shipping = items.length > 0 ? 80 : 0
-  const total = Math.max(0, subtotal + shipping - discount)
+  const total =
+    summary && Math.abs(Number(summary.subtotal || 0) - subtotal) < 0.001
+      ? Math.max(0, Number(summary.total || 0))
+      : Math.max(0, subtotal + shipping - discount)
 
   const onApplyPromo = async () => {
     setPromoError(null)
+    setPromoMessage(null)
     if (!getStoredAuthToken()) {
       setPromoError('Please log in to apply promo codes.')
       return
@@ -55,6 +107,7 @@ export function CartPage() {
     try {
       await applyPromo(code)
       setPromoInput('')
+      setPromoMessage('Promo code applied successfully.')
     } catch (err) {
       setPromoError(err instanceof Error ? err.message : 'Could not apply promo code.')
     } finally {
@@ -64,9 +117,11 @@ export function CartPage() {
 
   const onRemovePromo = async () => {
     setPromoError(null)
+    setPromoMessage(null)
     setPromoLoading(true)
     try {
       await removePromo()
+      setPromoMessage('Promo code removed.')
     } catch (err) {
       setPromoError(err instanceof Error ? err.message : 'Could not remove promo code.')
     } finally {
@@ -192,6 +247,7 @@ export function CartPage() {
                   </div>
                 )}
                 {promoError ? <p className="mt-2 text-xs text-red-700">{promoError}</p> : null}
+                {promoMessage ? <p className="mt-2 text-xs text-green-700">{promoMessage}</p> : null}
               </div>
               <dl className="mt-6 space-y-3 text-sm">
                 <div className="flex items-center justify-between text-scnt-text-muted">
@@ -208,8 +264,14 @@ export function CartPage() {
                     <dd>-{formatEgp(discount)}</dd>
                   </div>
                 ) : null}
+                {discount > 0 ? (
+                  <div className="flex items-center justify-between text-scnt-text-muted">
+                    <dt>Old total</dt>
+                    <dd className="line-through">{formatEgp(subtotal + shipping)}</dd>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between border-t border-scnt-border pt-3 font-medium text-scnt-text">
-                  <dt>Total</dt>
+                  <dt>{discount > 0 ? 'New total' : 'Total'}</dt>
                   <dd>{formatEgp(total)}</dd>
                 </div>
               </dl>

@@ -1,47 +1,35 @@
-const User = require("../models/User");
 const Cart = require("../models/Cart");
 
-const migrateLegacyCartIfNeeded = async (userId, user) => {
-  if (!user) return null;
-  if (Array.isArray(user.cart) && user.cart.length > 0) return user;
-
-  const legacy = await Cart.findOne({ user: userId }).select("items");
-  if (!legacy || !Array.isArray(legacy.items) || legacy.items.length === 0) return user;
-
-  user.cart = legacy.items;
-  await user.save();
-  await Cart.deleteOne({ user: userId });
-  return user;
-};
+const ensureCartDocument = async (userId) =>
+  Cart.findOneAndUpdate(
+    { user: userId },
+    { $setOnInsert: { user: userId, items: [], promoCode: "" } },
+    { new: true, upsert: true, runValidators: true }
+  );
 
 const findByUserId = async (userId) => {
-  let user = await User.findById(userId).select("cart cartPromoCode");
-  user = await migrateLegacyCartIfNeeded(userId, user);
-  if (!user) return null;
-  await user.populate("cart.product");
-  return { user: userId, items: user.cart || [], promoCode: user.cartPromoCode || "" };
+  const cart = await ensureCartDocument(userId);
+  if (!cart) return null;
+  return { user: userId, items: cart.items || [], promoCode: cart.promoCode || "" };
 };
 
 const findRawByUserId = async (userId) => {
-  let user = await User.findById(userId).select("cart cartPromoCode");
-  user = await migrateLegacyCartIfNeeded(userId, user);
-  if (!user) return null;
-  return { user: userId, items: user.cart || [], promoCode: user.cartPromoCode || "" };
+  const cart = await ensureCartDocument(userId);
+  if (!cart) return null;
+  return { user: userId, items: cart.items || [], promoCode: cart.promoCode || "" };
 };
 
 const upsertByUserId = async (userId, items, promoCode) => {
-  const setPayload = { cart: items };
-  if (typeof promoCode === "string") {
-    setPayload.cartPromoCode = promoCode.trim().toUpperCase();
-  }
+  const setPayload = { items };
+  if (typeof promoCode === "string") setPayload.promoCode = promoCode.trim().toUpperCase();
 
-  const updated = await User.findByIdAndUpdate(
-    userId,
+  const updated = await Cart.findOneAndUpdate(
+    { user: userId },
     { $set: setPayload },
-    { new: true, runValidators: true, select: "cart cartPromoCode" }
+    { new: true, runValidators: true, upsert: true }
   );
   if (!updated) return null;
-  return { user: userId, items: updated.cart || [], promoCode: updated.cartPromoCode || "" };
+  return { user: userId, items: updated.items || [], promoCode: updated.promoCode || "" };
 };
 
 module.exports = {

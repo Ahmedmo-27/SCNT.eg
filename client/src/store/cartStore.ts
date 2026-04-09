@@ -6,6 +6,7 @@ import {
   clearServerCart,
   removePromoCode,
   type CartPromo,
+  type ServerCart,
 } from '../services/cartApi'
 
 export type CartLine = {
@@ -19,7 +20,13 @@ export type CartLine = {
 type CartState = {
   items: CartLine[]
   promo: CartPromo | null
+  summary: ServerCart['summary'] | null
   addItem: (line: CartLine) => void
+  hydrateFromServer: (payload: {
+    items: CartLine[]
+    promo: CartPromo | null
+    summary: ServerCart['summary'] | null
+  }) => void
   applyPromo: (code: string) => Promise<void>
   removePromo: () => Promise<void>
   clear: () => void
@@ -28,6 +35,7 @@ type CartState = {
 export const useCartStore = create<CartState>((set) => ({
   items: [],
   promo: null,
+  summary: null,
   addItem: (line) => {
     set((s) => {
       const existing = s.items.find((i) => i.productId === line.productId)
@@ -38,9 +46,10 @@ export const useCartStore = create<CartState>((set) => ({
               ? { ...i, quantity: i.quantity + line.quantity }
               : i,
           ),
+          summary: null,
         }
       }
-      return { items: [...s.items, line] }
+      return { items: [...s.items, line], summary: null }
     })
 
     if (getStoredAuthToken()) {
@@ -49,23 +58,26 @@ export const useCartStore = create<CartState>((set) => ({
       })
     }
   },
+  hydrateFromServer: ({ items, promo, summary }) => {
+    set({ items, promo, summary })
+  },
   applyPromo: async (code) => {
     if (!getStoredAuthToken()) {
       throw new Error('Please log in to apply promo codes.')
     }
     const cart = await applyPromoCode(code)
-    set({ promo: cart.appliedPromo })
+    set({ promo: cart.appliedPromo, summary: cart.summary })
   },
   removePromo: async () => {
     if (!getStoredAuthToken()) {
-      set({ promo: null })
+      set({ promo: null, summary: null })
       return
     }
     const cart = await removePromoCode()
-    set({ promo: cart.appliedPromo })
+    set({ promo: cart.appliedPromo, summary: cart.summary })
   },
   clear: () => {
-    set({ items: [], promo: null })
+    set({ items: [], promo: null, summary: null })
     if (getStoredAuthToken()) {
       void clearServerCart().catch(() => {
         /* keep local clear even if sync fails */
