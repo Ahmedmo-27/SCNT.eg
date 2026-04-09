@@ -25,12 +25,12 @@
 
 @layer base {
   html {
-    @apply antialiased;
+    @apply antialiased overflow-x-hidden;
     color-scheme: only light;
   }
 
   body {
-    @apply m-0 min-h-svh bg-scnt-bg font-sans text-scnt-text;
+    @apply m-0 min-h-svh overflow-x-hidden bg-scnt-bg font-sans text-scnt-text;
     font-optical-sizing: auto;
   }
 
@@ -40,7 +40,7 @@
   }
 
   #root {
-    @apply min-h-svh;
+    @apply min-h-svh overflow-x-hidden;
   }
 }
 
