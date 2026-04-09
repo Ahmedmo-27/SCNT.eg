@@ -23,6 +23,11 @@ export function Footer() {
             <p className="font-medium text-scnt-text">Shop</p>
             <ul className="space-y-2">
               <li>
+                <Link className="transition-colors hover:text-scnt-text" to="/shop">
+                  Shop all
+                </Link>
+              </li>
+              <li>
                 <Link className="transition-colors hover:text-scnt-text" to="/collections">
                   Collections
                 </Link>

@@ -23,8 +23,8 @@ export function CartPage() {
         {items.length === 0 ? (
           <p className="mt-8 text-scnt-text-muted">
             Your cart is empty.{' '}
-            <Link to="/collections" className="text-scnt-text underline-offset-4 hover:underline">
-              Browse collections
+            <Link to="/shop" className="text-scnt-text underline-offset-4 hover:underline">
+              Shop all fragrances
             </Link>
             .
           </p>

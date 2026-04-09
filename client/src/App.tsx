@@ -7,12 +7,14 @@ import { ContactPage } from './pages/ContactPage'
 import { Home } from './pages/Home'
 import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ProductPage } from './pages/ProductPage'
+import { ShopAllPage } from './pages/ShopAllPage'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/shop" element={<ShopAllPage />} />
         <Route path="/collections" element={<CollectionsPage />} />
         <Route path="/collections/:id" element={<CollectionDetailPage />} />
         <Route path="/product/:id" element={<ProductPage />} />

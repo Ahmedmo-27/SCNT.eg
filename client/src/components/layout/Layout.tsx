@@ -22,7 +22,7 @@ export function Layout({ children, collection }: LayoutProps) {
         {collection ? <CollectionAura id={collection} /> : null}
         <div className="relative z-10 flex min-h-svh flex-col">
           <Header />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 pt-[var(--scnt-header-h,5.5rem)]">{children}</main>
           <Footer />
         </div>
       </div>

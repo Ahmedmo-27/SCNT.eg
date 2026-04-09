@@ -3,18 +3,27 @@ import { Link } from 'react-router-dom'
 type LogoProps = {
   className?: string
   to?: string
+  /** Softer contrast for transparent / hero-overlaid header bars */
+  tone?: 'default' | 'soft'
 }
 
 /**
  * Wordmark placeholder — replace `src/assets/logo.svg` when the official
  * lockup is available; background beige should match `--color-scnt-bg`.
  */
-export function Logo({ className = '', to = '/' }: LogoProps) {
+export function Logo({ className = '', to = '/', tone = 'default' }: LogoProps) {
+  const text =
+    tone === 'soft'
+      ? 'text-scnt-text/90 sm:text-scnt-text'
+      : 'text-scnt-text'
+  const muted =
+    tone === 'soft' ? 'text-scnt-text-muted/85 sm:text-scnt-text-muted' : 'text-scnt-text-muted'
+
   const inner = (
     <span
-      className={`font-serif text-2xl tracking-[0.12em] text-scnt-text sm:text-3xl ${className}`.trim()}
+      className={`font-serif text-2xl tracking-[0.12em] ${text} sm:text-3xl ${className}`.trim()}
     >
-      SCNT<span className="text-scnt-text-muted">.eg</span>
+      SCNT<span className={muted}>.eg</span>
     </span>
   )
 
