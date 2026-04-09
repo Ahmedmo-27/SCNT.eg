@@ -190,7 +190,7 @@ export function Hero() {
         >
           <Button to="/collections">Explore collections</Button>
           <Link
-            to={{ pathname: '/', hash: 'find-your-scnt' }}
+            to="/find-your-scnt"
             className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full border border-scnt-border/90 bg-scnt-bg-elevated/60 px-8 py-3 text-sm font-medium tracking-wide text-scnt-text shadow-[0_6px_24px_-10px_var(--color-scnt-shadow)] transition-[background-color,box-shadow,border-color] duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-scnt-border hover:bg-scnt-bg-elevated hover:shadow-[0_12px_36px_-14px_var(--color-scnt-shadow)]"
           >
             <span

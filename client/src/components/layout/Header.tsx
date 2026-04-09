@@ -237,6 +237,14 @@ export function Header() {
               Collections
             </button>
             <NavLink
+              to="/find-your-scnt"
+              className={({ isActive }) =>
+                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
+              }
+            >
+              Find your SCNT
+            </NavLink>
+            <NavLink
               to="/about"
               className={({ isActive }) =>
                 `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
@@ -373,6 +381,12 @@ export function Header() {
                   </Link>
                 ))
               : null}
+            <Link
+              to="/find-your-scnt"
+              className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30"
+            >
+              Find your SCNT
+            </Link>
             <Link to="/about" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               About
             </Link>

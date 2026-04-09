@@ -142,6 +142,9 @@ export function FindYourScent() {
                     {col.tagline}
                   </p>
                   <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                  <Button to="/find-your-scnt" variant="ghost">
+                    Take the full quiz
+                  </Button>
                     <Button to={`/collections/${col.id}`}>Explore the line</Button>
                     <Button
                       to={`/product/${result.product.id}`}
