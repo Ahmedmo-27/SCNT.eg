@@ -57,12 +57,13 @@ export function Header() {
   const headerRef = useRef<HTMLElement>(null)
   const [scrolled, setScrolled] = useState(false)
   const [sideOpen, setSideOpen] = useState(false)
+  const [mobileCollectionsOpen, setMobileCollectionsOpen] = useState(false)
   const [megaOpen, setMegaOpen] = useState(false)
   const megaTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const overMega = useRef(false)
   const overTrigger = useRef(false)
 
-  const [lang, setLang] = useState<'en' | 'ar'>(() => {
+  const [lang] = useState<'en' | 'ar'>(() => {
     try {
       const s = localStorage.getItem(LANG_KEY)
       return s === 'ar' ? 'ar' : 'en'
@@ -101,6 +102,7 @@ export function Header() {
 
   useEffect(() => {
     setSideOpen(false)
+    setMobileCollectionsOpen(false)
     setMegaOpen(false)
   }, [location.pathname])
 
@@ -243,14 +245,6 @@ export function Header() {
               About
             </NavLink>
             <NavLink
-              to="/contact"
-              className={({ isActive }) =>
-                `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
-              }
-            >
-              Contact
-            </NavLink>
-            <NavLink
               to="/login"
               className={({ isActive }) =>
                 `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
@@ -356,6 +350,29 @@ export function Header() {
             <Link to="/shop" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               Shop all
             </Link>
+            <button
+              type="button"
+              className="mt-2 rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 text-left leading-6 text-scnt-text hover:bg-scnt-border/30"
+              aria-expanded={mobileCollectionsOpen}
+              onMouseEnter={() => setMobileCollectionsOpen(true)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setMobileCollectionsOpen((prev) => !prev)
+              }}
+            >
+              Collections
+            </button>
+            {mobileCollectionsOpen
+              ? collections.map((c) => (
+                  <Link
+                    key={c.id}
+                    to={`/collections/${c.id}`}
+                    className="rounded-md px-3 py-2 ps-5 text-scnt-text-muted hover:bg-scnt-border/30 hover:text-scnt-text"
+                  >
+                    {c.name}
+                  </Link>
+                ))
+              : null}
             <Link to="/about" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               About
             </Link>
@@ -374,29 +391,6 @@ export function Header() {
             <Link to="/cart" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               Cart
             </Link>
-            <p className="mt-2 px-3 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-scnt-text-muted">
-              Collections
-            </p>
-            {collections.map((c) => (
-              <Link
-                key={c.id}
-                to={`/collections/${c.id}`}
-                className="rounded-md px-3 py-2 ps-5 text-scnt-text-muted hover:bg-scnt-border/30 hover:text-scnt-text"
-              >
-                {c.name}
-              </Link>
-            ))}
-            <div className="mt-4 flex items-center gap-2 px-3">
-              <span className="text-xs text-scnt-text-muted">Language</span>
-              <select
-                value={lang}
-                onChange={(e) => setLang(e.target.value as 'en' | 'ar')}
-                className="rounded border border-scnt-border/60 bg-scnt-bg px-2 py-1 text-xs text-scnt-text"
-              >
-                <option value="en">EN</option>
-                <option value="ar">AR</option>
-              </select>
-            </div>
           </nav>
         </aside>
       </header>
