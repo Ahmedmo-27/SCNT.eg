@@ -11,6 +11,7 @@ import { productImageFrameFull, productImageFrameTop } from './productImageFrame
 import { EightPointStar } from '../ui/EightPointStar'
 import { useCollectionVisual } from '../../context/CollectionVisualContext'
 import { Button } from '../ui/Button'
+import { useWishlistStore } from '../../store/wishlistStore'
 
 type ProductCardProps = {
   product: ProductSummary
@@ -31,6 +32,8 @@ function formatEgp(n: number): string {
 export function ProductCard({ product, entrance = true, carousel = false }: ProductCardProps) {
   const { collections } = useCatalog()
   const addItem = useCartStore((s) => s.addItem)
+  const toggleWishlist = useWishlistStore((s) => s.toggleItem)
+  const isWishlisted = useWishlistStore((s) => s.hasItem(product.apiId))
   const col = collections.find((c) => c.id === product.collection)
   const [g0, g1] = product.placeholderGradient
   const [imageIndex, setImageIndex] = useState(0)
@@ -87,6 +90,18 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
       image: product.galleryImages[0],
     })
     setJustAdded(true)
+  }
+
+  function handleToggleWishlist() {
+    toggleWishlist({
+      productId: product.apiId,
+      slug: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.galleryImages[0],
+      inspiredBy: product.inspiredBy,
+      collection: col?.name ?? product.collection,
+    })
   }
 
   return (
@@ -311,6 +326,33 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
             <Button type="button" className="px-5 py-2 text-xs" onClick={handleAddToCart}>
               Add to cart
             </Button>
+            <button
+              type="button"
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs transition-colors ${
+                isWishlisted
+                  ? 'bg-scnt-text/10 text-scnt-text'
+                  : 'bg-transparent text-scnt-text-muted hover:text-scnt-text'
+              }`}
+              onClick={handleToggleWishlist}
+              aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill={isWishlisted ? 'currentColor' : 'none'}
+                stroke="currentColor"
+                strokeWidth="1.8"
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 21s-7-4.3-9-8.5C1.2 8.5 3.3 5 7 5c2 0 3.4 1 5 3 1.6-2 3-3 5-3 3.7 0 5.8 3.5 4 7.5C19 16.7 12 21 12 21z"
+                />
+              </svg>
+              {isWishlisted ? 'Saved' : 'Wishlist'}
+            </button>
             {justAdded ? (
               <span className="text-xs text-scnt-text-muted">Added</span>
             ) : null}

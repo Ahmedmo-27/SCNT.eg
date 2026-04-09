@@ -20,6 +20,14 @@ const cartItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const wishlistItemSchema = new mongoose.Schema(
+  {
+    product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+    addedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     full_name: { type: String, required: true, trim: true },
@@ -27,6 +35,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     address: { type: addressSchema, default: () => ({}) },
     cart: { type: [cartItemSchema], default: [] },
+    wishlist: { type: [wishlistItemSchema], default: [] },
     orders: [{ type: mongoose.Schema.Types.ObjectId, ref: "Order" }],
     role: { type: String, enum: ["user", "admin"], default: "user" },
   },

@@ -6,6 +6,7 @@ import { useCatalog } from '../../context/CatalogContext'
 import { sortCollectionsForDisplay } from '../../lib/catalogDisplayOrder'
 import { fetchProductsByQuery } from '../../services/productSearch'
 import type { ApiProduct } from '../../types/catalog'
+import { useWishlistStore } from '../../store/wishlistStore'
 
 const LANG_KEY = 'scnt-lang'
 const MEGA_LEAVE_MS = 28
@@ -31,6 +32,18 @@ function IconCart({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h15l-1.5 9h-12zM6 6L5 3H2M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000-2z" />
+    </svg>
+  )
+}
+
+function IconHeart({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 21s-7-4.3-9-8.5C1.2 8.5 3.3 5 7 5c2 0 3.4 1 5 3 1.6-2 3-3 5-3 3.7 0 5.8 3.5 4 7.5C19 16.7 12 21 12 21z"
+      />
     </svg>
   )
 }
@@ -75,6 +88,7 @@ const navText = 'text-scnt-text/90 hover:text-scnt-text'
 
 export function Header() {
   const { collections, previewImageByCollectionId } = useCatalog()
+  const wishlistCount = useWishlistStore((s) => s.items.length)
   const navCollections = useMemo(() => sortCollectionsForDisplay(collections), [collections])
   const location = useLocation()
   const navigate = useNavigate()
@@ -320,6 +334,14 @@ export function Header() {
             >
               <IconUser className="h-5 w-5" />
             </button>
+            <Link to="/wishlist" className={`${iconBtnClass} relative`} aria-label="Wishlist">
+              <IconHeart className="h-5 w-5" />
+              {wishlistCount > 0 ? (
+                <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-scnt-text px-1 text-[0.6rem] leading-4 text-scnt-bg">
+                  {wishlistCount}
+                </span>
+              ) : null}
+            </Link>
             <Link to="/cart" className={`${iconBtnClass} !hidden lg:!inline-flex`} aria-label="Cart">
               <IconCart className="h-5 w-5" />
             </Link>
@@ -615,6 +637,9 @@ export function Header() {
             </Link>
             <Link to="/cart" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               Cart
+            </Link>
+            <Link to="/wishlist" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
+              Wishlist
             </Link>
           </nav>
         </aside>

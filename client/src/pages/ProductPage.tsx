@@ -14,6 +14,7 @@ import { ProductRecommendations } from '../components/product/ProductRecommendat
 import { StarDivider } from '../components/ui/StarDivider'
 import { StarLoader } from '../components/ui/StarLoader'
 import { useCartStore } from '../store/cartStore'
+import { useWishlistStore } from '../store/wishlistStore'
 import { PlaceholderPage } from './PlaceholderPage'
 
 function formatEgp(n: number): string {
@@ -33,6 +34,8 @@ export function ProductPage() {
   const [product, setProduct] = useState<ProductSummary | undefined>()
   const [pending, setPending] = useState(true)
   const addItem = useCartStore((s) => s.addItem)
+  const toggleWishlist = useWishlistStore((s) => s.toggleItem)
+  const isWishlisted = useWishlistStore((s) => (product ? s.hasItem(product.apiId) : false))
   const [justAdded, setJustAdded] = useState(false)
 
   useEffect(() => {
@@ -95,6 +98,19 @@ export function ProductPage() {
       image: product.galleryImages[0],
     })
     setJustAdded(true)
+  }
+
+  function handleToggleWishlist() {
+    if (!product) return
+    toggleWishlist({
+      productId: product.apiId,
+      slug: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.galleryImages[0],
+      inspiredBy: product.inspiredBy,
+      collection: col?.name ?? product.collection,
+    })
   }
 
   return (
@@ -227,6 +243,35 @@ export function ProductPage() {
                       className="text-sm text-scnt-text-muted transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:text-scnt-text"
                     >
                       View cart
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleToggleWishlist}
+                      className="inline-flex items-center gap-1.5 text-sm text-scnt-text-muted transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:text-scnt-text"
+                      aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill={isWishlisted ? 'currentColor' : 'none'}
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        aria-hidden
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 21s-7-4.3-9-8.5C1.2 8.5 3.3 5 7 5c2 0 3.4 1 5 3 1.6-2 3-3 5-3 3.7 0 5.8 3.5 4 7.5C19 16.7 12 21 12 21z"
+                        />
+                      </svg>
+                      {isWishlisted ? 'Saved to wishlist' : 'Add to wishlist'}
+                    </button>
+                    <Link
+                      to="/wishlist"
+                      className="text-sm text-scnt-text-muted transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:text-scnt-text"
+                    >
+                      View wishlist
                     </Link>
                   </div>
                 </div>
