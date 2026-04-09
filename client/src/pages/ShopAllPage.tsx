@@ -239,7 +239,7 @@ export function ShopAllPage() {
           >
             {visible.map((p) => (
               <motion.div key={p.id} variants={cell}>
-                <ProductCard product={p} entrance={false} />
+                <ProductCard product={p} entrance={false} carousel />
               </motion.div>
             ))}
           </motion.div>

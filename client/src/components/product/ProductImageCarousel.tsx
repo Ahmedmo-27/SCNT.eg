@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { productImageFrameFull } from './productImageFrame'
 
@@ -66,6 +66,8 @@ export function ProductImageCarousel({
 }: ProductImageCarouselProps) {
   const [index, setIndex] = useState(0)
   const [direction, setDirection] = useState(0)
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
 
   const count = images.length
 
@@ -89,6 +91,7 @@ export function ProductImageCarousel({
   }, [index])
 
   const [g0, g1] = gradient
+  const swipeThresholdPx = 48
 
   return (
     <div
@@ -113,6 +116,25 @@ export function ProductImageCarousel({
             e.preventDefault()
             go(1)
           }
+        }}
+        onTouchStart={(e) => {
+          const t = e.touches[0]
+          touchStartX.current = t.clientX
+          touchStartY.current = t.clientY
+        }}
+        onTouchEnd={(e) => {
+          if (touchStartX.current === null || touchStartY.current === null) return
+          const t = e.changedTouches[0]
+          const deltaX = t.clientX - touchStartX.current
+          const deltaY = t.clientY - touchStartY.current
+
+          touchStartX.current = null
+          touchStartY.current = null
+
+          if (Math.abs(deltaX) < swipeThresholdPx) return
+          if (Math.abs(deltaX) <= Math.abs(deltaY)) return
+
+          go(deltaX < 0 ? 1 : -1)
         }}
       >
         <div
