@@ -45,6 +45,29 @@
 }
 
 @layer utilities {
+  .header-link-star::before {
+    content: '✶';
+    color: currentColor;
+    opacity: 0;
+    transform: translateY(-0.02rem);
+    transition: opacity 220ms var(--ease-scnt);
+    font-size: 0.62rem;
+    line-height: 1;
+  }
+
+  .header-link-star:hover::before,
+  .header-link-star[aria-current='page']::before {
+    opacity: 1;
+  }
+
+  .header-primary-nav:has(.header-link-star:hover) .header-link-star[aria-current='page']::before {
+    opacity: 0;
+  }
+
+  .header-primary-nav--transparent .header-link-star:hover::before {
+    color: #fff;
+  }
+
   /* Product mockups ship at 1182×752 — frame cards and PDP gallery to match */
   .aspect-scnt-product {
     aspect-ratio: 1182 / 752;

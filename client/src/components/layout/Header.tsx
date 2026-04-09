@@ -48,7 +48,7 @@ function IconX({ className }: { className?: string }) {
 }
 
 const navLinkBase =
-  'text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]'
+  'header-link-star relative inline-flex items-center gap-1 text-[0.7rem] font-medium uppercase tracking-[0.18em] transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]'
 
 const navText = 'text-scnt-text/90 hover:text-scnt-text'
 
@@ -143,14 +143,14 @@ export function Header() {
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[100] flex justify-center px-0">
       <header
         ref={headerRef}
-        className={`relative pointer-events-auto flex w-full max-w-[100vw] flex-col transition-[background-color,border-color,box-shadow,padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+        className={`relative pointer-events-auto flex w-full max-w-[100vw] flex-col transition-[background-color,border-color,box-shadow,padding] duration-[820ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] ${
           topTransparent
             ? 'border-b border-transparent bg-transparent shadow-none'
             : 'border-b border-scnt-border/80 bg-scnt-bg/92 shadow-[0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl backdrop-saturate-150'
         }`}
       >
         <div
-          className={`relative mx-auto flex w-full max-w-6xl items-center justify-center px-5 transition-[padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:px-8 ${
+          className={`relative mx-auto flex w-full max-w-6xl items-center justify-center px-5 transition-[padding] duration-[820ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] sm:px-8 ${
             topTransparent ? 'py-5 sm:py-6' : 'py-3 sm:py-3.5'
           }`}
         >
@@ -165,13 +165,13 @@ export function Header() {
           </button>
 
           <div
-            className={`flex justify-center transition-[transform,margin] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+            className={`flex justify-center transition-[transform,margin] duration-[900ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] will-change-transform ${
               scrolled ? 'lg:-translate-x-[40vw]' : ''
             }`}
           >
             <Logo
               tone="default"
-              className={`transition-[font-size,letter-spacing,color,text-shadow,transform] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+              className={`transition-[font-size,letter-spacing,color,text-shadow,transform] duration-[900ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] will-change-transform ${
                 topTransparent
                   ? 'text-[2.6rem] tracking-[0.11em] sm:text-[3.2rem]'
                   : 'text-[2rem] tracking-[0.12em] sm:text-[2.4rem]'
@@ -200,7 +200,9 @@ export function Header() {
           }`}
         >
           <nav
-            className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2"
+            className={`header-primary-nav flex flex-wrap items-center justify-center gap-x-8 gap-y-2 ${
+              topTransparent ? 'header-primary-nav--transparent' : ''
+            }`}
             aria-label="Primary"
             onMouseLeave={scheduleMegaClose}
           >
