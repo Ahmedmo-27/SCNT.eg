@@ -25,6 +25,7 @@ type ProductCardProps = {
 
 export function ProductCard({ product, entrance = true, carousel = false }: ProductCardProps) {
   const { t, locale } = useI18n()
+  const isRtl = locale === 'ar'
   const { collections } = useCatalog()
   const addItem = useCartStore((s) => s.addItem)
   const toggleWishlist = useWishlistStore((s) => s.toggleItem)
@@ -160,7 +161,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                     if (Math.abs(deltaX) < swipeThresholdPx) return
                     if (Math.abs(deltaX) <= Math.abs(deltaY)) return
 
-                    goImage(deltaX < 0 ? 1 : -1)
+                    goImage(deltaX < 0 ? (isRtl ? -1 : 1) : isRtl ? 1 : -1)
                   }
                 : undefined
             }
@@ -229,7 +230,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path
-                      d="M15 6l-6 6 6 6"
+                      d={isRtl ? 'M9 6l6 6-6 6' : 'M15 6l-6 6 6 6'}
                       stroke="currentColor"
                       strokeWidth="1.75"
                       strokeLinecap="round"
@@ -248,7 +249,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path
-                      d="M9 6l6 6-6 6"
+                      d={isRtl ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'}
                       stroke="currentColor"
                       strokeWidth="1.75"
                       strokeLinecap="round"

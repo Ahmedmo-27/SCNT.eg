@@ -63,7 +63,8 @@ export function ProductImageCarousel({
   gradient,
   accent,
 }: ProductImageCarouselProps) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const isRtl = locale === 'ar'
   const slideKeys = ['carousel.slide0', 'carousel.slide1', 'carousel.slide2'] as const
   const slideLabel = (i: number) => t(slideKeys[i] ?? slideKeys[0])
   const [index, setIndex] = useState(0)
@@ -112,11 +113,11 @@ export function ProductImageCarousel({
         onKeyDown={(e) => {
           if (e.key === 'ArrowLeft') {
             e.preventDefault()
-            go(-1)
+            go(isRtl ? 1 : -1)
           }
           if (e.key === 'ArrowRight') {
             e.preventDefault()
-            go(1)
+            go(isRtl ? -1 : 1)
           }
         }}
         onTouchStart={(e) => {
@@ -136,7 +137,7 @@ export function ProductImageCarousel({
           if (Math.abs(deltaX) < swipeThresholdPx) return
           if (Math.abs(deltaX) <= Math.abs(deltaY)) return
 
-          go(deltaX < 0 ? 1 : -1)
+          go(deltaX < 0 ? (isRtl ? -1 : 1) : isRtl ? 1 : -1)
         }}
       >
         <div
@@ -147,10 +148,10 @@ export function ProductImageCarousel({
           aria-hidden
         />
 
-        <AnimatePresence initial={false} custom={direction}>
+        <AnimatePresence initial={false} custom={isRtl ? -direction : direction}>
           <motion.div
             key={`${productId}-${index}`}
-            custom={direction}
+            custom={isRtl ? -direction : direction}
             variants={slideVariants}
             initial="enter"
             animate="center"
@@ -175,7 +176,7 @@ export function ProductImageCarousel({
             className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-scnt-bg-elevated/90 text-scnt-text shadow-sm ring-1 ring-scnt-border/90 backdrop-blur-sm transition-[background-color,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:bg-scnt-bg-elevated active:scale-95 lg:h-10 lg:w-10"
             aria-label={t('carousel.prev')}
           >
-            <ChevronLeft className="opacity-80" />
+            {isRtl ? <ChevronRight className="opacity-80" /> : <ChevronLeft className="opacity-80" />}
           </button>
           <button
             type="button"
@@ -183,7 +184,7 @@ export function ProductImageCarousel({
             className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-scnt-bg-elevated/90 text-scnt-text shadow-sm ring-1 ring-scnt-border/90 backdrop-blur-sm transition-[background-color,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:bg-scnt-bg-elevated active:scale-95 lg:h-10 lg:w-10"
             aria-label={t('carousel.next')}
           >
-            <ChevronRight className="opacity-80" />
+            {isRtl ? <ChevronLeft className="opacity-80" /> : <ChevronRight className="opacity-80" />}
           </button>
         </div>
       </div>
