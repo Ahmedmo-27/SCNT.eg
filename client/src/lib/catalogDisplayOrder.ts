@@ -6,10 +6,10 @@ import type { ProductSummary } from '../types/catalog'
  * Icon → Charmer → Explorer → Executive (reverse of legacy static `collections.ts`).
  */
 export const COLLECTION_DISPLAY_ORDER: readonly CollectionId[] = [
-  'icon',
-  'charmer',
-  'explorer',
   'executive',
+  'explorer',
+  'charmer',
+  'icon',
 ]
 
 const ORDER_SET = new Set<string>(COLLECTION_DISPLAY_ORDER)
