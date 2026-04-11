@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Layout } from '../components/layout/Layout'
 import { useCatalog } from '../context/CatalogContext'
+import { useI18n } from '../i18n/I18nContext'
 import { mapApiProductToSummary } from '../lib/catalogMappers'
 import { parseCollectionIdParam, type ApiProductListResponse, type CollectionId, type ProductSummary } from '../types/catalog'
 import { apiGetData } from '../services/api'
@@ -39,6 +40,7 @@ function genderFilter(v: string | null): ProductSummary['gender'] | null {
 }
 
 export function ShopAllPage() {
+  const { t, locale } = useI18n()
   const { collections, products, loading } = useCatalog()
   const [searchParams, setSearchParams] = useSearchParams()
   const filterRaw = searchParams.get('collection')
@@ -67,7 +69,7 @@ export function ShopAllPage() {
     if (gender) params.set('gender', gender)
     apiGetData<ApiProductListResponse>(`/products?${params.toString()}`)
       .then((data) => {
-        if (!cancelled) setShopQueryResults(data.items.map(mapApiProductToSummary))
+        if (!cancelled) setShopQueryResults(data.items.map((item) => mapApiProductToSummary(item, locale)))
       })
       .catch(() => {
         if (!cancelled) setShopQueryResults([])
@@ -78,17 +80,14 @@ export function ShopAllPage() {
     return () => {
       cancelled = true
     }
-  }, [qParam, gender])
+  }, [qParam, gender, locale])
 
   const catalogueList = qParam ? shopQueryResults : products
 
-  const visible = useMemo(
-    () => {
-      const gendered = gender ? catalogueList.filter((p) => p.gender === gender) : catalogueList
-      return filter ? gendered.filter((p) => p.collection === filter) : gendered
-    },
-    [filter, gender, catalogueList],
-  )
+  const visible = useMemo(() => {
+    const gendered = gender ? catalogueList.filter((p) => p.gender === gender) : catalogueList
+    return filter ? gendered.filter((p) => p.collection === filter) : gendered
+  }, [filter, gender, catalogueList])
 
   const gridLoading = loading || (qParam !== '' && searchLoading)
 
@@ -112,76 +111,84 @@ export function ShopAllPage() {
     setSearchParams(nextParams)
   }
 
+  const statusLine = (() => {
+    if (gridLoading) {
+      return qParam ? t('shop.searchingCat') : t('shop.loadingCat')
+    }
+    if (qParam) {
+      if (visible.length === catalogueList.length) {
+        return visible.length === 1
+          ? t('shop.matchOne', { n: String(visible.length), q: qParam })
+          : t('shop.matchMany', { n: String(visible.length), q: qParam })
+      }
+      return t('shop.lineMatches', { v: String(visible.length), t: String(catalogueList.length) })
+    }
+    if (visible.length === products.length) {
+      return t('shop.frags', { n: String(products.length) })
+    }
+    return t('shop.lineTotal', { v: String(visible.length), t: String(products.length) })
+  })()
+
   return (
     <Layout>
       <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
         <header className="max-w-2xl">
           <p className="mb-3 inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-scnt-text-muted">
             <EightPointStar size={9} className="opacity-45" />
-            Catalogue
+            {t('shop.kicker')}
           </p>
-          <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">Shop all</h1>
-          <p className="mt-4 text-lg text-scnt-text-muted">
-            Every bottle in the house — filter by line, or wander the full grid.
-          </p>
-          <p className="mt-2 text-sm text-scnt-text/60">
-            {gridLoading
-              ? qParam
-                ? 'Searching catalogue…'
-                : 'Loading catalogue…'
-              : qParam
-                ? visible.length === catalogueList.length
-                  ? `${visible.length} match${visible.length === 1 ? '' : 'es'} for “${qParam}”`
-                  : `${visible.length} in this line · ${catalogueList.length} matches`
-                : visible.length === products.length
-                  ? `${products.length} fragrances`
-                  : `${visible.length} in this line · ${products.length} total`}
-          </p>
+          <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">{t('shop.title')}</h1>
+          <p className="mt-4 text-lg text-scnt-text-muted">{t('shop.sub')}</p>
+          <p className="mt-2 text-sm text-scnt-text/60">{statusLine}</p>
         </header>
 
         <StarDivider className="py-8 sm:py-10" />
 
         <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">Filter by line</p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
+              {t('shop.filterLine')}
+            </p>
             <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setFilter(null)}
-              aria-pressed={filter === null}
-              className={`rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                filter === null
-                  ? 'border-scnt-text bg-scnt-text text-scnt-bg shadow-[0_12px_32px_-18px_rgba(42,38,34,0.35)]'
-                  : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
-              }`}
-            >
-              All
-            </button>
-            {collections.map((c) => (
               <button
-                key={c.id}
                 type="button"
-                onClick={() => setFilter(c.id)}
-                aria-pressed={filter === c.id}
+                onClick={() => setFilter(null)}
+                aria-pressed={filter === null}
                 className={`rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                  filter === c.id
-                    ? 'text-scnt-bg shadow-[0_12px_32px_-18px_rgba(42,38,34,0.22)]'
+                  filter === null
+                    ? 'border-scnt-text bg-scnt-text text-scnt-bg shadow-[0_12px_32px_-18px_rgba(42,38,34,0.35)]'
                     : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
                 }`}
-                style={
-                  filter === c.id
-                    ? { borderColor: c.accent, backgroundColor: c.accent }
-                    : undefined
-                }
               >
-                {c.name.replace(/^The /, '')}
+                {t('shop.all')}
               </button>
-            ))}
+              {collections.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setFilter(c.id)}
+                  aria-pressed={filter === c.id}
+                  className={`rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                    filter === c.id
+                      ? 'text-scnt-bg shadow-[0_12px_32px_-18px_rgba(42,38,34,0.22)]'
+                      : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
+                  }`}
+                  style={
+                    filter === c.id
+                      ? { borderColor: c.accent, backgroundColor: c.accent }
+                      : undefined
+                  }
+                >
+                  {c.name.replace(/^The /, '')}
+                </button>
+              ))}
             </div>
           </div>
 
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">Filter by gender</p>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
+              {t('shop.filterGender')}
+            </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -193,7 +200,7 @@ export function ShopAllPage() {
                     : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
                 }`}
               >
-                All
+                {t('shop.all')}
               </button>
               <button
                 type="button"
@@ -205,7 +212,7 @@ export function ShopAllPage() {
                     : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
                 }`}
               >
-                Male
+                {t('shop.male')}
               </button>
               <button
                 type="button"
@@ -217,17 +224,17 @@ export function ShopAllPage() {
                     : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
                 }`}
               >
-                Female
+                {t('shop.female')}
               </button>
             </div>
           </div>
         </div>
 
         {gridLoading ? (
-          <StarLoader className="py-20" label={qParam ? 'Searching' : 'Loading shop'} />
+          <StarLoader className="py-20" label={qParam ? t('shop.searching') : t('shop.loadingShop')} />
         ) : visible.length === 0 ? (
           <p className="text-sm text-scnt-text-muted">
-            {qParam ? `No products found for “${qParam}”.` : 'Nothing in this line yet.'}
+            {qParam ? t('shop.noFor', { q: qParam }) : t('shop.emptyLine')}
           </p>
         ) : (
           <motion.div
@@ -246,9 +253,9 @@ export function ShopAllPage() {
         )}
 
         <p className="mt-14 text-center text-sm text-scnt-text-muted">
-          Prefer to choose by temperament?{' '}
+          {t('shop.prefer')}{' '}
           <Link to="/collections" className="text-scnt-text underline-offset-4 transition-colors hover:underline">
-            Browse collections
+            {t('shop.browseCol')}
           </Link>
         </p>
       </div>

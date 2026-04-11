@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
 import { useCatalog } from '../context/CatalogContext'
+import { FIND_YOUR_SCNT_BLUEPRINT } from '../data/findYourScntBlueprint'
+import { useI18n } from '../i18n/I18nContext'
 import type { CollectionId, CollectionSummary, ProductSummary } from '../types/catalog'
 
 type Choice = {
@@ -36,288 +38,20 @@ const initialScores: Record<CollectionId, number> = {
   icon: 0,
 }
 
-const questions: QuizQuestion[] = [
-  {
-    id: 'entrance',
-    prompt: 'Your entrance in a room feels like...',
-    promptDetail: 'Pick the energy that sounds most like you.',
-    choices: [
-      {
-        id: 'q1-1',
-        title: 'A sharp, clean statement',
-        subtitle: 'Minimal words, maximum presence.',
-        aura: 'Precision',
-        score: { executive: 3, explorer: 0, charmer: 1, icon: 1 },
-      },
-      {
-        id: 'q1-2',
-        title: 'Fresh wind through an open window',
-        subtitle: 'Free, cool, and naturally magnetic.',
-        aura: 'Freedom',
-        score: { executive: 0, explorer: 3, charmer: 0, icon: 1 },
-      },
-      {
-        id: 'q1-3',
-        title: 'Soft warmth people move toward',
-        subtitle: 'Intimate and inviting, never loud.',
-        aura: 'Warmth',
-        score: { executive: 0, explorer: 1, charmer: 3, icon: 1 },
-      },
-      {
-        id: 'q1-4',
-        title: 'An unforgettable golden glow',
-        subtitle: 'Elegant, bold, and iconic.',
-        aura: 'Legacy',
-        score: { executive: 1, explorer: 0, charmer: 1, icon: 3 },
-      },
-    ],
-  },
-  {
-    id: 'schedule',
-    prompt: 'Your ideal day rhythm is...',
-    promptDetail: 'Think about how you naturally move through time.',
-    choices: [
-      {
-        id: 'q2-1',
-        title: 'Structured plans and clear priorities',
-        subtitle: 'You perform best with focus and flow.',
-        aura: 'Discipline',
-        score: { executive: 3, explorer: 0, charmer: 1, icon: 1 },
-      },
-      {
-        id: 'q2-2',
-        title: 'Flexible and spontaneous',
-        subtitle: 'You follow momentum and curiosity.',
-        aura: 'Motion',
-        score: { executive: 0, explorer: 3, charmer: 1, icon: 1 },
-      },
-      {
-        id: 'q2-3',
-        title: 'A smooth blend of work and social',
-        subtitle: 'You thrive in meaningful interactions.',
-        aura: 'Connection',
-        score: { executive: 1, explorer: 0, charmer: 3, icon: 1 },
-      },
-      {
-        id: 'q2-4',
-        title: 'High-impact moments all day',
-        subtitle: 'You treat every appearance as a statement.',
-        aura: 'Presence',
-        score: { executive: 1, explorer: 0, charmer: 1, icon: 3 },
-      },
-    ],
-  },
-  {
-    id: 'vacation',
-    prompt: 'Your perfect escape is...',
-    promptDetail: 'Where do you feel most alive?',
-    choices: [
-      {
-        id: 'q3-1',
-        title: 'A luxury city break',
-        subtitle: 'Fine dining, architecture, and polished style.',
-        aura: 'Refined',
-        score: { executive: 3, explorer: 0, charmer: 1, icon: 2 },
-      },
-      {
-        id: 'q3-2',
-        title: 'A coastal road trip',
-        subtitle: 'Salt air, sunlight, and no strict route.',
-        aura: 'Open-air',
-        score: { executive: 0, explorer: 3, charmer: 1, icon: 0 },
-      },
-      {
-        id: 'q3-3',
-        title: 'A boutique getaway with candlelit nights',
-        subtitle: 'Mood, conversation, and slow luxury.',
-        aura: 'Seductive',
-        score: { executive: 0, explorer: 0, charmer: 3, icon: 1 },
-      },
-      {
-        id: 'q3-4',
-        title: 'A private villa for grand celebrations',
-        subtitle: 'Drama, elegance, and memorable experiences.',
-        aura: 'Grand',
-        score: { executive: 1, explorer: 0, charmer: 1, icon: 3 },
-      },
-    ],
-  },
-  {
-    id: 'fabric',
-    prompt: 'The texture that best represents you...',
-    promptDetail: 'Style can be felt before it is seen.',
-    choices: [
-      {
-        id: 'q4-1',
-        title: 'Crisp tailored cotton',
-        subtitle: 'Clean lines and intentional choices.',
-        aura: 'Tailored',
-        score: { executive: 3, explorer: 0, charmer: 1, icon: 0 },
-      },
-      {
-        id: 'q4-2',
-        title: 'Linen in ocean breeze',
-        subtitle: 'Relaxed, breathable, and naturally cool.',
-        aura: 'Breezy',
-        score: { executive: 0, explorer: 3, charmer: 0, icon: 1 },
-      },
-      {
-        id: 'q4-3',
-        title: 'Velvet at midnight',
-        subtitle: 'Depth, intimacy, and soft drama.',
-        aura: 'Nocturne',
-        score: { executive: 0, explorer: 0, charmer: 3, icon: 1 },
-      },
-      {
-        id: 'q4-4',
-        title: 'Silk with gold detail',
-        subtitle: 'Timeless and impossible to ignore.',
-        aura: 'Regal',
-        score: { executive: 1, explorer: 0, charmer: 1, icon: 3 },
-      },
-    ],
-  },
-  {
-    id: 'social',
-    prompt: 'In your circle, you are usually...',
-    promptDetail: 'Your role says a lot about your scent identity.',
-    choices: [
-      {
-        id: 'q5-1',
-        title: 'The strategist',
-        subtitle: 'Calm, decisive, and trusted.',
-        aura: 'Leader',
-        score: { executive: 3, explorer: 0, charmer: 0, icon: 1 },
-      },
-      {
-        id: 'q5-2',
-        title: 'The explorer',
-        subtitle: 'Curious, lively, and always discovering.',
-        aura: 'Adventurer',
-        score: { executive: 0, explorer: 3, charmer: 1, icon: 0 },
-      },
-      {
-        id: 'q5-3',
-        title: 'The storyteller',
-        subtitle: 'Warm, expressive, and unforgettable.',
-        aura: 'Magnetism',
-        score: { executive: 0, explorer: 0, charmer: 3, icon: 1 },
-      },
-      {
-        id: 'q5-4',
-        title: 'The icon',
-        subtitle: 'Confident, polished, and trend-defining.',
-        aura: 'Star power',
-        score: { executive: 1, explorer: 0, charmer: 1, icon: 3 },
-      },
-    ],
-  },
-  {
-    id: 'night',
-    prompt: 'Your ideal evening vibe?',
-    promptDetail: 'From low-key to high-impact.',
-    choices: [
-      {
-        id: 'q6-1',
-        title: 'Exclusive rooftop dinner',
-        subtitle: 'Elegant atmosphere and focused conversations.',
-        aura: 'Polished',
-        score: { executive: 3, explorer: 0, charmer: 1, icon: 1 },
-      },
-      {
-        id: 'q6-2',
-        title: 'Sunset by the shore',
-        subtitle: 'Relaxed mood with open skies.',
-        aura: 'Airy',
-        score: { executive: 0, explorer: 3, charmer: 0, icon: 1 },
-      },
-      {
-        id: 'q6-3',
-        title: 'Jazz lounge and dim lights',
-        subtitle: 'Depth, chemistry, and quiet sensuality.',
-        aura: 'Velvet',
-        score: { executive: 0, explorer: 0, charmer: 3, icon: 1 },
-      },
-      {
-        id: 'q6-4',
-        title: 'Gala with a dramatic entrance',
-        subtitle: 'A moment people remember.',
-        aura: 'Spotlight',
-        score: { executive: 1, explorer: 0, charmer: 1, icon: 3 },
-      },
-    ],
-  },
-  {
-    id: 'notes',
-    prompt: 'Which note family draws you most?',
-    promptDetail: 'Your instinctive preference guides the match.',
-    choices: [
-      {
-        id: 'q7-1',
-        title: 'Citrus, woods, and clean musk',
-        subtitle: 'Fresh with modern structure.',
-        aura: 'Crisp',
-        score: { executive: 3, explorer: 1, charmer: 0, icon: 0 },
-      },
-      {
-        id: 'q7-2',
-        title: 'Marine accords and green fig',
-        subtitle: 'Transparent freshness with movement.',
-        aura: 'Aqua',
-        score: { executive: 0, explorer: 3, charmer: 0, icon: 0 },
-      },
-      {
-        id: 'q7-3',
-        title: 'Amber, florals, and patchouli',
-        subtitle: 'Warm and close to the skin.',
-        aura: 'Intense',
-        score: { executive: 0, explorer: 0, charmer: 3, icon: 1 },
-      },
-      {
-        id: 'q7-4',
-        title: 'Rose, oud, and golden resins',
-        subtitle: 'Bold depth with heritage.',
-        aura: 'Opulent',
-        score: { executive: 0, explorer: 0, charmer: 1, icon: 3 },
-      },
-    ],
-  },
-  {
-    id: 'signature',
-    prompt: 'How do you want people to remember you?',
-    promptDetail: 'Choose the legacy your scent leaves behind.',
-    choices: [
-      {
-        id: 'q8-1',
-        title: 'Composed and trustworthy',
-        subtitle: 'Quiet confidence that earns respect.',
-        aura: 'Authority',
-        score: { executive: 3, explorer: 0, charmer: 0, icon: 1 },
-      },
-      {
-        id: 'q8-2',
-        title: 'Free-spirited and refreshing',
-        subtitle: 'Light, open, and naturally cool.',
-        aura: 'Escape',
-        score: { executive: 0, explorer: 3, charmer: 0, icon: 1 },
-      },
-      {
-        id: 'q8-3',
-        title: 'Warm and magnetic',
-        subtitle: 'An intimate trail people lean toward.',
-        aura: 'Chemistry',
-        score: { executive: 0, explorer: 0, charmer: 3, icon: 1 },
-      },
-      {
-        id: 'q8-4',
-        title: 'Powerful and iconic',
-        subtitle: 'A statement that lasts after you leave.',
-        aura: 'Prestige',
-        score: { executive: 1, explorer: 0, charmer: 0, icon: 3 },
-      },
-    ],
-  },
-]
+function buildQuizQuestions(t: (key: string, vars?: Record<string, string | number>) => string): QuizQuestion[] {
+  return FIND_YOUR_SCNT_BLUEPRINT.map((q) => ({
+    id: q.id,
+    prompt: t(q.promptKey),
+    promptDetail: t(q.detailKey),
+    choices: q.choices.map((c) => ({
+      id: c.id,
+      title: t(c.titleKey),
+      subtitle: t(c.subtitleKey),
+      aura: t(c.auraKey),
+      score: c.score,
+    })),
+  }))
+}
 
 function shuffleArray<T>(arr: T[]): T[] {
   const copy = [...arr]
@@ -337,13 +71,6 @@ function buildRandomizedQuestions(source: QuizQuestion[]): QuizQuestion[] {
   }))
 }
 
-function formatCharacterTitle(id: CollectionId): string {
-  if (id === 'executive') return 'The Quiet Strategist'
-  if (id === 'explorer') return 'The Modern Voyager'
-  if (id === 'charmer') return 'The Velvet Magnet'
-  return 'The Golden Signature'
-}
-
 function strongestIds(scores: Record<CollectionId, number>): [CollectionId, CollectionId] {
   const ranked = (Object.keys(scores) as CollectionId[]).sort((a, b) => scores[b] - scores[a])
   return [ranked[0], ranked[1]]
@@ -351,14 +78,6 @@ function strongestIds(scores: Record<CollectionId, number>): [CollectionId, Coll
 
 function leadLine(c: CollectionSummary): string {
   return (c.subTagline || c.tagline).trim()
-}
-
-function buildCharacterParagraph(primary: CollectionSummary, secondary: CollectionSummary): string {
-  return `You move with ${leadLine(primary).toLowerCase()} Your style blends ${primary.mood.toLowerCase()} with subtle notes of ${secondary.mood.toLowerCase()}, so your presence feels intentional, memorable, and naturally confident in both everyday moments and big entrances.`
-}
-
-function buildCollectionWhy(primary: CollectionSummary, secondary: CollectionSummary): string {
-  return `${primary.name} fits you best because your answers consistently favored ${leadLine(primary).toLowerCase()} We also picked up a secondary influence from ${secondary.name}, which adds extra dimension to your profile and keeps your scent identity unique rather than one-dimensional.`
 }
 
 function pickFragrance(
@@ -378,16 +97,11 @@ function pickFragrance(
   return adventurousTilt > intimateTilt ? candidates[1] : candidates[0]
 }
 
-function buildFragranceWhy(fragrance: ProductSummary, primary: CollectionSummary): string {
-  const top = fragrance.topNotes.slice(0, 2).join(' + ')
-  const base = fragrance.baseNotes.slice(0, 2).join(' + ')
-  return `${fragrance.name} is your strongest match because it opens with ${top}, then settles into ${base}. This mirrors your ${primary.mood.toLowerCase()} profile: noticeable at first impression, then deeply personal as it lingers.`
-}
-
 function calculateResult(
   scores: Record<CollectionId, number>,
   collections: CollectionSummary[],
   products: ProductSummary[],
+  t: (key: string, vars?: Record<string, string | number>) => string,
 ): QuizResult | null {
   if (collections.length === 0 || products.length === 0) return null
   const [primaryId, secondaryId] = strongestIds(scores)
@@ -395,31 +109,56 @@ function calculateResult(
   const secondary = collections.find((c) => c.id === secondaryId) ?? collections[1]
   const fragrance = pickFragrance(primary.id, scores, products)
 
+  const pLead = leadLine(primary).toLowerCase()
+  const pMood = primary.mood.toLowerCase()
+  const sMood = secondary.mood.toLowerCase()
+  const top = fragrance.topNotes.slice(0, 2).join(' + ')
+  const base = fragrance.baseNotes.slice(0, 2).join(' + ')
+
   return {
     collection: primary,
     fragrance,
-    characterTitle: formatCharacterTitle(primary.id),
-    characterParagraph: buildCharacterParagraph(primary, secondary),
-    collectionWhy: buildCollectionWhy(primary, secondary),
-    fragranceWhy: buildFragranceWhy(fragrance, primary),
+    characterTitle: t(`fz.char.${primary.id}`),
+    characterParagraph: t('fz.para', { pLead, pMood, sMood }),
+    collectionWhy: t('fz.colWhy', {
+      pName: primary.name,
+      pLead,
+      sName: secondary.name,
+    }),
+    fragranceWhy: t('fz.fragWhy', {
+      fname: fragrance.name,
+      top,
+      base,
+      mood: pMood,
+    }),
   }
 }
 
 export function FindYourScntPage() {
+  const { t, locale } = useI18n()
   const { collections, products, loading } = useCatalog()
   const [step, setStep] = useState(0)
   const [scores, setScores] = useState<Record<CollectionId, number>>(initialScores)
   const [selections, setSelections] = useState<Record<string, string>>({})
-  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>(() => buildRandomizedQuestions(questions))
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([])
+
+  const templateQuestions = useMemo(() => buildQuizQuestions(t), [t])
+
+  useEffect(() => {
+    setQuizQuestions(buildRandomizedQuestions(templateQuestions))
+    setStep(0)
+    setScores(initialScores)
+    setSelections({})
+  }, [locale, templateQuestions])
 
   const total = quizQuestions.length
-  const progress = Math.round((Math.min(step, total) / total) * 100)
-  const isDone = step >= total
-  const current = quizQuestions[Math.min(step, total - 1)]
+  const progress = total > 0 ? Math.round((Math.min(step, total) / total) * 100) : 0
+  const isDone = total > 0 && step >= total
+  const current = quizQuestions[Math.min(step, Math.max(total - 1, 0))]
 
   const result = useMemo(
-    () => calculateResult(scores, collections, products),
-    [scores, collections, products],
+    () => (isDone ? calculateResult(scores, collections, products, t) : null),
+    [isDone, scores, collections, products, t],
   )
 
   const answeredCount = Object.keys(selections).length
@@ -442,35 +181,37 @@ export function FindYourScntPage() {
     setStep(0)
     setScores(initialScores)
     setSelections({})
-    setQuizQuestions(buildRandomizedQuestions(questions))
+    setQuizQuestions(buildRandomizedQuestions(templateQuestions))
   }
 
   return (
     <Layout>
       <section className="relative isolate overflow-hidden px-5 pb-20 pt-14 sm:px-8 sm:pt-18">
         <div className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute left-[8%] top-24 h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(122,143,163,0.22),transparent_70%)] blur-2xl" />
-          <div className="absolute right-[12%] top-40 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(184,155,94,0.24),transparent_72%)] blur-2xl" />
-          <div className="absolute bottom-10 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(139,61,92,0.14),transparent_74%)] blur-3xl" />
+          <div className="absolute start-[8%] top-24 h-44 w-44 rounded-full bg-[radial-gradient(circle,rgba(122,143,163,0.22),transparent_70%)] blur-2xl" />
+          <div className="absolute end-[12%] top-40 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(184,155,94,0.24),transparent_72%)] blur-2xl" />
+          <div className="absolute bottom-10 start-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(139,61,92,0.14),transparent_74%)] blur-3xl" />
         </div>
 
         <div className="mx-auto max-w-5xl">
           <div className="text-center">
-            <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">Find your SCNT</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">{t('fz.pageKicker')}</p>
             <h1 className="mt-4 font-serif text-4xl font-medium tracking-tight text-scnt-text sm:text-5xl">
-              A deeper fragrance identity quiz
+              {t('fz.pageTitle')}
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-scnt-text-muted sm:text-base">
-              Eight immersive questions designed to decode your personality. At the end, you get a custom character profile, your ideal collection, and one fragrance that fits your story with a clear reason why.
+              {t('fz.pageSub')}
             </p>
           </div>
 
           <div className="mx-auto mt-10 max-w-3xl rounded-3xl border border-scnt-border/90 bg-scnt-bg-elevated/70 p-5 shadow-[0_20px_80px_-52px_rgba(42,38,34,0.35)] sm:p-7">
             <div className="mb-5 flex items-center justify-between gap-4">
               <p className="text-xs uppercase tracking-[0.24em] text-scnt-text-muted">
-                {isDone ? 'Result ready' : `Question ${Math.min(step + 1, total)} / ${total}`}
+                {isDone
+                  ? t('fz.resultReady')
+                  : t('fz.question', { cur: String(Math.min(step + 1, total)), total: String(total) })}
               </p>
-              <p className="text-xs text-scnt-text-muted">{answeredCount} answered</p>
+              <p className="text-xs text-scnt-text-muted">{t('fz.answered', { n: String(answeredCount) })}</p>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-scnt-border/60">
               <motion.div
@@ -481,7 +222,16 @@ export function FindYourScntPage() {
             </div>
 
             <AnimatePresence mode="wait">
-              {!isDone ? (
+              {total === 0 ? (
+                <motion.p
+                  key="quiz-init"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-7 text-center text-sm text-scnt-text-muted"
+                >
+                  {t('fz.loadingQuiz')}
+                </motion.p>
+              ) : !isDone && current ? (
                 <motion.div
                   key={current.id}
                   initial={{ opacity: 0, y: 14 }}
@@ -499,7 +249,7 @@ export function FindYourScntPage() {
                         key={choice.id}
                         type="button"
                         onClick={() => pickChoice(choice)}
-                        className="group relative overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg/65 px-4 py-4 text-left transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-scnt-text/20 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)]"
+                        className="group relative overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg/65 px-4 py-4 text-start transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-scnt-text/20 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)]"
                       >
                         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                         <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">{choice.aura}</p>
@@ -509,7 +259,7 @@ export function FindYourScntPage() {
                     ))}
                   </div>
                 </motion.div>
-              ) : loading || !result ? (
+              ) : isDone && (loading || !result) ? (
                 <motion.div
                   key="result-pending"
                   initial={{ opacity: 0, y: 16 }}
@@ -517,9 +267,9 @@ export function FindYourScntPage() {
                   transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                   className="mt-7 text-center text-sm text-scnt-text-muted"
                 >
-                  {loading ? 'Preparing your result…' : 'Catalogue could not be loaded. Refresh and try again.'}
+                  {loading ? t('fz.preparing') : t('fz.catalogErr')}
                 </motion.div>
-              ) : (
+              ) : isDone && result ? (
                 <motion.div
                   key="result"
                   initial={{ opacity: 0, y: 16 }}
@@ -528,7 +278,7 @@ export function FindYourScntPage() {
                   className="mt-7 space-y-5"
                 >
                   <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/70 p-5">
-                    <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">Your character</p>
+                    <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">{t('fz.yourCharacter')}</p>
                     <h2 className="mt-3 font-serif text-3xl text-scnt-text">{result.characterTitle}</h2>
                     <p className="mt-3 text-sm leading-relaxed text-scnt-text-muted sm:text-base">
                       {result.characterParagraph}
@@ -536,35 +286,39 @@ export function FindYourScntPage() {
                   </div>
 
                   <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/70 p-5">
-                    <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">Collection match</p>
+                    <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">{t('fz.collectionMatch')}</p>
                     <h3 className="mt-3 font-serif text-2xl text-scnt-text">{result.collection.name}</h3>
                     {result.collection.subTagline ? (
                       <p className="mt-2 text-sm italic text-scnt-text-muted">{result.collection.subTagline}</p>
                     ) : null}
                     <p className="mt-3 text-sm text-scnt-text-muted">{result.collection.tagline}</p>
-                    <p className="mt-3 text-sm leading-relaxed text-scnt-text-muted sm:text-base">{result.collectionWhy}</p>
+                    <p className="mt-3 text-sm leading-relaxed text-scnt-text-muted sm:text-base">
+                      {result.collectionWhy}
+                    </p>
                   </div>
 
                   <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/70 p-5">
-                    <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">Fragrance match</p>
+                    <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">{t('fz.fragranceMatch')}</p>
                     <h3 className="mt-3 font-serif text-2xl text-scnt-text">{result.fragrance.name}</h3>
                     <p className="mt-2 text-sm text-scnt-text-muted">{result.fragrance.vibeSentence}</p>
-                    <p className="mt-3 text-sm leading-relaxed text-scnt-text-muted sm:text-base">{result.fragranceWhy}</p>
+                    <p className="mt-3 text-sm leading-relaxed text-scnt-text-muted sm:text-base">
+                      {result.fragranceWhy}
+                    </p>
                   </div>
 
                   <div className="flex flex-col gap-3 pt-1 sm:flex-row">
                     <Button to={`/collections/${result.collection.id}`} className="w-full sm:w-auto">
-                      Explore {result.collection.name}
+                      {t('fz.explore', { name: result.collection.name })}
                     </Button>
                     <Button to={`/product/${result.fragrance.id}`} variant="outline" className="w-full sm:w-auto">
-                      Open {result.fragrance.name}
+                      {t('fz.open', { name: result.fragrance.name })}
                     </Button>
                     <Button onClick={restart} variant="ghost" className="w-full sm:w-auto">
-                      Retake quiz
+                      {t('fz.retake')}
                     </Button>
                   </div>
                 </motion.div>
-              )}
+              ) : null}
             </AnimatePresence>
           </div>
         </div>

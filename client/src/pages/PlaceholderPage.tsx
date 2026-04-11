@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
+import { useI18n } from '../i18n/I18nContext'
 import { EightPointStar } from '../components/ui/EightPointStar'
 
 type PlaceholderPageProps = {
@@ -8,6 +9,7 @@ type PlaceholderPageProps = {
 }
 
 export function PlaceholderPage({ title, subtitle }: PlaceholderPageProps) {
+  const { t } = useI18n()
   return (
     <Layout>
       <div className="mx-auto max-w-2xl px-5 py-24 text-center sm:px-8">
@@ -19,16 +21,13 @@ export function PlaceholderPage({ title, subtitle }: PlaceholderPageProps) {
         {subtitle ? (
           <p className="mt-4 text-scnt-text-muted">{subtitle}</p>
         ) : null}
-        <p className="mt-10 text-sm text-scnt-text-muted">
-          This route is wired for the full MERN build — content ships in the next
-          implementation pass.
-        </p>
+        <p className="mt-10 text-sm text-scnt-text-muted">{t('ph.wip')}</p>
         <Link
           to="/"
           className="mt-8 inline-flex items-center gap-2 text-sm text-scnt-text underline-offset-4 transition-opacity hover:opacity-75"
         >
           <EightPointStar size={10} className="opacity-40" />
-          Back to home
+          {t('ph.back')}
         </Link>
       </div>
     </Layout>

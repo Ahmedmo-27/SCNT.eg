@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Layout } from '../components/layout/Layout'
 import { useCatalog } from '../context/CatalogContext'
+import { useI18n } from '../i18n/I18nContext'
 import { EightPointStar } from '../components/ui/EightPointStar'
 import { StarDivider } from '../components/ui/StarDivider'
 import { StarLoader } from '../components/ui/StarLoader'
 
 export function CollectionsPage() {
+  const { t } = useI18n()
   const { collections, loading } = useCatalog()
 
   return (
@@ -15,21 +17,16 @@ export function CollectionsPage() {
         <header className="max-w-2xl">
           <p className="mb-3 inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-scnt-text-muted">
             <EightPointStar size={9} className="opacity-45" />
-            Index
+            {t('collections.kicker')}
           </p>
-          <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">
-            Collections
-          </h1>
-          <p className="mt-4 text-lg text-scnt-text-muted">
-            Four temperaments — each with its own light. Step into the one that
-            already feels familiar.
-          </p>
+          <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">{t('collections.title')}</h1>
+          <p className="mt-4 text-lg text-scnt-text-muted">{t('collections.sub')}</p>
         </header>
 
         <StarDivider className="py-8 sm:py-10" />
 
         {loading ? (
-          <StarLoader className="py-20" label="Loading collections" />
+          <StarLoader className="py-20" label={t('collections.loading')} />
         ) : (
           <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {collections.map((c, i) => (
@@ -58,7 +55,7 @@ export function CollectionsPage() {
                     </p>
                   </div>
                   <span className="mt-6 inline-flex items-center gap-2 text-xs text-scnt-text-muted transition-colors duration-[550ms] group-hover:text-scnt-text">
-                    Enter
+                    {t('collections.enter')}
                     <EightPointStar size={9} />
                   </span>
                 </Link>

@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useI18n } from '../../i18n/I18nContext'
 import { productImageFrameFull } from './productImageFrame'
-
-const SLIDE_LABELS = ['Bottle front', 'Bottle back', 'Box'] as const
 
 const easeScnt = [0.22, 1, 0.36, 1] as const
 
@@ -64,6 +63,9 @@ export function ProductImageCarousel({
   gradient,
   accent,
 }: ProductImageCarouselProps) {
+  const { t } = useI18n()
+  const slideKeys = ['carousel.slide0', 'carousel.slide1', 'carousel.slide2'] as const
+  const slideLabel = (i: number) => t(slideKeys[i] ?? slideKeys[0])
   const [index, setIndex] = useState(0)
   const [direction, setDirection] = useState(0)
   const touchStartX = useRef<number | null>(null)
@@ -98,7 +100,7 @@ export function ProductImageCarousel({
       className="w-full max-w-none"
       role="region"
       aria-roledescription="carousel"
-      aria-label={`${productName} photos`}
+      aria-label={t('carousel.photosAria', { name: productName })}
     >
       <div
         className={`relative aspect-scnt-product w-full overflow-hidden ring-1 ring-scnt-border/90 outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/20 ${productImageFrameFull}`}
@@ -118,15 +120,15 @@ export function ProductImageCarousel({
           }
         }}
         onTouchStart={(e) => {
-          const t = e.touches[0]
-          touchStartX.current = t.clientX
-          touchStartY.current = t.clientY
+          const touch = e.touches[0]
+          touchStartX.current = touch.clientX
+          touchStartY.current = touch.clientY
         }}
         onTouchEnd={(e) => {
           if (touchStartX.current === null || touchStartY.current === null) return
-          const t = e.changedTouches[0]
-          const deltaX = t.clientX - touchStartX.current
-          const deltaY = t.clientY - touchStartY.current
+          const touch = e.changedTouches[0]
+          const deltaX = touch.clientX - touchStartX.current
+          const deltaY = touch.clientY - touchStartY.current
 
           touchStartX.current = null
           touchStartY.current = null
@@ -158,7 +160,7 @@ export function ProductImageCarousel({
           >
             <img
               src={images[index]}
-              alt={`${productName} — ${SLIDE_LABELS[index]}`}
+              alt={`${productName} — ${slideLabel(index)}`}
               className="block h-full w-full object-contain object-center"
               decoding={index === 0 ? 'sync' : 'async'}
               draggable={false}
@@ -171,7 +173,7 @@ export function ProductImageCarousel({
             type="button"
             onClick={() => go(-1)}
             className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-scnt-bg-elevated/90 text-scnt-text shadow-sm ring-1 ring-scnt-border/90 backdrop-blur-sm transition-[background-color,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:bg-scnt-bg-elevated active:scale-95 lg:h-10 lg:w-10"
-            aria-label="Previous image"
+            aria-label={t('carousel.prev')}
           >
             <ChevronLeft className="opacity-80" />
           </button>
@@ -179,7 +181,7 @@ export function ProductImageCarousel({
             type="button"
             onClick={() => go(1)}
             className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-scnt-bg-elevated/90 text-scnt-text shadow-sm ring-1 ring-scnt-border/90 backdrop-blur-sm transition-[background-color,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:bg-scnt-bg-elevated active:scale-95 lg:h-10 lg:w-10"
-            aria-label="Next image"
+            aria-label={t('carousel.next')}
           >
             <ChevronRight className="opacity-80" />
           </button>
@@ -189,7 +191,7 @@ export function ProductImageCarousel({
       <div
         className="mt-4 flex flex-wrap items-center justify-center gap-2"
         role="group"
-        aria-label="Product photo"
+        aria-label={t('carousel.thumbGroup')}
       >
         {images.map((_, i) => {
           const selected = i === index
@@ -203,14 +205,14 @@ export function ProductImageCarousel({
                   ? 'h-2 w-8 bg-scnt-text/70'
                   : 'h-2 w-2 bg-scnt-text/20 hover:bg-scnt-text/35'
               }`}
-              aria-label={`Show ${SLIDE_LABELS[i]}`}
+              aria-label={t('carousel.showPhoto', { n: String(i + 1) })}
               aria-current={selected ? 'true' : undefined}
             />
           )
         })}
       </div>
       <p className="sr-only" aria-live="polite">
-        {SLIDE_LABELS[index]}
+        {slideLabel(index)}
       </p>
     </div>
   )

@@ -4,6 +4,7 @@ import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { EightPointStar } from '../components/ui/EightPointStar'
+import { useI18n } from '../i18n/I18nContext'
 import { EGYPT_GOVERNORATES, getCitiesForGovernorate } from '../data/egyptLocations'
 import { setStoredAuthToken } from '../lib/authStorage'
 import { registerAccount, type RegisterPayload } from '../services/authApi'
@@ -17,6 +18,7 @@ const step1InputClass =
   'w-full rounded-xl border border-scnt-border/85 bg-scnt-bg-elevated/55 px-4 py-3 text-scnt-text shadow-[0_1px_2px_rgba(42,38,34,0.06)] outline-none transition-[border-color,box-shadow] placeholder:text-scnt-text-muted/70 focus:border-scnt-text/40 focus:ring-1 focus:ring-scnt-text/10'
 
 export function RegisterPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [step, setStep] = useState<1 | 2>(1)
   const [name, setName] = useState('')
@@ -68,7 +70,7 @@ export function RegisterPage() {
       setStoredAuthToken(token)
       navigate('/profile', { replace: true })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Registration failed')
+      setError(e instanceof Error ? e.message : t('reg.fail'))
     } finally {
       setLoading(false)
     }
@@ -91,11 +93,11 @@ export function RegisterPage() {
           <header className="text-center">
             <p className="mb-3 inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-scnt-text-muted">
               <EightPointStar size={9} className="opacity-45" />
-              Join SCNT.eg
+              {t('reg.kicker')}
             </p>
-            <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">Create Account</h1>
+            <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">{t('reg.title')}</h1>
             <p className={`mx-auto mt-4 max-w-md ${step === 1 ? 'text-scnt-text/88' : 'text-scnt-text-muted'}`}>
-              Create an account to manage orders and personalize your fragrance journey.
+              {t('reg.sub')}
             </p>
           </header>
 
@@ -105,14 +107,14 @@ export function RegisterPage() {
                 step === 1 ? 'font-semibold text-scnt-text' : 'text-scnt-text-muted'
               }`}
             >
-              Step {step} of 2
+              {t('reg.step', { n: step })}
             </p>
             <form className="space-y-5" onSubmit={onSubmit}>
               {step === 1 ? (
                 <>
                   <div>
                     <label htmlFor="name" className={step1LabelClass}>
-                      Full name
+                      {t('reg.fullName')}
                     </label>
                     <input
                       id="name"
@@ -121,13 +123,13 @@ export function RegisterPage() {
                       onChange={(e) => setName(e.target.value)}
                       required
                       className={step1InputClass}
-                      placeholder="Your full name"
+                      placeholder={t('reg.phName')}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="email" className={step1LabelClass}>
-                      Email
+                      {t('reg.email')}
                     </label>
                     <input
                       id="email"
@@ -136,13 +138,13 @@ export function RegisterPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                       className={step1InputClass}
-                      placeholder="you@example.com"
+                      placeholder={t('login.phEmail')}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="password" className={step1LabelClass}>
-                      Password
+                      {t('reg.password')}
                     </label>
                     <input
                       id="password"
@@ -152,23 +154,22 @@ export function RegisterPage() {
                       required
                       minLength={8}
                       className={step1InputClass}
-                      placeholder="At least 8 characters"
+                      placeholder={t('reg.phPass')}
                     />
                   </div>
 
                   <Button type="button" className="w-full" onClick={onNextStep} disabled={!canGoToStepTwo || loading}>
-                    Continue to address details
+                    {t('reg.continueAddr')}
                   </Button>
                 </>
               ) : (
                 <>
-                  <p className="text-sm text-scnt-text-muted">
-                    Delivery address is optional. You can skip and add it later at checkout or on your profile.
-                  </p>
+                  <p className="text-sm text-scnt-text-muted">{t('reg.addrHint')}</p>
 
                   <div>
                     <label htmlFor="addressLine" className="mb-2 block text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
-                      Address line <span className="font-normal normal-case tracking-normal text-scnt-text-muted/80">(optional)</span>
+                      {t('reg.addrLine')}{' '}
+                      <span className="font-normal normal-case tracking-normal text-scnt-text-muted/80">{t('reg.addrOpt')}</span>
                     </label>
                     <input
                       id="addressLine"
@@ -176,13 +177,14 @@ export function RegisterPage() {
                       value={addressLine}
                       onChange={(e) => setAddressLine(e.target.value)}
                       className="w-full rounded-xl border border-scnt-border/70 bg-scnt-bg px-4 py-3 text-scnt-text outline-none transition-colors focus:border-scnt-text/60"
-                      placeholder="Street, building, floor..."
+                      placeholder={t('reg.phAddrLine')}
                     />
                   </div>
 
                   <div>
                     <label htmlFor="regPhone" className="mb-2 block text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
-                      Phone <span className="font-normal normal-case tracking-normal text-scnt-text-muted/80">(optional)</span>
+                      {t('reg.phone')}{' '}
+                      <span className="font-normal normal-case tracking-normal text-scnt-text-muted/80">{t('reg.addrOpt')}</span>
                     </label>
                     <input
                       id="regPhone"
@@ -190,7 +192,7 @@ export function RegisterPage() {
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       className="w-full rounded-xl border border-scnt-border/70 bg-scnt-bg px-4 py-3 text-scnt-text outline-none transition-colors focus:border-scnt-text/60"
-                      placeholder="01xxxxxxxxx"
+                      placeholder={t('reg.phPhone')}
                       autoComplete="tel"
                     />
                   </div>
@@ -198,7 +200,8 @@ export function RegisterPage() {
                   <div className="space-y-4">
                     <div>
                       <label htmlFor="governorate" className="mb-2 block text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
-                        Governorate <span className="font-normal normal-case tracking-normal text-scnt-text-muted/80">(optional)</span>
+                        {t('reg.gov')}{' '}
+                        <span className="font-normal normal-case tracking-normal text-scnt-text-muted/80">{t('reg.addrOpt')}</span>
                       </label>
                       <select
                         id="governorate"
@@ -209,7 +212,7 @@ export function RegisterPage() {
                         }}
                         className={locationSelectClass}
                       >
-                        <option value="">Select governorate</option>
+                        <option value="">{t('reg.selGov')}</option>
                         {EGYPT_GOVERNORATES.map((g) => (
                           <option key={g} value={g}>
                             {g}
@@ -220,7 +223,8 @@ export function RegisterPage() {
 
                     <div>
                       <label htmlFor="city" className="mb-2 block text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
-                        City <span className="font-normal normal-case tracking-normal text-scnt-text-muted/80">(optional)</span>
+                        {t('reg.city')}{' '}
+                        <span className="font-normal normal-case tracking-normal text-scnt-text-muted/80">{t('reg.addrOpt')}</span>
                       </label>
                       <select
                         id="city"
@@ -229,7 +233,7 @@ export function RegisterPage() {
                         disabled={!governorate}
                         className={locationSelectClass}
                       >
-                        <option value="">{governorate ? 'Select city' : 'Select governorate first'}</option>
+                        <option value="">{governorate ? t('reg.selCity') : t('reg.selGovFirst')}</option>
                         {cityOptions.map((c) => (
                           <option key={c} value={c}>
                             {c}
@@ -241,7 +245,8 @@ export function RegisterPage() {
 
                   <div>
                     <label htmlFor="postalCode" className="mb-2 block text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
-                      Postal code <span className="font-normal normal-case tracking-normal text-scnt-text-muted/80">(optional)</span>
+                      {t('reg.postal')}{' '}
+                      <span className="font-normal normal-case tracking-normal text-scnt-text-muted/80">{t('reg.addrOpt')}</span>
                     </label>
                     <input
                       id="postalCode"
@@ -249,13 +254,13 @@ export function RegisterPage() {
                       value={postalCode}
                       onChange={(e) => setPostalCode(e.target.value)}
                       className="w-full rounded-xl border border-scnt-border/70 bg-scnt-bg px-4 py-3 text-scnt-text outline-none transition-colors focus:border-scnt-text/60"
-                      placeholder="Postal code"
+                      placeholder={t('reg.phPostal')}
                     />
                   </div>
 
                   <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                     <Button type="button" variant="outline" className="w-full sm:w-auto sm:flex-1" onClick={() => setStep(1)} disabled={loading}>
-                      Back
+                      {t('reg.back')}
                     </Button>
                     <Button
                       type="button"
@@ -264,10 +269,10 @@ export function RegisterPage() {
                       onClick={() => void runRegister(false)}
                       disabled={loading}
                     >
-                      Skip address and create account
+                      {t('reg.skip')}
                     </Button>
                     <Button type="submit" className="w-full sm:w-auto sm:flex-[1.2]" disabled={loading}>
-                      {loading ? 'Creating account…' : 'Create account'}
+                      {loading ? t('reg.creating') : t('reg.create')}
                     </Button>
                   </div>
                 </>
@@ -282,9 +287,9 @@ export function RegisterPage() {
           </Card>
 
           <p className="mt-6 text-center text-sm text-scnt-text-muted">
-            Already have an account?{' '}
+            {t('reg.have')}{' '}
             <Link to="/login" className="text-scnt-text underline-offset-4 hover:underline">
-              Login here
+              {t('reg.loginHere')}
             </Link>
           </p>
         </div>

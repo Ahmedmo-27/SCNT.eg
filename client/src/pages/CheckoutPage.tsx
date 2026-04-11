@@ -9,6 +9,8 @@ import { fetchProfile, type AuthUser } from '../services/authApi'
 import { fetchServerCart, replaceServerCart } from '../services/cartApi'
 import { createOrder } from '../services/ordersApi'
 import { useCartStore } from '../store/cartStore'
+import { useI18n } from '../i18n/I18nContext'
+import { formatEgp } from '../lib/formatEgp'
 
 type CheckoutFormState = {
   fullName: string
@@ -68,20 +70,13 @@ const initialForm: CheckoutFormState = {
 const checkoutSelectClass =
   'w-full rounded-xl border border-scnt-border bg-scnt-bg px-4 py-3 text-sm text-scnt-text outline-none ring-0 transition-colors placeholder:text-scnt-text-muted/65 focus:border-scnt-text/30 disabled:cursor-not-allowed disabled:opacity-50'
 
-function formatEgp(n: number): string {
-  return new Intl.NumberFormat('en-EG', {
-    style: 'currency',
-    currency: 'EGP',
-    maximumFractionDigits: 0,
-  }).format(n)
-}
-
 function orderRef(id: string): string {
   const tail = id.replace(/[^a-f0-9]/gi, '').slice(-8).toUpperCase()
   return tail.length > 0 ? `#${tail}` : `#${id.slice(0, 8)}`
 }
 
 export function CheckoutPage() {
+  const { t, locale } = useI18n()
   const items = useCartStore((s) => s.items)
   const promo = useCartStore((s) => s.promo)
   const hydrateFromServer = useCartStore((s) => s.hydrateFromServer)
@@ -186,12 +181,12 @@ export function CheckoutPage() {
     e.preventDefault()
 
     if (items.length === 0) {
-      setError('Your cart is empty.')
+      setError(t('checkout.errEmpty'))
       return
     }
 
     if (!getStoredAuthToken()) {
-      setError('Please log in or create an account to make an order.')
+      setError(t('checkout.errLogin'))
       return
     }
 
@@ -203,7 +198,7 @@ export function CheckoutPage() {
       !form.city.trim() ||
       !form.address.trim()
     ) {
-      setError('Please complete all required fields.')
+      setError(t('checkout.errFields'))
       return
     }
 
@@ -232,7 +227,7 @@ export function CheckoutPage() {
         total: order.total,
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not place order.')
+      setError(err instanceof Error ? err.message : t('checkout.errPlace'))
     } finally {
       setSubmitting(false)
     }
@@ -241,59 +236,53 @@ export function CheckoutPage() {
   return (
     <Layout>
       <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
-        <h1 className="font-serif text-4xl text-scnt-text">Checkout</h1>
-        <p className="mt-3 max-w-2xl text-sm text-scnt-text-muted">
-          Complete your delivery details and confirm your order. Cash on delivery only.
-        </p>
+        <h1 className="font-serif text-4xl text-scnt-text">{t('checkout.title')}</h1>
+        <p className="mt-3 max-w-2xl text-sm text-scnt-text-muted">{t('checkout.sub')}</p>
 
         {placedOrder ? (
           <div className="mt-10 rounded-2xl border border-scnt-border bg-scnt-bg-elevated/55 p-8">
-            <h2 className="font-serif text-3xl text-scnt-text">Order placed successfully</h2>
-            <p className="mt-3 max-w-xl text-scnt-text-muted">
-              Thank you for your order. Our team will contact you soon to confirm delivery details.
-            </p>
+            <h2 className="font-serif text-3xl text-scnt-text">{t('checkout.placed')}</h2>
+            <p className="mt-3 max-w-xl text-scnt-text-muted">{t('checkout.thanks')}</p>
             <p className="mt-4 text-sm text-scnt-text">
-              <span className="text-scnt-text-muted">Reference </span>
+              <span className="text-scnt-text-muted">{t('checkout.ref')} </span>
               <span className="font-mono font-semibold">{orderRef(placedOrder.id)}</span>
             </p>
             <p className="mt-1 text-sm text-scnt-text">
-              <span className="text-scnt-text-muted">Total charged </span>
-              <span className="font-medium">{formatEgp(placedOrder.total)}</span>
-              <span className="text-scnt-text-muted"> (includes shipping)</span>
+              <span className="text-scnt-text-muted">{t('checkout.charged')} </span>
+              <span className="font-medium">{formatEgp(placedOrder.total, locale)}</span>
+              <span className="text-scnt-text-muted"> {t('checkout.incShip')}</span>
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button to="/profile">View your orders</Button>
-              <Button to="/shop">Continue shopping</Button>
+              <Button to="/profile">{t('checkout.viewOrders')}</Button>
+              <Button to="/shop">{t('checkout.continue')}</Button>
               <Button to="/" variant="ghost">
-                Back to home
+                {t('checkout.backHome')}
               </Button>
             </div>
           </div>
         ) : items.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-scnt-border bg-scnt-bg-elevated/50 p-8">
-            <p className="text-scnt-text-muted">Your cart is empty. Add fragrances before checkout.</p>
+            <p className="text-scnt-text-muted">{t('checkout.empty')}</p>
             <div className="mt-6 flex gap-3">
-              <Button to="/shop">Shop all fragrances</Button>
+              <Button to="/shop">{t('cart.shopFragrances')}</Button>
               <Button to="/cart" variant="ghost">
-                Back to cart
+                {t('checkout.backCart')}
               </Button>
             </div>
           </div>
         ) : !authed ? (
           <div className="mt-10 rounded-2xl border border-scnt-border bg-scnt-bg-elevated/50 p-8 sm:p-10">
-            <h2 className="font-serif text-2xl text-scnt-text">Account required</h2>
-            <p className="mt-3 max-w-xl text-sm text-scnt-text-muted">
-              Please log in or create an account to make an order. Your cart will stay as it is until you do.
-            </p>
+            <h2 className="font-serif text-2xl text-scnt-text">{t('checkout.needAccount')}</h2>
+            <p className="mt-3 max-w-xl text-sm text-scnt-text-muted">{t('checkout.needAccountSub')}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button to="/login" linkState={{ from: '/checkout' }}>
-                Log in
+                {t('checkout.login')}
               </Button>
               <Button to="/register" variant="outline">
-                Create account
+                {t('checkout.create')}
               </Button>
               <Button to="/cart" variant="ghost">
-                Back to cart
+                {t('checkout.backCart')}
               </Button>
             </div>
           </div>
@@ -303,11 +292,11 @@ export function CheckoutPage() {
               onSubmit={onSubmit}
               className="rounded-2xl border border-scnt-border bg-scnt-bg-elevated/50 p-6 sm:p-8"
             >
-              <h2 className="font-serif text-2xl text-scnt-text">Delivery information</h2>
+              <h2 className="font-serif text-2xl text-scnt-text">{t('checkout.delivery')}</h2>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm text-scnt-text">Full name *</span>
+                  <span className="text-sm text-scnt-text">{t('checkout.fullName')}</span>
                   <input
                     type="text"
                     value={form.fullName}
@@ -316,11 +305,11 @@ export function CheckoutPage() {
                     }
                     required
                     className="w-full rounded-xl border border-scnt-border bg-scnt-bg px-4 py-3 text-sm text-scnt-text outline-none ring-0 transition-colors placeholder:text-scnt-text-muted/65 focus:border-scnt-text/30"
-                    placeholder="Ahmed Mohamed"
+                    placeholder={t('checkout.phName')}
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className="text-sm text-scnt-text">Phone number *</span>
+                  <span className="text-sm text-scnt-text">{t('checkout.phone')}</span>
                   <input
                     type="tel"
                     value={form.phone}
@@ -334,7 +323,7 @@ export function CheckoutPage() {
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className="text-sm text-scnt-text">Postal code *</span>
+                  <span className="text-sm text-scnt-text">{t('checkout.postal')}</span>
                   <input
                     type="text"
                     value={form.postalCode}
@@ -344,11 +333,11 @@ export function CheckoutPage() {
                     required
                     autoComplete="postal-code"
                     className="w-full rounded-xl border border-scnt-border bg-scnt-bg px-4 py-3 text-sm text-scnt-text outline-none ring-0 transition-colors placeholder:text-scnt-text-muted/65 focus:border-scnt-text/30"
-                    placeholder="Postal code"
+                    placeholder={t('checkout.phPostal')}
                   />
                 </label>
                 <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm text-scnt-text">Governorate *</span>
+                  <span className="text-sm text-scnt-text">{t('checkout.gov')}</span>
                   <select
                     value={form.governorate}
                     onChange={(e) =>
@@ -361,7 +350,7 @@ export function CheckoutPage() {
                     required
                     className={checkoutSelectClass}
                   >
-                    <option value="">Select governorate</option>
+                    <option value="">{t('checkout.selGov')}</option>
                     {EGYPT_GOVERNORATES.map((g) => (
                       <option key={g} value={g}>
                         {g}
@@ -370,7 +359,7 @@ export function CheckoutPage() {
                   </select>
                 </label>
                 <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm text-scnt-text">City *</span>
+                  <span className="text-sm text-scnt-text">{t('checkout.city')}</span>
                   <select
                     value={form.city}
                     disabled={!form.governorate}
@@ -381,7 +370,7 @@ export function CheckoutPage() {
                     className={checkoutSelectClass}
                   >
                     <option value="">
-                      {form.governorate ? 'Select city' : 'Select governorate first'}
+                      {form.governorate ? t('checkout.selCity') : t('checkout.selGovFirst')}
                     </option>
                     {cityOptions.map((c) => (
                       <option key={c} value={c}>
@@ -391,7 +380,7 @@ export function CheckoutPage() {
                   </select>
                 </label>
                 <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm text-scnt-text">Address *</span>
+                  <span className="text-sm text-scnt-text">{t('checkout.address')}</span>
                   <textarea
                     value={form.address}
                     onChange={(e) =>
@@ -400,11 +389,11 @@ export function CheckoutPage() {
                     required
                     rows={4}
                     className="w-full resize-y rounded-xl border border-scnt-border bg-scnt-bg px-4 py-3 text-sm text-scnt-text outline-none ring-0 transition-colors placeholder:text-scnt-text-muted/65 focus:border-scnt-text/30"
-                    placeholder="Street, building, floor, apartment"
+                    placeholder={t('checkout.phAddr')}
                   />
                 </label>
                 <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm text-scnt-text">Delivery notes (optional)</span>
+                  <span className="text-sm text-scnt-text">{t('checkout.notes')}</span>
                   <textarea
                     value={form.notes}
                     onChange={(e) =>
@@ -412,13 +401,13 @@ export function CheckoutPage() {
                     }
                     rows={3}
                     className="w-full resize-y rounded-xl border border-scnt-border bg-scnt-bg px-4 py-3 text-sm text-scnt-text outline-none ring-0 transition-colors placeholder:text-scnt-text-muted/65 focus:border-scnt-text/30"
-                    placeholder="Landmark or preferred delivery time"
+                    placeholder={t('checkout.phNotes')}
                   />
                 </label>
               </div>
 
               <div className="mt-8 rounded-xl border border-scnt-border/80 bg-scnt-bg p-4">
-                <p className="text-sm font-medium text-scnt-text">Payment method</p>
+                <p className="text-sm font-medium text-scnt-text">{t('checkout.pay')}</p>
                 <label className="mt-3 flex items-start gap-3 rounded-lg border border-scnt-border/70 bg-scnt-bg-elevated/60 p-3">
                   <input
                     type="radio"
@@ -428,10 +417,8 @@ export function CheckoutPage() {
                     className="mt-1"
                   />
                   <span>
-                    <span className="block text-sm text-scnt-text">Cash on Delivery</span>
-                    <span className="block text-xs text-scnt-text-muted">
-                      Pay in cash when your order arrives.
-                    </span>
+                    <span className="block text-sm text-scnt-text">{t('checkout.cod')}</span>
+                    <span className="block text-xs text-scnt-text-muted">{t('checkout.codHint')}</span>
                   </span>
                 </label>
               </div>
@@ -444,19 +431,19 @@ export function CheckoutPage() {
 
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Button type="submit" disabled={submitting}>
-                  {submitting ? 'Placing order...' : 'Place order'}
+                  {submitting ? t('checkout.placing') : t('checkout.place')}
                 </Button>
                 <Link
                   to="/cart"
                   className="text-sm text-scnt-text underline-offset-4 hover:underline"
                 >
-                  Back to cart
+                  {t('checkout.backCart')}
                 </Link>
               </div>
             </form>
 
             <aside className="h-fit rounded-2xl border border-scnt-border bg-scnt-bg-elevated/55 p-6 sm:p-8">
-              <h2 className="font-serif text-2xl text-scnt-text">Order summary</h2>
+              <h2 className="font-serif text-2xl text-scnt-text">{t('checkout.summary')}</h2>
               <ul className="mt-6 space-y-4 border-b border-scnt-border pb-6">
                 {items.map((i) => (
                   <li key={i.productId} className="flex items-center gap-3">
@@ -469,37 +456,39 @@ export function CheckoutPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm text-scnt-text">{i.name}</p>
                       <p className="text-xs text-scnt-text-muted">
-                        {i.quantity} × {formatEgp(i.price)}
+                        {i.quantity} × {formatEgp(i.price, locale)}
                       </p>
                     </div>
-                    <p className="text-sm text-scnt-text">{formatEgp(i.quantity * i.price)}</p>
+                    <p className="text-sm text-scnt-text">{formatEgp(i.quantity * i.price, locale)}</p>
                   </li>
                 ))}
               </ul>
               <dl className="mt-6 space-y-3 text-sm">
                 <div className="flex items-center justify-between text-scnt-text-muted">
-                  <dt>Subtotal</dt>
-                  <dd>{formatEgp(subtotal)}</dd>
+                  <dt>{t('cart.subtotal')}</dt>
+                  <dd>{formatEgp(subtotal, locale)}</dd>
                 </div>
                 <div className="flex items-center justify-between text-scnt-text-muted">
-                  <dt>Shipping</dt>
-                  <dd>{formatEgp(shipping)}</dd>
+                  <dt>{t('cart.shipping')}</dt>
+                  <dd>{formatEgp(shipping, locale)}</dd>
                 </div>
                 {discount > 0 ? (
                   <div className="flex items-center justify-between text-green-700">
-                    <dt>Discount {promo ? `(${promo.code})` : ''}</dt>
-                    <dd>-{formatEgp(discount)}</dd>
+                    <dt>
+                      {promo ? t('checkout.discountPromo', { code: promo.code }) : t('cart.discount')}
+                    </dt>
+                    <dd>-{formatEgp(discount, locale)}</dd>
                   </div>
                 ) : null}
                 {discount > 0 ? (
                   <div className="flex items-center justify-between text-scnt-text-muted">
-                    <dt>Old total</dt>
-                    <dd className="line-through">{formatEgp(subtotal + shipping)}</dd>
+                    <dt>{t('cart.oldTotal')}</dt>
+                    <dd className="line-through">{formatEgp(subtotal + shipping, locale)}</dd>
                   </div>
                 ) : null}
                 <div className="flex items-center justify-between border-t border-scnt-border pt-3 font-medium text-scnt-text">
-                  <dt>{discount > 0 ? 'New total' : 'Total'}</dt>
-                  <dd>{formatEgp(total)}</dd>
+                  <dt>{discount > 0 ? t('cart.newTotal') : t('cart.total')}</dt>
+                  <dd>{formatEgp(total, locale)}</dd>
                 </div>
               </dl>
             </aside>

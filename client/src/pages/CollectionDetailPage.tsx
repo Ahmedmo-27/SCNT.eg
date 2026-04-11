@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Layout } from '../components/layout/Layout'
 import { useCatalog } from '../context/CatalogContext'
+import { useI18n } from '../i18n/I18nContext'
 import { ProductCard } from '../components/product/ProductCard'
 import { EightPointStar } from '../components/ui/EightPointStar'
 import { StarDivider } from '../components/ui/StarDivider'
@@ -10,6 +11,7 @@ import { parseCollectionIdParam } from '../types/catalog'
 import { PlaceholderPage } from './PlaceholderPage'
 
 export function CollectionDetailPage() {
+  const { t } = useI18n()
   const { id } = useParams()
   const { collections, products, loading } = useCatalog()
   const collectionId = id ? parseCollectionIdParam(id) : null
@@ -18,21 +20,29 @@ export function CollectionDetailPage() {
   if (loading) {
     return (
       <Layout>
-        <StarLoader className="py-32" label="Loading collection" />
+        <StarLoader className="py-32" label={t('col.loading')} />
       </Layout>
     )
   }
 
   if (!c) {
     return (
-      <PlaceholderPage
-        title="Collection not found"
-        subtitle="This identifier is not part of the house catalogue."
-      />
+      <PlaceholderPage title={t('col.notFound')} subtitle={t('col.notFoundSub')} />
     )
   }
 
   const line = products.filter((p) => p.collection === c.id)
+
+  const personaKey = `col.persona.${c.id}` as const
+  const persona = t(personaKey)
+
+  const headlineBody = (() => {
+    if (c.id === 'executive')
+      return { head: t('col.exec.head'), body: t('col.exec.body') } as const
+    if (c.id === 'charmer') return { head: t('col.charm.head'), body: t('col.charm.body') } as const
+    if (c.id === 'explorer') return { head: t('col.expl.head'), body: t('col.expl.body') } as const
+    return { head: t('col.icon.head'), body: t('col.icon.body') } as const
+  })()
 
   return (
     <Layout collection={c.id}>
@@ -80,9 +90,9 @@ export function CollectionDetailPage() {
         <div
           className={`relative mx-auto max-w-6xl ${
             c.id === 'executive'
-              ? 'md:col-span-1 md:pr-16'
+              ? 'md:col-span-1 md:pe-16'
               : c.id === 'charmer'
-                ? 'md:col-span-1 md:pr-10'
+                ? 'md:col-span-1 md:pe-10'
                 : c.id === 'explorer'
                   ? 'md:col-span-1 md:max-w-xl'
                   : 'md:col-span-2 md:max-w-3xl'
@@ -118,75 +128,29 @@ export function CollectionDetailPage() {
               {c.name}
             </h1>
 
-            {/* Persona identity line */}
-            {c.id === 'executive' && (
-              <p className="mt-3 max-w-xl text-sm font-medium uppercase tracking-[0.22em] text-scnt-text/70">
-                CONTROLLED · DISCIPLINED · PRECISE
-              </p>
-            )}
-            {c.id === 'charmer' && (
-              <p className="mt-3 max-w-xl text-sm font-medium uppercase tracking-[0.2em] text-scnt-text/70">
-                WARM · INTIMATE · MAGNETIC
-              </p>
-            )}
-            {c.id === 'explorer' && (
-              <p className="mt-3 max-w-xl text-sm font-medium uppercase tracking-[0.2em] text-scnt-text/70">
-                FREE · RESTLESS · OPEN
-              </p>
-            )}
-            {c.id === 'icon' && (
-              <p className="mt-4 text-sm font-medium uppercase tracking-[0.26em] text-scnt-text/80">
-                RARE · DELIBERATE · UNMISTAKABLE
-              </p>
-            )}
+            <p
+              className={`mt-3 max-w-xl text-sm font-medium uppercase text-scnt-text/70 ${
+                c.id === 'icon' ? 'mx-auto tracking-[0.26em]' : 'tracking-[0.2em] md:tracking-[0.22em]'
+              }`}
+            >
+              {persona}
+            </p>
 
-            {/* Emotional headline + identity statement */}
-            {c.id === 'executive' && (
-              <>
-                <p className="mt-6 max-w-xl font-serif text-2xl text-scnt-text sm:text-[1.75rem]">
-                  Presence without effort.
-                </p>
-                <p className="mt-3 max-w-xl text-sm leading-relaxed text-scnt-text-muted sm:text-[0.95rem]">
-                  Clean lines, quiet authority, and a tailored signature that enters every room
-                  before you do.
-                </p>
-              </>
-            )}
-            {c.id === 'charmer' && (
-              <>
-                <p className="mt-6 max-w-xl font-serif text-2xl italic text-scnt-text sm:text-[1.9rem]">
-                  Draw them closer.
-                </p>
-                <p className="mt-3 max-w-xl text-sm leading-relaxed text-scnt-text-muted sm:text-[0.95rem]">
-                  Soft candlelight, easy laughter, and skin-close warmth that lingers long after the
-                  evening ends.
-                </p>
-              </>
-            )}
-            {c.id === 'explorer' && (
-              <>
-                <p className="mt-6 max-w-xl font-serif text-2xl text-scnt-text sm:text-[1.9rem]">
-                  Chase the horizon.
-                </p>
-                <p className="mt-3 max-w-xl text-sm leading-relaxed text-scnt-text-muted sm:text-[0.95rem]">
-                  Salt on your skin, wind in your collar, and a trail that always leads somewhere
-                  new.
-                </p>
-              </>
-            )}
-            {c.id === 'icon' && (
-              <>
-                <p className="mt-7 mx-auto max-w-2xl font-serif text-3xl text-scnt-text sm:text-[2.1rem]">
-                  Not made to blend in.
-                </p>
-                <p className="mt-4 mx-auto max-w-xl text-sm leading-relaxed text-scnt-text-muted sm:text-[0.98rem]">
-                  Rare, deliberate, unmistakable — a golden signature they will only ever associate
-                  with you.
-                </p>
-              </>
-            )}
+            <p
+              className={`mt-6 font-serif text-2xl text-scnt-text sm:text-[1.75rem] md:text-[1.9rem] ${
+                c.id === 'charmer' ? 'max-w-xl italic' : 'max-w-xl'
+              } ${c.id === 'icon' ? 'mx-auto max-w-2xl text-3xl sm:text-[2.1rem]' : ''}`}
+            >
+              {headlineBody.head}
+            </p>
+            <p
+              className={`mt-3 max-w-xl text-sm leading-relaxed text-scnt-text-muted sm:text-[0.95rem] ${
+                c.id === 'icon' ? 'mx-auto max-w-xl sm:text-[0.98rem]' : ''
+              }`}
+            >
+              {headlineBody.body}
+            </p>
 
-            {/* World intro as quiet supporting note */}
             <p
               className={`mt-6 text-[0.9rem] leading-relaxed text-scnt-text sm:text-[0.98rem] ${
                 c.id === 'icon' ? 'mx-auto max-w-2xl' : 'max-w-2xl'
@@ -201,11 +165,10 @@ export function CollectionDetailPage() {
                 c.id === 'icon' ? 'justify-center' : ''
               }`}
             >
-              All collections
+              {t('col.allCollections')}
             </Link>
           </motion.div>
         </div>
-
       </section>
 
       <StarDivider className="mx-auto max-w-6xl px-5 sm:px-8" />
@@ -216,26 +179,20 @@ export function CollectionDetailPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
-          className={`mb-12 ${
-            c.id === 'icon' ? 'max-w-3xl text-center' : 'max-w-2xl'
-          }`}
+          className={`mb-12 ${c.id === 'icon' ? 'max-w-3xl text-center' : 'max-w-2xl'}`}
         >
-          <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">
-            In this world
-          </p>
+          <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">{t('col.inWorld')}</p>
           <h2
             className={`mt-2 font-serif text-2xl text-scnt-text sm:text-3xl ${
               c.id === 'icon' ? 'mx-auto' : ''
             }`}
           >
-            Bottles that carry the same temperament.
+            {t('col.bottlesTitle')}
           </h2>
           <p
-            className={`mt-3 text-sm text-scnt-text-muted ${
-              c.id === 'icon' ? 'mx-auto max-w-2xl' : ''
-            }`}
+            className={`mt-3 text-sm text-scnt-text-muted ${c.id === 'icon' ? 'mx-auto max-w-2xl' : ''}`}
           >
-            Each name is a moment — choose the one you want to live inside tonight.
+            {t('col.bottlesSub')}
           </p>
         </motion.div>
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10">

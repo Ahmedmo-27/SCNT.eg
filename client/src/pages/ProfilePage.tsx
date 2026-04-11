@@ -8,6 +8,9 @@ import { fetchMyOrders, type OrderLine, type UserOrder } from '../services/order
 import { Card } from '../components/ui/Card'
 import { EightPointStar } from '../components/ui/EightPointStar'
 import { EGYPT_GOVERNORATES, getCitiesForGovernorate } from '../data/egyptLocations'
+import { useI18n } from '../i18n/I18nContext'
+import type { Locale } from '../i18n/types'
+import { formatEgp } from '../lib/formatEgp'
 
 const fieldClass =
   'w-full rounded-xl border border-scnt-border/70 bg-scnt-bg px-4 py-3 text-sm text-scnt-text outline-none transition-colors focus:border-scnt-text/60'
@@ -15,11 +18,15 @@ const locationSelectClass =
   'w-full rounded-xl border border-scnt-border/70 bg-scnt-bg px-4 py-3 text-sm text-scnt-text outline-none transition-colors focus:border-scnt-text/60 disabled:cursor-not-allowed disabled:opacity-50'
 const labelClass = 'mb-2 block text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted'
 
-function formatJoinedDate(createdAt?: string): string | null {
+function formatJoinedDate(createdAt: string | undefined, locale: Locale): string | null {
   if (!createdAt) return null
   const d = new Date(createdAt)
   if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleDateString('en-EG', { year: 'numeric', month: 'long', day: 'numeric' })
+  return d.toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-EG', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
 }
 
 function formatDeliveryAddress(addr: AuthUser['address']): string | null {
@@ -36,18 +43,14 @@ function inferGovernorate(profile: AuthUser): string {
   return ''
 }
 
-function formatEgp(n: number): string {
-  return new Intl.NumberFormat('en-EG', {
-    style: 'currency',
-    currency: 'EGP',
-    maximumFractionDigits: 0,
-  }).format(n)
-}
-
-function formatOrderDate(iso: string): string {
+function formatOrderDate(iso: string, locale: Locale, dash: string): string {
   const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleDateString('en-EG', { year: 'numeric', month: 'short', day: 'numeric' })
+  if (Number.isNaN(d.getTime())) return dash
+  return d.toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-EG', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 }
 
 function orderRef(id: string): string {
@@ -55,10 +58,10 @@ function orderRef(id: string): string {
   return tail.length > 0 ? `#${tail}` : `#${id.slice(0, 8)}`
 }
 
-function lineProductName(line: OrderLine): string {
+function lineProductName(line: OrderLine, itemFallback: string): string {
   const p = line.product
   if (p && typeof p === 'object' && 'name' in p && typeof p.name === 'string') return p.name
-  return 'Item'
+  return itemFallback
 }
 
 function lineProductImage(line: OrderLine): string | null {
@@ -76,9 +79,9 @@ function lineProductImage(line: OrderLine): string | null {
   return null
 }
 
-function orderItemsSummary(order: UserOrder): string {
-  if (!order.items?.length) return 'No line items'
-  return order.items.map((line) => `${lineProductName(line)} ×${line.quantity}`).join(', ')
+function orderItemsSummary(order: UserOrder, noLines: string, itemFallback: string): string {
+  if (!order.items?.length) return noLines
+  return order.items.map((line) => `${lineProductName(line, itemFallback)} ×${line.quantity}`).join(', ')
 }
 
 function orderAddressSummary(order: UserOrder): string | null {
@@ -92,21 +95,6 @@ function orderAddressSummary(order: UserOrder): string | null {
     order.address.postalCode,
   ].filter((p): p is string => Boolean(p && String(p).trim()))
   return parts.length > 0 ? parts.join(', ') : null
-}
-
-function orderStatusLabel(status: UserOrder['status']): string {
-  switch (status) {
-    case 'PENDING':
-      return 'Pending'
-    case 'CONFIRMED':
-      return 'Confirmed'
-    case 'PAID':
-      return 'Paid'
-    case 'SHIPPED':
-      return 'Shipped'
-    default:
-      return status
-  }
 }
 
 function orderStatusClass(status: UserOrder['status']): string {
@@ -125,6 +113,7 @@ function orderStatusClass(status: UserOrder['status']): string {
 }
 
 export function ProfilePage() {
+  const { t, locale } = useI18n()
   const navigate = useNavigate()
   const [profile, setProfile] = useState<AuthUser | null>(null)
   const [loadStatus, setLoadStatus] = useState<'loading' | 'error' | 'ready'>('loading')
@@ -243,7 +232,7 @@ export function ProfilePage() {
       syncDraftFromProfile(updated)
       setEditing(false)
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Could not save profile')
+      setSaveError(err instanceof Error ? err.message : t('profile.saveFail'))
     } finally {
       setSaving(false)
     }
@@ -255,7 +244,7 @@ export function ProfilePage() {
 
   const deliveryLine = profile ? formatDeliveryAddress(profile.address) : null
   const phone = profile?.address?.phone?.trim()
-  const joined = profile ? formatJoinedDate(profile.createdAt) : null
+  const joined = profile ? formatJoinedDate(profile.createdAt, locale) : null
 
   return (
     <Layout>
@@ -264,38 +253,38 @@ export function ProfilePage() {
           <header className="max-w-2xl">
             <p className="mb-3 inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-scnt-text-muted">
               <EightPointStar size={9} className="opacity-45" />
-              Account
+              {t('profile.kicker')}
             </p>
-            <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">My Profile</h1>
-            <p className="mt-4 text-scnt-text-muted">Manage your details and quickly review your recent orders.</p>
+            <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">{t('profile.title')}</h1>
+            <p className="mt-4 text-scnt-text-muted">{t('profile.sub')}</p>
           </header>
           <Button type="button" variant="outline" className="w-full shrink-0 sm:w-auto" onClick={logout}>
-            Log out
+            {t('profile.logout')}
           </Button>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-3">
           <Card asMotion={false} className="p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-scnt-text-muted">Profile details</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-scnt-text-muted">{t('profile.details')}</p>
 
             {loadStatus === 'loading' ? (
-              <p className="mt-4 text-sm text-scnt-text-muted">Loading your profile…</p>
+              <p className="mt-4 text-sm text-scnt-text-muted">{t('profile.loading')}</p>
             ) : loadStatus === 'error' && !profile ? (
               <div className="mt-4 space-y-3">
-                <p className="text-sm text-scnt-text-muted">We could not load your profile.</p>
+                <p className="text-sm text-scnt-text-muted">{t('profile.loadErr')}</p>
                 <button
                   type="button"
                   onClick={() => void loadProfile()}
                   className="w-full rounded-full border border-scnt-border/80 px-4 py-2.5 text-sm text-scnt-text transition-colors hover:bg-scnt-bg-muted/60"
                 >
-                  Try again
+                  {t('profile.retry')}
                 </button>
               </div>
             ) : profile && editing ? (
               <form className="mt-4 space-y-4" onSubmit={handleSave}>
                 <div>
                   <label htmlFor="profile-name" className={labelClass}>
-                    Full name
+                    {t('reg.fullName')}
                   </label>
                   <input
                     id="profile-name"
@@ -308,7 +297,7 @@ export function ProfilePage() {
                 </div>
                 <div>
                   <label htmlFor="profile-email" className={labelClass}>
-                    Email
+                    {t('profile.email')}
                   </label>
                   <input
                     id="profile-email"
@@ -321,7 +310,7 @@ export function ProfilePage() {
                 </div>
                 <div>
                   <label htmlFor="profile-phone" className={labelClass}>
-                    Phone
+                    {t('profile.phone')}
                   </label>
                   <input
                     id="profile-phone"
@@ -329,12 +318,12 @@ export function ProfilePage() {
                     value={draftPhone}
                     onChange={(e) => setDraftPhone(e.target.value)}
                     className={fieldClass}
-                    placeholder="01xxxxxxxxx"
+                    placeholder={t('reg.phPhone')}
                   />
                 </div>
                 <div>
                   <label htmlFor="profile-line1" className={labelClass}>
-                    Address line
+                    {t('reg.addrLine')}
                   </label>
                   <input
                     id="profile-line1"
@@ -342,12 +331,12 @@ export function ProfilePage() {
                     value={draftLine1}
                     onChange={(e) => setDraftLine1(e.target.value)}
                     className={fieldClass}
-                    placeholder="Street, building, floor…"
+                    placeholder={t('profile.phAddr')}
                   />
                 </div>
                 <div>
                   <label htmlFor="profile-governorate" className={labelClass}>
-                    Governorate
+                    {t('profile.gov')}
                   </label>
                   <select
                     id="profile-governorate"
@@ -358,7 +347,7 @@ export function ProfilePage() {
                     }}
                     className={locationSelectClass}
                   >
-                    <option value="">Select governorate</option>
+                    <option value="">{t('reg.selGov')}</option>
                     {EGYPT_GOVERNORATES.map((g) => (
                       <option key={g} value={g}>
                         {g}
@@ -368,7 +357,7 @@ export function ProfilePage() {
                 </div>
                 <div>
                   <label htmlFor="profile-city" className={labelClass}>
-                    City
+                    {t('profile.city')}
                   </label>
                   <select
                     id="profile-city"
@@ -377,7 +366,7 @@ export function ProfilePage() {
                     disabled={!draftGovernorate}
                     className={locationSelectClass}
                   >
-                    <option value="">{draftGovernorate ? 'Select city' : 'Select governorate first'}</option>
+                    <option value="">{draftGovernorate ? t('reg.selCity') : t('reg.selGovFirst')}</option>
                     {cityOptions.map((c) => (
                       <option key={c} value={c}>
                         {c}
@@ -387,7 +376,7 @@ export function ProfilePage() {
                 </div>
                 <div>
                   <label htmlFor="profile-postal" className={labelClass}>
-                    Postal code
+                    {t('profile.postal')}
                   </label>
                   <input
                     id="profile-postal"
@@ -406,10 +395,10 @@ export function ProfilePage() {
 
                 <div className="flex flex-col gap-3 pt-2 sm:flex-row">
                   <Button type="submit" className="w-full sm:flex-1" disabled={saving}>
-                    {saving ? 'Saving…' : 'Save changes'}
+                    {saving ? t('profile.saving') : t('profile.save')}
                   </Button>
                   <Button type="button" variant="outline" className="w-full sm:flex-1" disabled={saving} onClick={cancelEdit}>
-                    Cancel
+                    {t('profile.cancel')}
                   </Button>
                 </div>
               </form>
@@ -417,26 +406,26 @@ export function ProfilePage() {
               <>
                 <div className="mt-4 space-y-3 text-sm text-scnt-text-muted">
                   <p>
-                    <span className="text-scnt-text">Name:</span> {profile.full_name}
+                    <span className="text-scnt-text">{t('profile.viewName')}</span> {profile.full_name}
                   </p>
                   <p>
-                    <span className="text-scnt-text">Email:</span> {profile.email}
+                    <span className="text-scnt-text">{t('profile.viewEmail')}</span> {profile.email}
                   </p>
                   <p>
-                    <span className="text-scnt-text">Phone:</span> {phone || '—'}
+                    <span className="text-scnt-text">{t('profile.viewPhone')}</span> {phone || t('profile.dash')}
                   </p>
                   {deliveryLine ? (
                     <p>
-                      <span className="text-scnt-text">Delivery address:</span> {deliveryLine}
+                      <span className="text-scnt-text">{t('profile.viewAddr')}</span> {deliveryLine}
                     </p>
                   ) : null}
                   {joined ? (
                     <p>
-                      <span className="text-scnt-text">Member since:</span> {joined}
+                      <span className="text-scnt-text">{t('profile.member')}</span> {joined}
                     </p>
                   ) : null}
                   {profile.role === 'admin' ? (
-                    <p className="text-xs uppercase tracking-[0.15em] text-scnt-text">Administrator</p>
+                    <p className="text-xs uppercase tracking-[0.15em] text-scnt-text">{t('profile.admin')}</p>
                   ) : null}
                 </div>
                 <button
@@ -444,14 +433,14 @@ export function ProfilePage() {
                   className="mt-6 w-full rounded-full border border-scnt-border/80 px-4 py-2.5 text-sm text-scnt-text transition-colors hover:bg-scnt-bg-muted/60"
                   onClick={startEdit}
                 >
-                  Edit profile
+                  {t('profile.edit')}
                 </button>
                 {profile.role === 'admin' ? (
                   <Link
                     to="/admin"
                     className="mt-3 block w-full rounded-full border border-scnt-text/70 px-4 py-2.5 text-center text-xs uppercase tracking-[0.14em] text-scnt-text transition-colors hover:bg-scnt-bg-muted/60"
                   >
-                    Open admin panel
+                    {t('profile.openAdmin')}
                   </Link>
                 ) : null}
               </>
@@ -460,33 +449,33 @@ export function ProfilePage() {
 
           <Card asMotion={false} className="p-6 lg:col-span-2">
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-scnt-text-muted">Your orders</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-scnt-text-muted">{t('profile.yourOrders')}</p>
               <Link to="/shop" className="text-xs uppercase tracking-[0.15em] text-scnt-text underline-offset-4 hover:underline">
-                Shop again
+                {t('profile.shopAgain')}
               </Link>
             </div>
 
             {ordersStatus === 'loading' ? (
-              <p className="mt-6 text-sm text-scnt-text-muted">Loading your orders…</p>
+              <p className="mt-6 text-sm text-scnt-text-muted">{t('profile.ordersLoading')}</p>
             ) : ordersStatus === 'error' ? (
               <div className="mt-6 space-y-3">
-                <p className="text-sm text-scnt-text-muted">We could not load your orders.</p>
+                <p className="text-sm text-scnt-text-muted">{t('profile.ordersErr')}</p>
                 <button
                   type="button"
                   onClick={() => void loadOrders()}
                   className="rounded-full border border-scnt-border/80 px-4 py-2 text-sm text-scnt-text transition-colors hover:bg-scnt-bg-muted/60"
                 >
-                  Try again
+                  {t('profile.retry')}
                 </button>
               </div>
             ) : orders.length === 0 ? (
               <div className="mt-6 rounded-xl border border-dashed border-scnt-border/80 bg-scnt-bg-muted/25 px-5 py-10 text-center">
-                <p className="text-sm text-scnt-text-muted">You have not placed any orders yet.</p>
+                <p className="text-sm text-scnt-text-muted">{t('profile.noOrdersSub')}</p>
                 <Link
                   to="/shop"
                   className="mt-4 inline-block text-sm font-medium text-scnt-text underline-offset-4 hover:underline"
                 >
-                  Browse fragrances
+                  {t('profile.browseFrag')}
                 </Link>
               </div>
             ) : (
@@ -499,24 +488,28 @@ export function ProfilePage() {
                     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                         <span className="font-mono text-sm font-semibold text-scnt-text">{orderRef(order._id)}</span>
-                        <span className="text-sm text-scnt-text-muted">{formatOrderDate(order.createdAt)}</span>
+                        <span className="text-sm text-scnt-text-muted">
+                          {formatOrderDate(order.createdAt, locale, t('profile.dash'))}
+                        </span>
                       </div>
                       <span
                         className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${orderStatusClass(order.status)}`}
                       >
-                        {orderStatusLabel(order.status)}
+                        {t(`profile.status.${order.status}`)}
                       </span>
                     </div>
-                    <p className="mt-2 text-sm text-scnt-text-muted">{orderItemsSummary(order)}</p>
+                    <p className="mt-2 text-sm text-scnt-text-muted">
+                      {orderItemsSummary(order, t('profile.noLines'), t('profile.item'))}
+                    </p>
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-scnt-text">{formatEgp(order.total)}</p>
+                      <p className="text-sm font-medium text-scnt-text">{formatEgp(order.total, locale)}</p>
                       <button
                         type="button"
                         onClick={() => toggleOrderDetails(order._id)}
                         className="rounded-full border border-scnt-border/80 px-3 py-1.5 text-xs uppercase tracking-[0.12em] text-scnt-text transition-colors hover:bg-scnt-bg-muted/60"
                         aria-expanded={expandedOrderIds.includes(order._id)}
                       >
-                        {expandedOrderIds.includes(order._id) ? 'Hide details' : 'View details'}
+                        {expandedOrderIds.includes(order._id) ? t('profile.hideDetails') : t('profile.viewDetails')}
                       </button>
                     </div>
                     {expandedOrderIds.includes(order._id) ? (
@@ -531,7 +524,7 @@ export function ProfilePage() {
                                 {lineProductImage(line) ? (
                                   <img
                                     src={lineProductImage(line) ?? ''}
-                                    alt={lineProductName(line)}
+                                    alt={lineProductName(line, t('profile.item'))}
                                     className="h-12 w-12 shrink-0 rounded-md border border-scnt-border/70 object-cover"
                                     loading="lazy"
                                   />
@@ -539,16 +532,18 @@ export function ProfilePage() {
                                   <div className="h-12 w-12 shrink-0 rounded-md border border-scnt-border/70 bg-scnt-bg-muted/40" />
                                 )}
                                 <span className="truncate text-scnt-text-muted">
-                                  {lineProductName(line)} ×{line.quantity}
+                                  {lineProductName(line, t('profile.item'))} ×{line.quantity}
                                 </span>
                               </div>
-                              <span className="font-medium text-scnt-text">{formatEgp(line.price * line.quantity)}</span>
+                              <span className="font-medium text-scnt-text">
+                                {formatEgp(line.price * line.quantity, locale)}
+                              </span>
                             </li>
                           ))}
                         </ul>
                         {orderAddressSummary(order) ? (
                           <p className="mt-3 border-t border-scnt-border/50 pt-3 text-sm text-scnt-text-muted">
-                            <span className="text-scnt-text">Delivery:</span> {orderAddressSummary(order)}
+                            <span className="text-scnt-text">{t('profile.orderAddr')}:</span> {orderAddressSummary(order)}
                           </p>
                         ) : null}
                       </div>

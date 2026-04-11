@@ -11,6 +11,8 @@ import { productImageFrameFull, productImageFrameTop } from './productImageFrame
 import { EightPointStar } from '../ui/EightPointStar'
 import { useCollectionVisual } from '../../context/CollectionVisualContext'
 import { Button } from '../ui/Button'
+import { useI18n } from '../../i18n/I18nContext'
+import { formatEgp } from '../../lib/formatEgp'
 import { useWishlistStore } from '../../store/wishlistStore'
 
 type ProductCardProps = {
@@ -21,15 +23,8 @@ type ProductCardProps = {
   carousel?: boolean
 }
 
-function formatEgp(n: number): string {
-  return new Intl.NumberFormat('en-EG', {
-    style: 'currency',
-    currency: 'EGP',
-    maximumFractionDigits: 0,
-  }).format(n)
-}
-
 export function ProductCard({ product, entrance = true, carousel = false }: ProductCardProps) {
+  const { t, locale } = useI18n()
   const { collections } = useCatalog()
   const addItem = useCartStore((s) => s.addItem)
   const toggleWishlist = useWishlistStore((s) => s.toggleItem)
@@ -77,8 +72,8 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
 
   useEffect(() => {
     if (!justAdded) return
-    const t = window.setTimeout(() => setJustAdded(false), 1800)
-    return () => window.clearTimeout(t)
+    const timer = window.setTimeout(() => setJustAdded(false), 1800)
+    return () => window.clearTimeout(timer)
   }, [justAdded])
 
   function handleAddToCart() {
@@ -230,7 +225,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                     goImage(-1)
                   }}
                   className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full bg-scnt-bg-elevated/90 text-scnt-text shadow-sm ring-1 ring-scnt-border/90 backdrop-blur-sm transition-[background-color,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:bg-scnt-bg-elevated active:scale-95"
-                  aria-label={`Previous image for ${product.name}`}
+                  aria-label={t('pc.prevImg', { name: product.name })}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path
@@ -249,7 +244,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                     goImage(1)
                   }}
                   className="pointer-events-auto flex h-8 w-8 items-center justify-center rounded-full bg-scnt-bg-elevated/90 text-scnt-text shadow-sm ring-1 ring-scnt-border/90 backdrop-blur-sm transition-[background-color,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:bg-scnt-bg-elevated active:scale-95"
-                  aria-label={`Next image for ${product.name}`}
+                  aria-label={t('pc.nextImg', { name: product.name })}
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path
@@ -275,7 +270,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                 ))}
               </div>
             )}
-            <div className="absolute right-4 top-4 z-[4] text-scnt-bg/90 opacity-0 transition-all duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:translate-y-0 group-hover:opacity-100 sm:translate-y-1">
+            <div className="absolute end-4 top-4 z-[4] text-scnt-bg/90 opacity-0 transition-all duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:translate-y-0 group-hover:opacity-100 sm:translate-y-1">
               <motion.span
                 initial={false}
                 whileHover={
@@ -313,18 +308,18 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                     : 'tracking-[0.18em]'
               }`}
             >
-              Inspired by {product.inspiredBy}
+              {t('pc.inspiredBy')} {product.inspiredBy}
             </p>
             <p className="line-clamp-2 text-xs italic leading-relaxed text-scnt-text-muted/95">
               {product.vibeSentence}
             </p>
-            <p className="pt-1 text-sm text-scnt-text-muted">{formatEgp(product.price)}</p>
+            <p className="pt-1 text-sm text-scnt-text-muted">{formatEgp(product.price, locale)}</p>
           </div>
         </Link>
         <div className="border-t border-scnt-border/75 px-5 pb-5 pt-4 text-center">
           <div className="flex items-center justify-center gap-3">
             <Button type="button" className="px-5 py-2 text-xs" onClick={handleAddToCart}>
-              Add to cart
+              {t('pc.addToCart')}
             </Button>
             <button
               type="button"
@@ -334,7 +329,11 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                   : 'bg-transparent text-scnt-text-muted hover:text-scnt-text'
               }`}
               onClick={handleToggleWishlist}
-              aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+              aria-label={
+                isWishlisted
+                  ? t('pc.rmWishlist', { name: product.name })
+                  : t('pc.addWishlist', { name: product.name })
+              }
             >
               <svg
                 width="14"
@@ -351,10 +350,10 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                   d="M12 21s-7-4.3-9-8.5C1.2 8.5 3.3 5 7 5c2 0 3.4 1 5 3 1.6-2 3-3 5-3 3.7 0 5.8 3.5 4 7.5C19 16.7 12 21 12 21z"
                 />
               </svg>
-              {isWishlisted ? 'Saved' : 'Wishlist'}
+              {isWishlisted ? t('pc.saved') : t('pc.wishlist')}
             </button>
             {justAdded ? (
-              <span className="text-xs text-scnt-text-muted">Added</span>
+              <span className="text-xs text-scnt-text-muted">{t('pc.added')}</span>
             ) : null}
           </div>
         </div>

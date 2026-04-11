@@ -1,3 +1,11 @@
+/** Arabic copy stored on Mongo `translations.ar` for collections */
+export type ApiCollectionTranslationsAr = {
+  name?: string
+  tagline?: string
+  sub_tagline?: string
+  description?: string
+}
+
 /** Aligns with Mongo-backed `Collection` documents from the API */
 export type ApiCollection = {
   _id: string
@@ -7,6 +15,18 @@ export type ApiCollection = {
   tagline: string
   sub_tagline?: string
   description: string
+  translations?: { ar?: ApiCollectionTranslationsAr }
+}
+
+/** Arabic copy stored on Mongo `translations.ar` for products */
+export type ApiProductTranslationsAr = {
+  name?: string
+  inspired_from?: string
+  description?: string
+  size?: string
+  topNotes?: string[]
+  heartNotes?: string[]
+  baseNotes?: string[]
 }
 
 /** Populated `Product.collection` from the API */
@@ -25,6 +45,7 @@ export type ApiProduct = {
   baseNotes: string[]
   description: string
   stock?: number
+  translations?: { ar?: ApiProductTranslationsAr }
 }
 
 export type ApiProductListResponse = {

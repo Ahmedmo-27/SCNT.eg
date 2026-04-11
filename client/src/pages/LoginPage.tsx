@@ -4,12 +4,14 @@ import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { EightPointStar } from '../components/ui/EightPointStar'
+import { useI18n } from '../i18n/I18nContext'
 import { setStoredAuthToken } from '../lib/authStorage'
 import { login as loginRequest } from '../services/authApi'
 
 type LoginLocationState = { from?: string }
 
 export function LoginPage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const location = useLocation()
   const returnTo = (location.state as LoginLocationState | null)?.from
@@ -32,7 +34,7 @@ export function LoginPage() {
         returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//') ? returnTo : '/profile'
       navigate(destination, { replace: true })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Sign in failed')
+      setError(e instanceof Error ? e.message : t('login.fail'))
     } finally {
       setLoading(false)
     }
@@ -45,17 +47,17 @@ export function LoginPage() {
           <header className="text-center">
             <p className="mb-3 inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-scnt-text-muted">
               <EightPointStar size={9} className="opacity-45" />
-              Welcome Back
+              {t('login.kicker')}
             </p>
-            <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">Login</h1>
-            <p className="mt-4 text-scnt-text-muted">Sign in to view your profile, orders, and saved addresses.</p>
+            <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">{t('login.title')}</h1>
+            <p className="mt-4 text-scnt-text-muted">{t('login.sub')}</p>
           </header>
 
           <Card asMotion={false} className="mt-8 p-6 sm:p-8">
             <form className="space-y-5" onSubmit={onSubmit}>
               <div>
                 <label htmlFor="email" className="mb-2 block text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
-                  Email
+                  {t('login.email')}
                 </label>
                 <input
                   id="email"
@@ -66,13 +68,13 @@ export function LoginPage() {
                   autoComplete="email"
                   disabled={loading}
                   className="w-full rounded-xl border border-scnt-border/70 bg-scnt-bg px-4 py-3 text-scnt-text outline-none transition-colors focus:border-scnt-text/60 disabled:opacity-60"
-                  placeholder="you@example.com"
+                  placeholder={t('login.phEmail')}
                 />
               </div>
 
               <div>
                 <label htmlFor="password" className="mb-2 block text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
-                  Password
+                  {t('login.password')}
                 </label>
                 <input
                   id="password"
@@ -83,12 +85,12 @@ export function LoginPage() {
                   autoComplete="current-password"
                   disabled={loading}
                   className="w-full rounded-xl border border-scnt-border/70 bg-scnt-bg px-4 py-3 text-scnt-text outline-none transition-colors focus:border-scnt-text/60 disabled:opacity-60"
-                  placeholder="Enter your password"
+                  placeholder={t('login.phPass')}
                 />
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Signing in…' : 'Sign in'}
+                {loading ? t('login.signingIn') : t('login.signIn')}
               </Button>
             </form>
 
@@ -100,9 +102,9 @@ export function LoginPage() {
           </Card>
 
           <p className="mt-6 text-center text-sm text-scnt-text-muted">
-            New here?{' '}
+            {t('login.new')}{' '}
             <Link to="/register" className="text-scnt-text underline-offset-4 hover:underline">
-              Create an account
+              {t('login.create')}
             </Link>
           </p>
         </div>

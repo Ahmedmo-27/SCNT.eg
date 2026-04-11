@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useCollectionVisual } from '../../context/CollectionVisualContext'
+import { useI18n } from '../../i18n/I18nContext'
 import { hexToRgba } from '../../lib/colorUtils'
 import { EightPointStar } from '../ui/EightPointStar'
 
@@ -8,27 +9,6 @@ type Layer = 'top' | 'heart' | 'base'
 
 const EASE_SCNT: [number, number, number, number] = [0.22, 1, 0.36, 1]
 const DURATION_SCNT = 0.65
-
-const layerCopy: Record<
-  Layer,
-  { label: string; subtitle: string; detail: string }
-> = {
-  top: {
-    label: 'Top',
-    subtitle: 'First impression — bright, fleeting',
-    detail: 'What you meet in the opening breath.',
-  },
-  heart: {
-    label: 'Heart',
-    subtitle: 'The story — warm, unfolding',
-    detail: 'Where the narrative opens and lingers.',
-  },
-  base: {
-    label: 'Base',
-    subtitle: 'What stays — deep, slow',
-    detail: 'The trail that remains when you’ve gone.',
-  },
-}
 
 type NoteChipProps = {
   note: string
@@ -100,18 +80,22 @@ type BlockProps = {
 }
 
 function NoteBlock({ layer, notes, layerColor }: BlockProps) {
+  const { t } = useI18n()
   const [hovered, setHovered] = useState<string | null>(null)
-  const copy = layerCopy[layer]
+  const titleKey =
+    layer === 'top' ? 'scent.topTitle' : layer === 'heart' ? 'scent.heartTitle' : 'scent.baseTitle'
+  const subKey =
+    layer === 'top' ? 'scent.topSub' : layer === 'heart' ? 'scent.heartSub' : 'scent.baseSub'
+  const detKey =
+    layer === 'top' ? 'scent.topDet' : layer === 'heart' ? 'scent.heartDet' : 'scent.baseDet'
 
   return (
     <div className="relative border-b border-scnt-border py-6 last:border-b-0">
-      <div className="pl-4">
-        <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">
-          {copy.label} notes
-        </p>
-        <p className="mt-1 text-[0.7rem] text-scnt-text-muted/85">{copy.subtitle}</p>
+      <div className="ps-4">
+        <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">{t(titleKey)}</p>
+        <p className="mt-1 text-[0.7rem] text-scnt-text-muted/85">{t(subKey)}</p>
         <p className="mt-0.5 font-sans text-[0.65rem] tracking-wide text-scnt-text-muted/90">
-          {copy.detail}
+          {t(detKey)}
         </p>
         <ul className="mt-4 flex flex-wrap gap-2.5">
           {notes.map((n) => (
@@ -137,20 +121,19 @@ type Props = {
 }
 
 export function ScentPyramid({ topNotes, heartNotes, baseNotes }: Props) {
+  const { t } = useI18n()
   const { vivid, accent, accentDeep } = useCollectionVisual()
 
   return (
     <div className="rounded-2xl bg-scnt-bg-elevated/65 p-6 ring-1 ring-scnt-border/90 backdrop-blur-md">
       <p className="mb-1 inline-flex items-center gap-2 text-xs uppercase tracking-[0.28em] text-scnt-text-muted">
         <EightPointStar size={9} className="opacity-45" />
-        Note pyramid
+        {t('scent.pyramidTitle')}
       </p>
-      <p className="mb-6 text-xs text-scnt-text-muted">
-        Hover a note — each layer lifts on the house curve.
-      </p>
-      <div className="relative pl-5">
+      <p className="mb-6 text-xs text-scnt-text-muted">{t('scent.pyramidHint')}</p>
+      <div className="relative ps-5">
         <div
-          className="pointer-events-none absolute bottom-0 left-0 top-0 w-1 rounded-full opacity-[0.72]"
+          className="pointer-events-none absolute bottom-0 start-0 top-0 w-1 rounded-full opacity-[0.72]"
           style={{
             background: `linear-gradient(180deg, ${vivid} 0%, ${accent} 48%, ${accentDeep} 100%)`,
           }}

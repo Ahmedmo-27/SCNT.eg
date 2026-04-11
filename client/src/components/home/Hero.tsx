@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
+import { useI18n } from '../../i18n/I18nContext'
 import { Button } from '../ui/Button'
 import { EightPointStar } from '../ui/EightPointStar'
 
@@ -22,6 +23,7 @@ const headlineLine = {
 }
 
 export function Hero() {
+  const { t } = useI18n()
   const ref = useRef<HTMLElement>(null)
   const reduceMotion = useReducedMotion()
   const { scrollYProgress } = useScroll({
@@ -128,9 +130,7 @@ export function Hero() {
         >
           <span className="inline-flex items-center gap-3 rounded-full border border-scnt-border/70 bg-scnt-bg-elevated/35 px-5 py-2.5 text-scnt-text-muted shadow-[0_8px_32px_-12px_var(--color-scnt-shadow)] backdrop-blur-sm">
             <EightPointStar size={10} className="text-collection-icon/50" />
-            <span className="text-[0.7rem] font-normal uppercase tracking-[0.38em]">
-              House of SCNT
-            </span>
+            <span className="text-[0.7rem] font-normal uppercase tracking-[0.38em]">{t('hero.badge')}</span>
             <EightPointStar size={10} className="text-collection-icon/50" />
           </span>
         </motion.div>
@@ -142,13 +142,13 @@ export function Hero() {
           className="font-serif text-[2.5rem] font-medium leading-[1.05] tracking-[-0.02em] text-scnt-text [text-shadow:0_2px_48px_rgba(42,38,34,0.07)] sm:text-5xl md:text-[3.45rem] text-balance"
         >
           <motion.span variants={headlineLine} className="block">
-            Leave a trail, not a memory.
+            {t('hero.title1')}
           </motion.span>
           <motion.span
             variants={headlineLine}
             className="mt-5 block font-serif text-[1.4rem] font-normal leading-snug tracking-normal text-scnt-text-muted sm:text-[1.85rem] md:text-[2.05rem]"
           >
-            <span className="italic text-scnt-text/85">Presence before words.</span>
+            <span className="italic text-scnt-text/85">{t('hero.title2')}</span>
           </motion.span>
         </motion.h1>
 
@@ -174,8 +174,7 @@ export function Hero() {
           }}
           className="mx-auto mt-10 max-w-lg text-base leading-relaxed text-scnt-text-muted sm:text-lg"
         >
-          Four collections — each a mood you can wear. Nothing to decode; only
-          what stays on skin, and in the room after you leave.
+          {t('hero.body')}
         </motion.p>
 
         <motion.div
@@ -188,7 +187,7 @@ export function Hero() {
           }}
           className="mt-14 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-5"
         >
-          <Button to="/collections">Explore collections</Button>
+          <Button to="/collections">{t('hero.explore')}</Button>
           <Link
             to="/find-your-scnt"
             className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full border border-scnt-border/90 bg-scnt-bg-elevated/60 px-8 py-3 text-sm font-medium tracking-wide text-scnt-text shadow-[0_6px_24px_-10px_var(--color-scnt-shadow)] transition-[background-color,box-shadow,border-color] duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-scnt-border hover:bg-scnt-bg-elevated hover:shadow-[0_12px_36px_-14px_var(--color-scnt-shadow)]"
@@ -197,7 +196,7 @@ export function Hero() {
               className="pointer-events-none absolute inset-0 translate-x-[-120%] bg-gradient-to-r from-transparent via-white/18 to-transparent opacity-0 transition-[transform,opacity] duration-[950ms] ease-out group-hover:translate-x-[120%] group-hover:opacity-100"
               aria-hidden
             />
-            <span className="relative z-[1]">Find your SCNT</span>
+            <span className="relative z-[1]">{t('hero.findLink')}</span>
           </Link>
         </motion.div>
       </div>

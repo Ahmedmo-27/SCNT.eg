@@ -17,6 +17,7 @@ import { ShopAllPage } from './pages/ShopAllPage'
 import { FindYourScntPage } from './pages/FindYourScntPage'
 import { WishlistPage } from './pages/WishlistPage'
 import { AdminPage } from './pages/AdminPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   )

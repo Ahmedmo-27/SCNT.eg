@@ -1,17 +1,11 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useCatalog } from '../../context/CatalogContext'
+import { useI18n } from '../../i18n/I18nContext'
+import { formatEgp } from '../../lib/formatEgp'
 import type { ProductSummary } from '../../types/catalog'
 import { productImageFrameFull, productImageFrameTop } from './productImageFrame'
 import { EightPointStar } from '../ui/EightPointStar'
-
-function formatEgp(n: number): string {
-  return new Intl.NumberFormat('en-EG', {
-    style: 'currency',
-    currency: 'EGP',
-    maximumFractionDigits: 0,
-  }).format(n)
-}
 
 type Props = {
   items: ProductSummary[]
@@ -24,6 +18,7 @@ export function ProductRecommendations({
   title = 'You might also like',
   subtitle = 'Chosen for a similar mood — not a formula.',
 }: Props) {
+  const { t, locale } = useI18n()
   const { collections } = useCatalog()
   if (items.length === 0) return null
 
@@ -38,7 +33,7 @@ export function ProductRecommendations({
       >
         <p className="mb-2 inline-flex items-center gap-2 text-xs uppercase tracking-[0.28em] text-scnt-text-muted">
           <EightPointStar size={9} className="opacity-45" />
-          Discovery
+          {t('product.recKicker')}
         </p>
         <h2 className="font-serif text-2xl text-scnt-text sm:text-3xl">{title}</h2>
         <p className="mt-2 text-sm text-scnt-text-muted">{subtitle}</p>
@@ -106,12 +101,12 @@ export function ProductRecommendations({
                   </p>
                   <h3 className="font-serif text-lg text-scnt-text">{p.name}</h3>
                   <p className="text-[0.6rem] uppercase tracking-[0.16em] text-scnt-text/45">
-                    Inspired by {p.inspiredBy}
+                    {t('pc.inspiredBy')} {p.inspiredBy}
                   </p>
                   <p className="line-clamp-2 text-xs italic text-scnt-text-muted/95">
                     {p.vibeSentence}
                   </p>
-                  <p className="pt-1 text-sm text-scnt-text-muted">{formatEgp(p.price)}</p>
+                  <p className="pt-1 text-sm text-scnt-text-muted">{formatEgp(p.price, locale)}</p>
                 </div>
               </Link>
             </motion.li>

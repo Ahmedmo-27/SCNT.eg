@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useCatalog } from '../../context/CatalogContext'
+import { useI18n } from '../../i18n/I18nContext'
 import { ProductCard } from '../product/ProductCard'
 import { EightPointStar } from '../ui/EightPointStar'
 import { StarDivider } from '../ui/StarDivider'
@@ -22,13 +23,14 @@ const cell = {
 }
 
 export function BestSellers() {
+  const { t } = useI18n()
   const { products, loading } = useCatalog()
   const list = products.slice(0, 4)
 
   if (loading) {
     return (
       <section className="relative px-5 py-24 sm:px-8 sm:py-28">
-        <StarLoader className="py-16" label="Loading products" />
+        <StarLoader className="py-16" label={t('home.bs.loading')} />
       </section>
     )
   }
@@ -48,14 +50,10 @@ export function BestSellers() {
           <div>
             <p className="mb-2 inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-scnt-text-muted">
               <EightPointStar size={9} className="opacity-45" />
-              Best sellers
+              {t('home.bs.kicker')}
             </p>
-            <h2 className="font-serif text-3xl font-medium text-scnt-text sm:text-4xl">
-              The quiet favorites
-            </h2>
-            <p className="mt-3 max-w-lg text-sm text-scnt-text-muted sm:text-base">
-              Worn often, talked about softly — where skin meets intention.
-            </p>
+            <h2 className="font-serif text-3xl font-medium text-scnt-text sm:text-4xl">{t('home.bs.title')}</h2>
+            <p className="mt-3 max-w-lg text-sm text-scnt-text-muted sm:text-base">{t('home.bs.sub')}</p>
           </div>
         </motion.header>
 

@@ -1,4 +1,6 @@
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
+import { useI18n } from '../../i18n/I18nContext'
 import { EightPointStar } from '../ui/EightPointStar'
 import { StarDivider } from '../ui/StarDivider'
 
@@ -80,27 +82,18 @@ function ArrowDown({ className }: { className?: string }) {
   )
 }
 
-const steps = [
-  {
-    title: 'Order',
-    Icon: IconBag,
-    body: 'Place your order and enjoy free shipping on any order over 1,500 EGP within Cairo only.',
-  },
-  {
-    title: 'Try the decant',
-    Icon: IconDecant,
-    body:
-      'Every full bottle ships with a small decant. Spray and wear the decant to decide if the scent is yours — keep the main bottle sealed until you are sure.',
-  },
-  {
-    title: 'Decide',
-    Icon: IconDecide,
-    body:
-      'Not a match? Return the unopened full bottle within 14 days, no questions asked. If the main bottle has been opened, we cannot accept it for return.',
-  },
-] as const
-
 export function HowItWorks() {
+  const { t } = useI18n()
+  const steps = useMemo(
+    () =>
+      [
+        { title: t('home.hiw.step1'), Icon: IconBag, body: t('home.hiw.step1b') },
+        { title: t('home.hiw.step2'), Icon: IconDecant, body: t('home.hiw.step2b') },
+        { title: t('home.hiw.step3'), Icon: IconDecide, body: t('home.hiw.step3b') },
+      ] as const,
+    [t],
+  )
+
   return (
     <section className="relative bg-scnt-bg-muted/80 px-5 py-24 sm:px-8 sm:py-28">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-scnt-border/80 to-transparent" />
@@ -115,10 +108,10 @@ export function HowItWorks() {
         >
           <p className="mb-3 inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-scnt-text-muted">
             <EightPointStar size={9} className="opacity-45" />
-            We know perfumes are personal
+            {t('home.hiw.kicker')}
           </p>
           <h2 className="font-serif text-3xl font-medium leading-tight text-scnt-text sm:text-4xl md:text-[2.65rem] text-balance">
-            Choose with confidence. Every order ships with a trial decant.
+            {t('home.hiw.title')}
           </h2>
         </motion.header>
 
@@ -160,10 +153,7 @@ export function HowItWorks() {
           transition={{ duration: 0.65, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
           className="mx-auto mt-14 max-w-3xl text-center text-xs leading-relaxed text-scnt-text-muted sm:text-sm"
         >
-          <strong className="font-semibold text-scnt-text">Note:</strong> Accepted returns receive a full refund of the
-          purchase price; return shipping is included. The complimentary decant is for testing only — the full bottle must
-          stay completely unopened to remain eligible. Returns must be postmarked within 14 days of the initial
-          order.
+          <strong className="font-semibold text-scnt-text">{t('home.hiw.noteLabel')}</strong> {t('home.hiw.noteBody')}
         </motion.p>
       </div>
     </section>

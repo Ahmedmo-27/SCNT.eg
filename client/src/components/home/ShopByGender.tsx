@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import { useI18n } from '../../i18n/I18nContext'
 import { EightPointStar } from '../ui/EightPointStar'
 import { StarDivider } from '../ui/StarDivider'
 
@@ -20,11 +21,15 @@ const item = {
 }
 
 function GenderCard({
+  shopLabel,
+  browseLabel,
   title,
   subtitle,
   to,
   accentClass,
 }: {
+  shopLabel: string
+  browseLabel: string
   title: string
   subtitle: string
   to: string
@@ -43,14 +48,14 @@ function GenderCard({
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_70%_at_40%_30%,rgba(255,255,255,0.22)_0%,transparent_62%)] opacity-50" />
 
         <p className="relative z-[1] text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
-          Shop
+          {shopLabel}
         </p>
         <h3 className="relative z-[1] mt-3 font-serif text-2xl text-scnt-text sm:text-3xl">{title}</h3>
         <p className="relative z-[1] mt-2 max-w-md text-sm leading-relaxed text-scnt-text-muted sm:text-base">
           {subtitle}
         </p>
         <span className="relative z-[1] mt-8 inline-flex items-center gap-2 text-sm text-scnt-text transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)]">
-          Browse
+          {browseLabel}
           <span className="inline-block text-scnt-text/35 transition-transform duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:translate-x-1 group-hover:rotate-12">
             <EightPointStar size={11} />
           </span>
@@ -61,6 +66,7 @@ function GenderCard({
 }
 
 export function ShopByGender() {
+  const { t } = useI18n()
   return (
     <section className="relative px-5 py-24 sm:px-8 sm:py-28">
       <div className="pointer-events-none absolute inset-x-8 top-0 hidden h-px bg-gradient-to-r from-transparent via-scnt-border/70 to-transparent sm:block" />
@@ -76,14 +82,10 @@ export function ShopByGender() {
           <div>
             <p className="mb-2 inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-scnt-text-muted">
               <EightPointStar size={9} className="opacity-45" />
-              Quick navigation
+              {t('home.gender.kicker')}
             </p>
-            <h2 className="font-serif text-3xl font-medium text-scnt-text sm:text-4xl">
-              Shop by gender
-            </h2>
-            <p className="mt-3 max-w-lg text-sm text-scnt-text-muted sm:text-base">
-              Start broad, then refine by line and notes.
-            </p>
+            <h2 className="font-serif text-3xl font-medium text-scnt-text sm:text-4xl">{t('home.gender.title')}</h2>
+            <p className="mt-3 max-w-lg text-sm text-scnt-text-muted sm:text-base">{t('home.gender.sub')}</p>
           </div>
         </motion.header>
 
@@ -97,14 +99,18 @@ export function ShopByGender() {
           className="grid gap-6 sm:grid-cols-2 sm:gap-8"
         >
           <GenderCard
-            title="Female fragrances"
-            subtitle="Bright florals, warm ambers, and everything in between."
+            shopLabel={t('home.gender.shop')}
+            browseLabel={t('home.gender.browse')}
+            title={t('home.gender.femaleTitle')}
+            subtitle={t('home.gender.femaleSub')}
             to="/shop?gender=female"
             accentClass="bg-[radial-gradient(circle,rgba(184,155,94,0.35),transparent_65%)]"
           />
           <GenderCard
-            title="Male fragrances"
-            subtitle="Crisp woods, clean musks, and bold signatures."
+            shopLabel={t('home.gender.shop')}
+            browseLabel={t('home.gender.browse')}
+            title={t('home.gender.maleTitle')}
+            subtitle={t('home.gender.maleSub')}
             to="/shop?gender=male"
             accentClass="bg-[radial-gradient(circle,rgba(75,85,99,0.32),transparent_65%)]"
           />

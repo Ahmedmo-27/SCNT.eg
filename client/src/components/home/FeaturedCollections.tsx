@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useCatalog } from '../../context/CatalogContext'
+import { useI18n } from '../../i18n/I18nContext'
 import { getCollectionVivid } from '../../data/collectionThemes'
 import { hexToRgba, tintedBeigeGlass } from '../../lib/colorUtils'
 import { EightPointStar } from '../ui/EightPointStar'
@@ -24,12 +25,13 @@ const item = {
 }
 
 export function FeaturedCollections() {
+  const { t } = useI18n()
   const { collections, loading } = useCatalog()
 
   if (loading) {
     return (
       <section className="relative border-t border-scnt-border/80 bg-gradient-to-b from-scnt-bg-muted/25 via-scnt-bg/40 to-scnt-bg px-5 py-24 sm:px-8 sm:py-28">
-        <StarLoader className="py-16" label="Loading collections" />
+        <StarLoader className="py-16" label={t('home.fc.loading')} />
       </section>
     )
   }
@@ -42,15 +44,10 @@ export function FeaturedCollections() {
         <header className="mb-4 max-w-2xl text-center sm:mx-auto">
           <p className="mb-3 inline-flex items-center justify-center gap-2 text-xs uppercase tracking-[0.3em] text-scnt-text-muted">
             <EightPointStar size={9} className="opacity-45" />
-            Collections
+            {t('home.fc.kicker')}
           </p>
-          <h2 className="font-serif text-3xl font-medium text-scnt-text sm:text-4xl">
-            Four identities. One house.
-          </h2>
-          <p className="mt-4 text-sm leading-relaxed text-scnt-text-muted sm:text-base">
-            Not categories — people. Pick the line that sounds like you, then
-            find the fragrance that fits your mood.
-          </p>
+          <h2 className="font-serif text-3xl font-medium text-scnt-text sm:text-4xl">{t('home.fc.title')}</h2>
+          <p className="mt-4 text-sm leading-relaxed text-scnt-text-muted sm:text-base">{t('home.fc.sub')}</p>
         </header>
 
         <StarDivider className="py-6 sm:py-8" />
@@ -111,7 +108,7 @@ export function FeaturedCollections() {
                       {c.tagline}
                     </p>
                     <span className="mt-8 inline-flex items-center gap-2 text-sm text-scnt-text transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)]">
-                      Enter collection
+                      {t('home.fc.enter')}
                       <span className="inline-block text-scnt-text/35 transition-transform duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:translate-x-1 group-hover/card:rotate-12">
                         <EightPointStar size={11} />
                       </span>

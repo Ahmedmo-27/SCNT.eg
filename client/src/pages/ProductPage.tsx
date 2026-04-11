@@ -16,19 +16,14 @@ import { StarLoader } from '../components/ui/StarLoader'
 import { useCartStore } from '../store/cartStore'
 import { useWishlistStore } from '../store/wishlistStore'
 import { PlaceholderPage } from './PlaceholderPage'
-
-function formatEgp(n: number): string {
-  return new Intl.NumberFormat('en-EG', {
-    style: 'currency',
-    currency: 'EGP',
-    maximumFractionDigits: 0,
-  }).format(n)
-}
+import { useI18n } from '../i18n/I18nContext'
+import { formatEgp } from '../lib/formatEgp'
 
 const cardShell =
   'rounded-2xl bg-scnt-bg-elevated/65 p-6 ring-1 ring-scnt-border/90 backdrop-blur-md'
 
 export function ProductPage() {
+  const { t, locale } = useI18n()
   const { id } = useParams()
   const { collections, products } = useCatalog()
   const [product, setProduct] = useState<ProductSummary | undefined>()
@@ -54,7 +49,7 @@ export function ProductPage() {
     setPending(true)
     apiGetData<ApiProduct>(`/products/${id}`)
       .then((raw) => {
-        if (!cancelled) setProduct(mapApiProductToSummary(raw))
+        if (!cancelled) setProduct(mapApiProductToSummary(raw, locale))
       })
       .catch(() => {
         if (!cancelled) setProduct(undefined)
@@ -65,22 +60,19 @@ export function ProductPage() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, locale])
 
   if (pending) {
     return (
       <Layout>
-        <StarLoader className="py-32" label="Loading product" />
+        <StarLoader className="py-32" label={t('product.loading')} />
       </Layout>
     )
   }
 
   if (!product) {
     return (
-      <PlaceholderPage
-        title="Product not found"
-        subtitle="This SKU is not in the current catalogue."
-      />
+      <PlaceholderPage title={t('product.notFound')} subtitle={t('product.notFoundSub')} />
     )
   }
 
@@ -118,11 +110,11 @@ export function ProductPage() {
       <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16">
         <nav className="mb-10 text-xs text-scnt-text-muted">
           <Link to="/" className="hover:text-scnt-text">
-            Home
+            {t('product.breadcrumb.home')}
           </Link>
           <span className="mx-2 opacity-40">/</span>
           <Link to="/collections" className="hover:text-scnt-text">
-            Collections
+            {t('product.breadcrumb.collections')}
           </Link>
           <span className="mx-2 opacity-40">/</span>
           {col ? (
@@ -179,12 +171,12 @@ export function ProductPage() {
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   <h1 className="font-serif text-4xl text-scnt-text sm:text-5xl">{product.name}</h1>
                   <span className="rounded-full border border-scnt-border bg-scnt-bg-elevated/60 px-4 py-1.5 text-xs font-medium uppercase tracking-[0.2em] text-scnt-text">
-                    {product.gender === 'female' ? 'For her' : 'For him'}
+                    {product.gender === 'female' ? t('product.forHer') : t('product.forHim')}
                   </span>
                 </div>
                 <p className="mt-3 text-sm text-scnt-text-muted">
                   <span className="uppercase tracking-[0.2em] text-scnt-text/55">
-                    Inspired by{' '}
+                    {t('product.inspiredBy')}{' '}
                   </span>
                   {product.inspiredBy}
                 </p>
@@ -199,20 +191,20 @@ export function ProductPage() {
 
                 <div className={`mt-8 ${cardShell}`}>
                   <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 border-b border-scnt-border/90 pb-5">
-                    <p className="font-serif text-2xl text-scnt-text">{formatEgp(product.price)}</p>
+                    <p className="font-serif text-2xl text-scnt-text">{formatEgp(product.price, locale)}</p>
                     <span className="text-scnt-text/25">·</span>
                     <p className="text-sm text-scnt-text-muted">
-                      {product.format} · {product.volume}
+                      {t('product.formatEdp')} · {product.volume}
                     </p>
                   </div>
                   <p className="mt-3 text-xs tracking-wide text-scnt-text-muted">
-                    {product.concentrationHint}
+                    {t('product.concHint')}
                   </p>
 
                   <div className="mt-8 flex flex-wrap items-center gap-4">
                     <div className="relative">
                       <Button type="button" onClick={handleAddToCart}>
-                        Add to cart
+                        {t('product.addToCart')}
                       </Button>
                       <AnimatePresence>
                         {justAdded ? (
@@ -233,7 +225,7 @@ export function ProductPage() {
                             >
                               <EightPointStar size={10} className="opacity-60" />
                             </motion.span>
-                            Added — yours to wear
+                            {t('product.addedToast')}
                           </motion.span>
                         ) : null}
                       </AnimatePresence>
@@ -242,13 +234,17 @@ export function ProductPage() {
                       to="/cart"
                       className="text-sm text-scnt-text-muted transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:text-scnt-text"
                     >
-                      View cart
+                      {t('product.viewCart')}
                     </Link>
                     <button
                       type="button"
                       onClick={handleToggleWishlist}
                       className="inline-flex items-center gap-1.5 text-sm text-scnt-text-muted transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:text-scnt-text"
-                      aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+                      aria-label={
+                        isWishlisted
+                          ? t('pc.rmWishlist', { name: product.name })
+                          : t('pc.addWishlist', { name: product.name })
+                      }
                     >
                       <svg
                         width="14"
@@ -265,13 +261,13 @@ export function ProductPage() {
                           d="M12 21s-7-4.3-9-8.5C1.2 8.5 3.3 5 7 5c2 0 3.4 1 5 3 1.6-2 3-3 5-3 3.7 0 5.8 3.5 4 7.5C19 16.7 12 21 12 21z"
                         />
                       </svg>
-                      {isWishlisted ? 'Saved to wishlist' : 'Add to wishlist'}
+                      {isWishlisted ? t('product.savedWishlist') : t('product.addWishlist')}
                     </button>
                     <Link
                       to="/wishlist"
                       className="text-sm text-scnt-text-muted transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:text-scnt-text"
                     >
-                      View wishlist
+                      {t('product.viewWishlist')}
                     </Link>
                   </div>
                 </div>
@@ -281,14 +277,12 @@ export function ProductPage() {
 
           <div className="min-w-0 lg:col-span-5 xl:col-span-4">
             <div className={cardShell}>
-              <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">
-                Scent story
-              </p>
+              <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">{t('product.scentStory')}</p>
               <p className="mt-4 text-base leading-relaxed text-scnt-text sm:text-[1.05rem]">
                 {product.emotionalStory}
               </p>
               <p className="mt-5 text-sm leading-relaxed text-scnt-text-muted">
-                <span className="text-scnt-text/80">Lives like this: </span>
+                <span className="text-scnt-text/80">{t('product.livesLike')} </span>
                 {product.lifestyleLine}
               </p>
             </div>
@@ -305,7 +299,11 @@ export function ProductPage() {
           </div>
         </div>
 
-        <ProductRecommendations items={related} />
+        <ProductRecommendations
+          items={related}
+          title={t('product.recTitle')}
+          subtitle={t('product.recSub')}
+        />
       </div>
     </Layout>
   )

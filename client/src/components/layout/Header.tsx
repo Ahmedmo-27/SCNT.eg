@@ -5,21 +5,15 @@ import { Logo } from '../brand/Logo'
 import { useCatalog } from '../../context/CatalogContext'
 import { sortCollectionsForDisplay } from '../../lib/catalogDisplayOrder'
 import { fetchProductsByQuery } from '../../services/productSearch'
+import { localizedCollectionName, localizedProductName } from '../../lib/catalogMappers'
 import type { ApiProduct } from '../../types/catalog'
 import { useWishlistStore } from '../../store/wishlistStore'
 import { useCartStore } from '../../store/cartStore'
+import { useI18n } from '../../i18n/I18nContext'
+import { formatEgp } from '../../lib/formatEgp'
 
-const LANG_KEY = 'scnt-lang'
 const MEGA_LEAVE_MS = 28
 const SEARCH_DEBOUNCE_MS = 320
-
-function formatEgp(n: number): string {
-  return new Intl.NumberFormat('en-EG', {
-    style: 'currency',
-    currency: 'EGP',
-    maximumFractionDigits: 0,
-  }).format(n)
-}
 
 function IconPhone({ className }: { className?: string }) {
   return (
@@ -88,6 +82,7 @@ const navLinkBase =
 const navText = 'text-scnt-text/90 hover:text-scnt-text'
 
 export function Header() {
+  const { t, locale, setLocale } = useI18n()
   const { collections, previewImageByCollectionId } = useCatalog()
   const wishlistCount = useWishlistStore((s) => s.items.length)
   const cartCount = useCartStore((s) => s.items.length)
@@ -110,15 +105,6 @@ export function Header() {
   const [searchResults, setSearchResults] = useState<ApiProduct[]>([])
   const [searchError, setSearchError] = useState<string | null>(null)
 
-  const [lang] = useState<'en' | 'ar'>(() => {
-    try {
-      const s = localStorage.getItem(LANG_KEY)
-      return s === 'ar' ? 'ar' : 'en'
-    } catch {
-      return 'en'
-    }
-  })
-
   useLayoutEffect(() => {
     const el = headerRef.current
     if (!el) return
@@ -136,16 +122,6 @@ export function Header() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-
-  useEffect(() => {
-    document.documentElement.lang = lang === 'ar' ? 'ar' : 'en'
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
-    try {
-      localStorage.setItem(LANG_KEY, lang)
-    } catch {
-      /* ignore */
-    }
-  }, [lang])
 
   useEffect(() => {
     setSideOpen(false)
@@ -201,14 +177,15 @@ export function Header() {
   }, [searchQuery])
 
   const groupedResults = useMemo(() => {
-    const m = new Map<string, ApiProduct[]>()
+    const m = new Map<string, { slug: string; label: string; items: ApiProduct[] }>()
     for (const p of searchResults) {
-      const key = p.collection?.name?.trim() || 'Catalogue'
-      if (!m.has(key)) m.set(key, [])
-      m.get(key)!.push(p)
+      const slug = p.collection?.slug?.trim() || '_'
+      const label = localizedCollectionName(p.collection, locale) || t('header.catalogue')
+      if (!m.has(slug)) m.set(slug, { slug, label, items: [] })
+      m.get(slug)!.items.push(p)
     }
-    return [...m.entries()]
-  }, [searchResults])
+    return [...m.values()]
+  }, [searchResults, locale, t])
 
   const onSearchInput = (value: string, opts?: { keepOpenWhenEmpty?: boolean }) => {
     setSearchQuery(value)
@@ -260,8 +237,8 @@ export function Header() {
         >
           <button
             type="button"
-            className={`${iconBtnClass} absolute left-5 top-1/2 -translate-y-1/2 lg:hidden sm:left-8`}
-            aria-label="Open menu"
+            className={`${iconBtnClass} absolute start-5 top-1/2 -translate-y-1/2 lg:hidden sm:start-8`}
+            aria-label={t('header.openMenu')}
             aria-expanded={sideOpen}
             onClick={() => setSideOpen(true)}
           >
@@ -270,7 +247,7 @@ export function Header() {
 
           <div
             className={`flex justify-center transition-[transform,margin] duration-[900ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] will-change-transform ${
-              scrolled ? 'lg:-translate-x-[40vw]' : ''
+              scrolled ? 'ltr:lg:-translate-x-[40vw] rtl:lg:translate-x-[40vw]' : ''
             }`}
           >
             <Logo
@@ -283,7 +260,7 @@ export function Header() {
             />
           </div>
 
-          <div className="absolute right-5 top-1/2 flex -translate-y-1/2 items-center justify-end gap-1 sm:right-8 sm:gap-2">
+          <div className="absolute end-5 top-1/2 flex -translate-y-1/2 items-center justify-end gap-1 sm:end-8 sm:gap-2">
             <div
               className={`relative mr-0.5 hidden overflow-hidden rounded-full border transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:grid sm:items-stretch ${
                 searchExpanded
@@ -300,9 +277,9 @@ export function Header() {
                   type="search"
                   value={searchQuery}
                   onChange={(e) => onSearchInput(e.target.value)}
-                  placeholder="Search"
-                  className="col-start-1 min-w-0 border-0 bg-transparent py-2 pl-3 text-xs text-scnt-text placeholder:text-scnt-text-muted/75 focus:outline-none focus:ring-0"
-                  aria-label="Search products"
+                  placeholder={t('header.searchPh')}
+                  className="col-start-1 min-w-0 border-0 bg-transparent py-2 ps-3 text-xs text-scnt-text placeholder:text-scnt-text-muted/75 focus:outline-none focus:ring-0"
+                  aria-label={t('header.searchProducts')}
                   autoComplete="off"
                 />
               ) : null}
@@ -311,7 +288,7 @@ export function Header() {
                 className={`inline-flex size-10 shrink-0 items-center justify-center text-scnt-text-muted transition-colors hover:text-scnt-text ${
                   searchExpanded ? 'col-start-2 row-start-1' : 'col-start-1 row-start-1'
                 }`}
-                aria-label={searchExpanded ? 'Collapse search' : 'Expand search'}
+                aria-label={searchExpanded ? t('header.collapseSearch') : t('header.expandSearch')}
                 onClick={() => setSearchExpanded((prev) => !prev)}
               >
                 <IconSearch className="pointer-events-none h-4 w-4" />
@@ -320,18 +297,44 @@ export function Header() {
             <button
               type="button"
               className={`${iconBtnClass} sm:hidden`}
-              aria-label="Open search"
+              aria-label={t('header.openSearch')}
               onClick={() => setSearchOpen(true)}
             >
               <IconSearch className="h-5 w-5" />
             </button>
-            <Link to="/contact" className={`${iconBtnClass} !hidden lg:!inline-flex`} aria-label="Contact">
+            <div className="hidden items-center gap-0.5 lg:flex" role="group" aria-label={t('lang.en')}>
+              <button
+                type="button"
+                className={`rounded-full px-2 py-1 text-[0.65rem] font-medium uppercase tracking-wider transition-colors ${
+                  locale === 'en'
+                    ? 'bg-scnt-text text-scnt-bg'
+                    : 'text-scnt-text-muted hover:bg-scnt-border/35 hover:text-scnt-text'
+                }`}
+                aria-pressed={locale === 'en'}
+                onClick={() => setLocale('en')}
+              >
+                {t('lang.en')}
+              </button>
+              <button
+                type="button"
+                className={`rounded-full px-2 py-1 text-[0.65rem] font-medium transition-colors ${
+                  locale === 'ar'
+                    ? 'bg-scnt-text text-scnt-bg'
+                    : 'text-scnt-text-muted hover:bg-scnt-border/35 hover:text-scnt-text'
+                }`}
+                aria-pressed={locale === 'ar'}
+                onClick={() => setLocale('ar')}
+              >
+                {t('lang.ar')}
+              </button>
+            </div>
+            <Link to="/contact" className={`${iconBtnClass} !hidden lg:!inline-flex`} aria-label={t('header.contact')}>
               <IconPhone className="h-5 w-5" />
             </Link>
             <button
               type="button"
               className={`${iconBtnClass} !hidden lg:!inline-flex`}
-              aria-label="Profile"
+              aria-label={t('nav.profile')}
               onClick={() => navigate(getStoredAuthToken() ? '/profile' : '/login')}
             >
               <IconUser className="h-5 w-5" />
@@ -339,7 +342,7 @@ export function Header() {
             <Link
               to="/wishlist"
               className={`${iconBtnClass} !hidden lg:!inline-flex relative`}
-              aria-label="Wishlist"
+              aria-label={t('nav.wishlist')}
             >
               <IconHeart className="h-5 w-5" />
               {wishlistCount > 0 ? (
@@ -348,7 +351,7 @@ export function Header() {
                 </span>
               ) : null}
             </Link>
-            <Link to="/cart" className={`${iconBtnClass} relative`} aria-label="Cart">
+            <Link to="/cart" className={`${iconBtnClass} relative`} aria-label={t('nav.cart')}>
               <IconCart className="h-5 w-5" />
               {cartCount > 0 ? (
                 <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-scnt-text px-1 text-[0.6rem] leading-4 text-scnt-bg">
@@ -372,7 +375,7 @@ export function Header() {
             className={`header-primary-nav flex flex-wrap items-center justify-center gap-x-8 gap-y-2 ${
               topTransparent ? 'header-primary-nav--transparent' : ''
             }`}
-            aria-label="Primary"
+            aria-label={t('header.primaryNav')}
             onMouseLeave={scheduleMegaClose}
           >
             <NavLink
@@ -381,7 +384,7 @@ export function Header() {
                 `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
               }
             >
-              Home
+              {t('nav.home')}
             </NavLink>
             <NavLink
               to="/shop"
@@ -389,7 +392,7 @@ export function Header() {
                 `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
               }
             >
-              Shop all
+              {t('nav.shopAll')}
             </NavLink>
             <button
               type="button"
@@ -405,7 +408,7 @@ export function Header() {
                 scheduleMegaClose()
               }}
             >
-              Collections
+              {t('nav.collections')}
             </button>
             <NavLink
               to="/find-your-scnt"
@@ -413,7 +416,7 @@ export function Header() {
                 `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
               }
             >
-              Find your SCNT
+              {t('nav.findScnt')}
             </NavLink>
             <NavLink
               to="/about"
@@ -421,7 +424,7 @@ export function Header() {
                 `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
               }
             >
-              About
+              {t('nav.about')}
             </NavLink>
             <NavLink
               to="/faqs"
@@ -429,14 +432,14 @@ export function Header() {
                 `${navLinkBase} border-b-2 border-transparent pb-2 transition-[border-color] duration-200 ${isActive ? (topTransparent ? 'border-white text-white' : 'border-scnt-text text-scnt-text') : `${navTone} ${topTransparent ? 'hover:border-white/55' : 'hover:border-scnt-text/30'}`}`
               }
             >
-              FAQs
+              {t('nav.faqs')}
             </NavLink>
           </nav>
         </div>
 
         {megaOpen ? (
           <div
-            className="animate-scnt-mega absolute left-0 right-0 top-full border-t border-scnt-border/70 bg-scnt-bg-elevated/98 shadow-[0_24px_48px_-24px_var(--color-scnt-shadow)] backdrop-blur-xl"
+            className="animate-scnt-mega absolute inset-x-0 top-full border-t border-scnt-border/70 bg-scnt-bg-elevated/98 shadow-[0_24px_48px_-24px_var(--color-scnt-shadow)] backdrop-blur-xl"
             onMouseEnter={() => {
               overMega.current = true
               if (megaTimer.current) clearTimeout(megaTimer.current)
@@ -448,7 +451,9 @@ export function Header() {
           >
             <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-8 sm:flex-row sm:px-8">
               <div className="flex shrink-0 flex-col gap-3 border-scnt-border/60 sm:border-e sm:pe-8">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-scnt-text">Collections</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-scnt-text">
+                  {t('header.collectionsHeading')}
+                </p>
                 {navCollections.map((c) => (
                   <Link
                     key={c.id}
@@ -464,7 +469,7 @@ export function Header() {
                   className="mt-2 text-xs uppercase tracking-wider text-scnt-text/80 underline-offset-4 hover:underline"
                   onClick={() => setMegaOpen(false)}
                 >
-                  View all
+                  {t('header.viewAll')}
                 </Link>
               </div>
               <div className="grid flex-1 grid-cols-2 gap-3 lg:grid-cols-4">
@@ -495,27 +500,29 @@ export function Header() {
         ) : null}
 
         {searchOpen ? (
-          <div className="absolute left-0 right-0 top-full z-[110] max-h-[min(80vh,560px)] overflow-y-auto border-t border-scnt-border/80 bg-scnt-bg shadow-[0_28px_60px_-28px_var(--color-scnt-shadow)]">
+          <div className="absolute inset-x-0 top-full z-[110] max-h-[min(80vh,560px)] overflow-y-auto border-t border-scnt-border/80 bg-scnt-bg shadow-[0_28px_60px_-28px_var(--color-scnt-shadow)]">
             <div className="relative mx-auto max-w-6xl px-5 py-8 sm:px-8">
               <button
                 type="button"
                 className="absolute end-4 top-5 inline-flex rounded-full p-2 text-scnt-text-muted transition-colors hover:bg-scnt-border/35 hover:text-scnt-text"
                 onClick={closeSearch}
-                aria-label="Close search"
+                aria-label={t('header.closeSearch')}
               >
                 <IconX className="h-5 w-5" />
               </button>
-              <h2 className="pr-12 font-serif text-xl font-normal tracking-[0.08em] text-scnt-text sm:text-2xl">Products</h2>
-              <p className="mt-1 max-w-xl text-sm text-scnt-text-muted">Search the live catalogue — names, notes, and descriptions.</p>
+              <h2 className="pe-12 font-serif text-xl font-normal tracking-[0.08em] text-scnt-text sm:text-2xl">
+                {t('header.productsTitle')}
+              </h2>
+              <p className="mt-1 max-w-xl text-sm text-scnt-text-muted">{t('header.productsHint')}</p>
 
               <div className="mt-5 sm:hidden">
                 <input
                   type="search"
                   value={searchQuery}
                   onChange={(e) => onSearchInput(e.target.value, { keepOpenWhenEmpty: true })}
-                  placeholder="Search fragrances…"
+                  placeholder={t('header.searchPhMobile')}
                   className="w-full rounded-xl border border-scnt-border/80 bg-scnt-bg-elevated/70 px-4 py-3 text-sm text-scnt-text placeholder:text-scnt-text-muted/75 focus:border-scnt-text/20 focus:outline-none focus:ring-2 focus:ring-scnt-text/10"
-                  aria-label="Search products"
+                  aria-label={t('header.searchProducts')}
                   autoComplete="off"
                   autoFocus
                 />
@@ -523,26 +530,26 @@ export function Header() {
 
               <div className="mt-8 space-y-8">
                 {searchLoading ? (
-                  <p className="text-sm text-scnt-text-muted">Searching…</p>
+                  <p className="text-sm text-scnt-text-muted">{t('header.searching')}</p>
                 ) : searchError ? (
                   <p className="text-sm text-scnt-text-muted">{searchError}</p>
                 ) : !searchQuery.trim() ? (
-                  <p className="text-sm text-scnt-text-muted">Type to see products from the server.</p>
+                  <p className="text-sm text-scnt-text-muted">{t('header.typeToSee')}</p>
                 ) : searchResults.length === 0 ? (
                   <div className="rounded-xl border border-scnt-border/70 bg-scnt-bg-elevated/40 px-5 py-8 text-center">
-                    <p className="text-sm font-medium text-scnt-text">No matches for “{searchQuery.trim()}”</p>
-                    <p className="mt-2 text-xs text-scnt-text-muted">
-                      Try a note, collection name, or part of a product name.
+                    <p className="text-sm font-medium text-scnt-text">
+                      {t('header.noMatches', { q: searchQuery.trim() })}
                     </p>
+                    <p className="mt-2 text-xs text-scnt-text-muted">{t('header.noMatchesHint')}</p>
                   </div>
                 ) : (
-                  groupedResults.map(([brand, items]) => (
-                    <div key={brand}>
+                  groupedResults.map((group) => (
+                    <div key={group.slug}>
                       <h3 className="border-b border-scnt-border/70 pb-2 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-scnt-text-muted">
-                        {brand}
+                        {group.label}
                       </h3>
                       <ul className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap" role="listbox">
-                        {items.map((p) => (
+                        {group.items.map((p) => (
                           <li key={p._id} className="sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.5rem)]">
                             <Link
                               to={`/product/${p.slug}`}
@@ -556,8 +563,8 @@ export function Header() {
                                 ) : null}
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-scnt-text">{p.name}</p>
-                                <p className="text-xs text-scnt-text-muted">{formatEgp(p.price)}</p>
+                                <p className="text-sm font-medium text-scnt-text">{localizedProductName(p, locale)}</p>
+                                <p className="text-xs text-scnt-text-muted">{formatEgp(p.price, locale)}</p>
                               </div>
                             </Link>
                           </li>
@@ -574,7 +581,7 @@ export function Header() {
                   className="mt-8 inline-flex text-sm font-medium text-scnt-text-muted underline-offset-4 transition-colors hover:text-scnt-text hover:underline"
                   onClick={closeSearch}
                 >
-                  View all results for “{searchQuery.trim()}”
+                  {t('header.viewAllResults', { q: searchQuery.trim() })}
                 </Link>
               ) : null}
             </div>
@@ -589,28 +596,28 @@ export function Header() {
           onClick={() => setSideOpen(false)}
         />
         <aside
-          className={`fixed inset-y-0 !left-0 !right-auto z-[130] m-0 flex h-svh w-[min(320px,92vw)] flex-col overflow-hidden rounded-none border-r border-scnt-border/80 bg-scnt-bg-elevated shadow-2xl transition-[transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:hidden ${
-            sideOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`fixed inset-y-0 start-0 z-[130] m-0 flex h-svh w-[min(320px,92vw)] flex-col overflow-hidden rounded-none border-e border-scnt-border/80 bg-scnt-bg-elevated shadow-2xl transition-[transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:hidden ${
+            sideOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'
           }`}
-          aria-label="Mobile navigation"
+          aria-label={t('nav.menu')}
           aria-hidden={!sideOpen}
         >
           <div className="flex items-center justify-between border-b border-scnt-border/60 px-4 py-3">
-            <span className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">Menu</span>
-            <button type="button" className={iconBtn} onClick={() => setSideOpen(false)} aria-label="Close menu">
+            <span className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">{t('nav.menu')}</span>
+            <button type="button" className={iconBtn} onClick={() => setSideOpen(false)} aria-label={t('header.closeMenu')}>
               <IconX className="h-5 w-5" />
             </button>
           </div>
           <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto bg-scnt-bg-elevated px-4 py-5 text-sm" onClick={() => setSideOpen(false)}>
             <Link to="/" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
-              Home
+              {t('nav.home')}
             </Link>
             <Link to="/shop" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
-              Shop all
+              {t('nav.shopAll')}
             </Link>
             <button
               type="button"
-              className="mt-2 rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 text-left leading-6 text-scnt-text hover:bg-scnt-border/30"
+              className="mt-2 rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 text-start leading-6 text-scnt-text hover:bg-scnt-border/30"
               aria-expanded={mobileCollectionsOpen}
               onMouseEnter={() => setMobileCollectionsOpen(true)}
               onClick={(e) => {
@@ -618,7 +625,7 @@ export function Header() {
                 setMobileCollectionsOpen((prev) => !prev)
               }}
             >
-              Collections
+              {t('nav.collections')}
             </button>
             {mobileCollectionsOpen
               ? navCollections.map((c) => (
@@ -635,29 +642,49 @@ export function Header() {
               to="/find-your-scnt"
               className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30"
             >
-              Find your SCNT
+              {t('nav.findScnt')}
             </Link>
             <Link to="/about" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
-              About
+              {t('nav.about')}
             </Link>
             <Link to="/faqs" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
-              FAQs
+              {t('nav.faqs')}
             </Link>
             <Link to="/contact" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
-              Contact
+              {t('nav.contact')}
             </Link>
             <Link to="/cart" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
-              Cart
+              {t('nav.cart')}
             </Link>
             <Link
               to={getStoredAuthToken() ? "/profile" : "/login"}
               className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30"
             >
-              Profile
+              {t('nav.profile')}
             </Link>
             <Link to="/wishlist" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
-              Wishlist
+              {t('nav.wishlist')}
             </Link>
+            <div
+              className="mt-4 flex gap-2 border-t border-scnt-border/60 pt-4"
+              role="group"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                className={`flex-1 rounded-full py-2 text-xs font-medium uppercase ${locale === 'en' ? 'bg-scnt-text text-scnt-bg' : 'bg-scnt-bg-muted/70 text-scnt-text'}`}
+                onClick={() => setLocale('en')}
+              >
+                {t('lang.en')}
+              </button>
+              <button
+                type="button"
+                className={`flex-1 rounded-full py-2 text-xs font-medium ${locale === 'ar' ? 'bg-scnt-text text-scnt-bg' : 'bg-scnt-bg-muted/70 text-scnt-text'}`}
+                onClick={() => setLocale('ar')}
+              >
+                {t('lang.ar')}
+              </button>
+            </div>
           </nav>
         </aside>
       </header>

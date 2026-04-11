@@ -34,6 +34,14 @@
     font-optical-sizing: auto;
   }
 
+  html[dir='rtl'] body {
+    font-family: 'Noto Sans Arabic', var(--font-sans);
+  }
+
+  html[dir='rtl'] .font-serif {
+    font-family: 'Noto Sans Arabic', var(--font-serif);
+  }
+
   ::selection {
     background: rgba(42, 38, 34, 0.1);
     color: var(--color-scnt-text);

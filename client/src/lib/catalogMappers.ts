@@ -1,4 +1,5 @@
 import { darkenHex, hexToRgba } from './colorUtils'
+import type { Locale } from '../i18n/types'
 import {
   parseCollectionIdParam,
   type ApiCollection,
@@ -39,14 +40,54 @@ export function galleryTuple(images: string[]): readonly [string, string, string
   return [a, b, c] as const
 }
 
-export function mapApiCollectionToSummary(c: ApiCollection): CollectionSummary {
+function collectionAr(c: ApiCollection | undefined, locale: Locale) {
+  if (locale !== 'ar' || !c?.translations?.ar) return undefined
+  return c.translations.ar
+}
+
+function productAr(p: ApiProduct, locale: Locale) {
+  if (locale !== 'ar' || !p.translations?.ar) return undefined
+  return p.translations.ar
+}
+
+/** Display name for search / grouping when API returns `translations.ar`. */
+export function localizedCollectionName(c: ApiCollection | undefined, locale: Locale): string {
+  if (!c) return ''
+  const ar = collectionAr(c, locale)
+  const n = ar?.name?.trim()
+  if (n) return n
+  return c.name ?? ''
+}
+
+export function localizedProductName(p: ApiProduct, locale: Locale): string {
+  const ar = productAr(p, locale)
+  const n = ar?.name?.trim()
+  if (n) return n
+  return p.name
+}
+
+function localizedCollectionTagline(c: ApiCollection | undefined, locale: Locale): string {
+  if (!c) return ''
+  const ar = collectionAr(c, locale)
+  const t = (ar?.tagline?.trim() ? ar.tagline : (c.tagline ?? '')).trim()
+  return t
+}
+
+function taglineFallback(pop: ApiCollection | undefined, locale: Locale): string {
+  const t = localizedCollectionTagline(pop, locale)
+  return t || 'A signature from the house.'
+}
+
+export function mapApiCollectionToSummary(c: ApiCollection, locale: Locale = 'en'): CollectionSummary {
   const accent = safeHex(c.themeColor, '#2a2622')
-  const desc = (c.description ?? '').trim()
-  const tag = (c.tagline ?? '').trim()
-  const sub = (c.sub_tagline ?? '').trim()
+  const ar = collectionAr(c, locale)
+  const desc = (ar?.description?.trim() ? ar.description : (c.description ?? '')).trim()
+  const tag = (ar?.tagline?.trim() ? ar.tagline : (c.tagline ?? '')).trim()
+  const sub = (ar?.sub_tagline?.trim() ? ar.sub_tagline : (c.sub_tagline ?? '')).trim()
+  const name = (ar?.name?.trim() ? ar.name : c.name).trim() || c.name
   return {
     id: toCollectionId(c.slug),
-    name: c.name,
+    name,
     code: c.slug.replace(/-/g, ' ').toUpperCase(),
     tagline: tag,
     subTagline: sub,
@@ -58,42 +99,44 @@ export function mapApiCollectionToSummary(c: ApiCollection): CollectionSummary {
   }
 }
 
-export function mapApiProductToSummary(p: ApiProduct): ProductSummary {
+export function mapApiProductToSummary(p: ApiProduct, locale: Locale = 'en'): ProductSummary {
   const pop = p.collection
   const slug = pop?.slug ?? ''
   const cid = toCollectionId(slug)
   const accent = safeHex(pop?.themeColor ?? '', '#8a9caf')
-  const desc = (p.description ?? '').trim()
+  const ar = productAr(p, locale)
+  const desc = (ar?.description?.trim() ? ar.description : (p.description ?? '')).trim()
   const parts = desc.split(/(?<=[.!?])\s+/).filter(Boolean)
-  const vibeSentence = parts[0] ?? (desc.length > 0 ? desc.slice(0, 140) : taglineFallback(pop))
+  const vibeSentence = parts[0] ?? (desc.length > 0 ? desc.slice(0, 140) : taglineFallback(pop, locale))
   const lifestyleLine = parts[1] ?? vibeSentence
+  const topNotes = ar?.topNotes?.length ? ar.topNotes : (p.topNotes ?? [])
+  const heartNotes = ar?.heartNotes?.length ? ar.heartNotes : (p.heartNotes ?? [])
+  const baseNotes = ar?.baseNotes?.length ? ar.baseNotes : (p.baseNotes ?? [])
+  const name = (ar?.name?.trim() ? ar.name : p.name).trim() || p.name
+  const inspiredBy = (ar?.inspired_from?.trim() ? ar.inspired_from : p.inspired_from).trim() || p.inspired_from
+  const volume = (ar?.size?.trim() ? ar.size : p.size || '100 ml').trim() || '100 ml'
 
   return {
     apiId: p._id,
     id: p.slug,
-    name: p.name,
+    name,
     collection: cid,
-    inspiredBy: p.inspired_from,
+    inspiredBy,
     gender: p.gender === 'female' ? 'female' : 'male',
     price: p.price,
     placeholderGradient: placeholderPairFromAccent(accent),
-    topNotes: p.topNotes ?? [],
-    heartNotes: p.heartNotes ?? [],
-    baseNotes: p.baseNotes ?? [],
+    topNotes,
+    heartNotes,
+    baseNotes,
     emotionalStory: desc || vibeSentence,
     vibeSentence,
     lifestyleLine,
     format: 'Eau de Parfum',
-    volume: p.size || '100 ml',
+    volume,
     concentrationHint: 'High concentration · Exceptional longevity',
     galleryImages: galleryTuple(p.images ?? []),
     scentMood: scentMoodForCollection(cid),
   }
-}
-
-function taglineFallback(pop: ApiCollection | undefined): string {
-  const t = (pop?.tagline ?? '').trim()
-  return t || 'A signature from the house.'
 }
 
 export function getRelatedProducts(

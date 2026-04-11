@@ -428,6 +428,13 @@ export const arSite: Record<string, string> = {
   'about.tagline': 'فخامة أعيد تعريفها. أداء مُهندس.',
   'about.back': 'العودة للرئيسية',
 
+  'notFound.kicker': '٤٠٤',
+  'notFound.title': 'الصفحة غير موجودة',
+  'notFound.sub': 'قد يكون العنوان مكتوباً خطأ أو نُقلت الصفحة. ارجع للرئيسية أو تصفّح المتجر.',
+  'notFound.pathLabel': 'المسار:',
+  'notFound.home': 'الرئيسية',
+  'notFound.shop': 'تصفّح الكل',
+
   'ph.back': 'العودة للرئيسية',
   'ph.wip': 'هذا المسار مربوط ببناء MERN الكامل — المحتوى في مرحلة لاحقة.',
 

@@ -53,6 +53,23 @@ export type LoginPayload = {
   password: string
 }
 
+/** Deduplicate concurrent verifies for the same token (e.g. React StrictMode double mount). */
+const verifyEmailInflight = new Map<string, Promise<AuthUser>>()
+
+export function verifyEmailWithToken(token: string): Promise<AuthUser> {
+  const trimmed = token.trim()
+  if (!trimmed) return Promise.reject(new Error('Verification token is required'))
+
+  const existing = verifyEmailInflight.get(trimmed)
+  if (existing) return existing
+
+  const pending = apiPostData<AuthUser>('/auth/verify-email', { token: trimmed }).finally(() => {
+    verifyEmailInflight.delete(trimmed)
+  })
+  verifyEmailInflight.set(trimmed, pending)
+  return pending
+}
+
 export function registerAccount(payload: RegisterPayload): Promise<AuthSuccess> {
   return apiPostData<AuthSuccess>('/auth/register', payload)
 }

@@ -1,5 +1,19 @@
 const mongoose = require("mongoose");
 
+const arProductFields = new mongoose.Schema(
+  {
+    /** Arabic-script phonetic form of English `name` (not semantic translation). */
+    name: { type: String, default: "" },
+    inspired_from: { type: String, default: "" },
+    description: { type: String, default: "" },
+    size: { type: String, default: "" },
+    topNotes: [{ type: String }],
+    heartNotes: [{ type: String }],
+    baseNotes: [{ type: String }],
+  },
+  { _id: false }
+);
+
 const productSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
@@ -25,6 +39,9 @@ const productSchema = new mongoose.Schema(
     baseNotes: [{ type: String }],
     description: { type: String, default: "" },
     stock: { type: Number, default: 0, min: 0 },
+    translations: {
+      ar: { type: arProductFields, default: () => ({}) },
+    },
   },
   { timestamps: true }
 );

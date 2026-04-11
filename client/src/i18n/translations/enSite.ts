@@ -433,6 +433,14 @@ export const enSite: Record<string, string> = {
   'about.tagline': 'Luxury, Redefined. Performance, Engineered.',
   'about.back': 'Back to home',
 
+  'notFound.kicker': '404',
+  'notFound.title': 'Page not found',
+  'notFound.sub':
+    'This address may be mistyped or the page may have moved. Head home or browse the catalogue.',
+  'notFound.pathLabel': 'Requested path:',
+  'notFound.home': 'Home',
+  'notFound.shop': 'Shop all',
+
   'ph.back': 'Back to home',
   'ph.wip':
     'This route is wired for the full MERN build — content ships in the next implementation pass.',

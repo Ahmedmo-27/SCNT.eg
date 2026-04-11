@@ -11,7 +11,9 @@
     "test:smtp": "node scripts/testSmtp.js",
     "seed:collections": "node seed/seedCollections.js",
     "seed:products": "node seed/seedProducts.js",
-    "seed:promo-codes": "node seed/seedPromoCodes.js"
+    "seed:promo-codes": "node seed/seedPromoCodes.js",
+    "i18n:fill-ar": "node scripts/fillArabicTranslations.js",
+    "i18n:fill-ar:dry": "node scripts/fillArabicTranslations.js --dry-run"
   },
   "engines": {
     "node": ">=18.0.0"
