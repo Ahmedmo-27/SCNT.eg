@@ -36,6 +36,8 @@ export const arSite: Record<string, string> = {
   'header.closeSearch': 'إغلاق البحث',
   'header.catalogue': 'الكتالوج',
   'header.contact': 'تواصل',
+  'header.contactUs': 'تواصل معنا',
+  'header.language': 'اللغة',
 
   'footer.blurb':
     'عطور فاخرة مختارة — أربع شخصيات، دار واحدة. حسٌ قاهري بهدوء عالمي.',

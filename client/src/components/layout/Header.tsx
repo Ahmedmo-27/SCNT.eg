@@ -216,7 +216,7 @@ export function Header() {
 
   const iconBtn =
     'inline-flex items-center justify-center rounded-full p-2 text-scnt-text-muted transition-colors hover:bg-scnt-border/40 hover:text-scnt-text'
-  const topTransparent = !scrolled && !sideOpen && !megaOpen && !searchOpen
+  const topTransparent = !scrolled && !sideOpen && !searchOpen
   const iconBtnClass = iconBtn
   const navTone = navText
 
@@ -246,6 +246,82 @@ export function Header() {
           </button>
 
           <div
+            className={`absolute start-5 top-1/2 z-[2] max-w-[min(100%,calc(50vw-3.5rem))] -translate-y-1/2 flex-wrap items-center gap-x-2 gap-y-2 sm:start-8 ${
+              topTransparent ? 'hidden lg:flex' : 'hidden'
+            }`}
+          >
+            <Link
+              to="/contact"
+              className="inline-flex items-center gap-2 rounded-full border border-scnt-border/60 bg-scnt-bg-elevated/55 px-3 py-2 text-[0.7rem] font-medium text-scnt-text shadow-sm backdrop-blur-md transition-colors hover:bg-scnt-bg-elevated/80 hover:border-scnt-border/80"
+              aria-label={t('header.contactUs')}
+            >
+              <IconPhone className="h-5 w-5 shrink-0 text-scnt-text-muted" />
+              <span>{t('header.contactUs')}</span>
+            </Link>
+
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1" role="group" aria-label={t('header.language')}>
+              <div className="flex items-center gap-0.5">
+                <button
+                  type="button"
+                  className={`rounded-full px-2 py-1 text-[0.65rem] font-medium uppercase tracking-wider transition-colors ${
+                    locale === 'en'
+                      ? 'bg-scnt-text text-scnt-bg'
+                      : 'text-scnt-text-muted hover:bg-scnt-border/35 hover:text-scnt-text'
+                  }`}
+                  aria-pressed={locale === 'en'}
+                  onClick={() => setLocale('en')}
+                >
+                  {t('lang.en')}
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-full px-2 py-1 text-[0.65rem] font-medium transition-colors ${
+                    locale === 'ar'
+                      ? 'bg-scnt-text text-scnt-bg'
+                      : 'text-scnt-text-muted hover:bg-scnt-border/35 hover:text-scnt-text'
+                  }`}
+                  aria-pressed={locale === 'ar'}
+                  onClick={() => setLocale('ar')}
+                >
+                  {t('lang.ar')}
+                </button>
+              </div>
+            </div>
+
+            <div className="min-w-0 max-w-full">
+              <div
+                className={`relative min-w-0 overflow-hidden rounded-full border transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] grid sm:items-stretch ${
+                  searchExpanded
+                    ? 'w-[min(220px,40vw)] grid-cols-[minmax(0,1fr)_2.5rem]'
+                    : 'h-10 w-10 grid-cols-1 place-items-center'
+                } border-scnt-border/55 bg-scnt-bg-elevated/55 backdrop-blur-md`}
+              >
+                {searchExpanded ? (
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => onSearchInput(e.target.value)}
+                    placeholder={t('header.searchPh')}
+                    className="col-start-1 min-w-0 border-0 bg-transparent py-2 ps-3 text-xs text-scnt-text placeholder:text-scnt-text-muted/75 focus:outline-none focus:ring-0"
+                    aria-label={t('header.searchProducts')}
+                    autoComplete="off"
+                  />
+                ) : null}
+                <button
+                  type="button"
+                  className={`inline-flex size-10 shrink-0 items-center justify-center text-scnt-text-muted transition-colors hover:text-scnt-text ${
+                    searchExpanded ? 'col-start-2 row-start-1' : 'col-start-1 row-start-1'
+                  }`}
+                  aria-label={searchExpanded ? t('header.collapseSearch') : t('header.expandSearch')}
+                  onClick={() => setSearchExpanded((prev) => !prev)}
+                >
+                  <IconSearch className="pointer-events-none h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div
             className={`flex justify-center transition-[transform,margin] duration-[900ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] will-change-transform ${
               scrolled ? 'ltr:lg:-translate-x-[40vw] rtl:lg:translate-x-[40vw]' : ''
             }`}
@@ -263,6 +339,8 @@ export function Header() {
           <div className="absolute end-5 top-1/2 flex -translate-y-1/2 items-center justify-end gap-1 sm:end-8 sm:gap-2">
             <div
               className={`relative mr-0.5 hidden overflow-hidden rounded-full border transition-[width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:grid sm:items-stretch ${
+                topTransparent ? 'lg:hidden' : ''
+              } ${
                 searchExpanded
                   ? 'w-[min(220px,40vw)] grid-cols-[minmax(0,1fr)_2.5rem]'
                   : 'h-10 w-10 grid-cols-1 place-items-center'
@@ -302,61 +380,82 @@ export function Header() {
             >
               <IconSearch className="h-5 w-5" />
             </button>
-            <div className="hidden items-center gap-0.5 lg:flex" role="group" aria-label={t('lang.en')}>
-              <button
-                type="button"
-                className={`rounded-full px-2 py-1 text-[0.65rem] font-medium uppercase tracking-wider transition-colors ${
-                  locale === 'en'
-                    ? 'bg-scnt-text text-scnt-bg'
-                    : 'text-scnt-text-muted hover:bg-scnt-border/35 hover:text-scnt-text'
-                }`}
-                aria-pressed={locale === 'en'}
-                onClick={() => setLocale('en')}
-              >
-                {t('lang.en')}
-              </button>
-              <button
-                type="button"
-                className={`rounded-full px-2 py-1 text-[0.65rem] font-medium transition-colors ${
-                  locale === 'ar'
-                    ? 'bg-scnt-text text-scnt-bg'
-                    : 'text-scnt-text-muted hover:bg-scnt-border/35 hover:text-scnt-text'
-                }`}
-                aria-pressed={locale === 'ar'}
-                onClick={() => setLocale('ar')}
-              >
-                {t('lang.ar')}
-              </button>
-            </div>
-            <Link to="/contact" className={`${iconBtnClass} !hidden lg:!inline-flex`} aria-label={t('header.contact')}>
-              <IconPhone className="h-5 w-5" />
-            </Link>
+            {!topTransparent ? (
+              <>
+                <div className="hidden items-center gap-0.5 lg:flex" role="group" aria-label={t('lang.en')}>
+                  <button
+                    type="button"
+                    className={`rounded-full px-2 py-1 text-[0.65rem] font-medium uppercase tracking-wider transition-colors ${
+                      locale === 'en'
+                        ? 'bg-scnt-text text-scnt-bg'
+                        : 'text-scnt-text-muted hover:bg-scnt-border/35 hover:text-scnt-text'
+                    }`}
+                    aria-pressed={locale === 'en'}
+                    onClick={() => setLocale('en')}
+                  >
+                    {t('lang.en')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-full px-2 py-1 text-[0.65rem] font-medium transition-colors ${
+                      locale === 'ar'
+                        ? 'bg-scnt-text text-scnt-bg'
+                        : 'text-scnt-text-muted hover:bg-scnt-border/35 hover:text-scnt-text'
+                    }`}
+                    aria-pressed={locale === 'ar'}
+                    onClick={() => setLocale('ar')}
+                  >
+                    {t('lang.ar')}
+                  </button>
+                </div>
+                <Link to="/contact" className={`${iconBtnClass} !hidden lg:!inline-flex`} aria-label={t('header.contact')}>
+                  <IconPhone className="h-5 w-5" />
+                </Link>
+              </>
+            ) : null}
             <button
               type="button"
-              className={`${iconBtnClass} !hidden lg:!inline-flex`}
+              className={`${iconBtnClass} !hidden lg:!inline-flex ${topTransparent ? 'gap-2 px-3 py-2' : ''}`}
               aria-label={t('nav.profile')}
               onClick={() => navigate(getStoredAuthToken() ? '/profile' : '/login')}
             >
-              <IconUser className="h-5 w-5" />
+              <IconUser className="h-5 w-5 shrink-0" />
+              {topTransparent ? (
+                <span className="text-[0.7rem] font-medium tracking-wide text-scnt-text">{t('nav.profile')}</span>
+              ) : null}
             </button>
             <Link
               to="/wishlist"
-              className={`${iconBtnClass} !hidden lg:!inline-flex relative`}
+              className={`${iconBtnClass} !hidden lg:!inline-flex ${topTransparent ? 'gap-2 px-3 py-2' : 'relative'}`}
               aria-label={t('nav.wishlist')}
             >
-              <IconHeart className="h-5 w-5" />
-              {wishlistCount > 0 ? (
-                <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-scnt-text px-1 text-[0.6rem] leading-4 text-scnt-bg">
-                  {wishlistCount}
-                </span>
+              <span className="relative inline-flex shrink-0">
+                <IconHeart className="h-5 w-5" />
+                {wishlistCount > 0 ? (
+                  <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-scnt-text px-1 text-[0.6rem] leading-4 text-scnt-bg">
+                    {wishlistCount}
+                  </span>
+                ) : null}
+              </span>
+              {topTransparent ? (
+                <span className="text-[0.7rem] font-medium tracking-wide text-scnt-text">{t('nav.wishlist')}</span>
               ) : null}
             </Link>
-            <Link to="/cart" className={`${iconBtnClass} relative`} aria-label={t('nav.cart')}>
-              <IconCart className="h-5 w-5" />
-              {cartCount > 0 ? (
-                <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-scnt-text px-1 text-[0.6rem] leading-4 text-scnt-bg">
-                  {cartCount}
-                </span>
+            <Link
+              to="/cart"
+              className={`${iconBtnClass} ${topTransparent ? 'gap-2 px-3 py-2' : 'relative'}`}
+              aria-label={t('nav.cart')}
+            >
+              <span className="relative inline-flex shrink-0">
+                <IconCart className="h-5 w-5" />
+                {cartCount > 0 ? (
+                  <span className="absolute -right-0.5 -top-0.5 inline-flex min-w-4 items-center justify-center rounded-full bg-scnt-text px-1 text-[0.6rem] leading-4 text-scnt-bg">
+                    {cartCount}
+                  </span>
+                ) : null}
+              </span>
+              {topTransparent ? (
+                <span className="text-[0.7rem] font-medium tracking-wide text-scnt-text">{t('nav.cart')}</span>
               ) : null}
             </Link>
           </div>
@@ -650,20 +749,20 @@ export function Header() {
             <Link to="/faqs" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               {t('nav.faqs')}
             </Link>
-            <Link to="/contact" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
-              {t('nav.contact')}
-            </Link>
-            <Link to="/cart" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
-              {t('nav.cart')}
-            </Link>
             <Link
-              to={getStoredAuthToken() ? "/profile" : "/login"}
+              to={getStoredAuthToken() ? '/profile' : '/login'}
               className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30"
             >
               {t('nav.profile')}
             </Link>
             <Link to="/wishlist" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               {t('nav.wishlist')}
+            </Link>
+            <Link to="/cart" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
+              {t('nav.cart')}
+            </Link>
+            <Link to="/contact" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
+              {t('nav.contact')}
             </Link>
             <div
               className="mt-4 flex gap-2 border-t border-scnt-border/60 pt-4"

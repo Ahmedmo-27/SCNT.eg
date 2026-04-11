@@ -30,10 +30,8 @@ export function Hero() {
     target: ref,
     offset: ['start start', 'end start'],
   })
-  const yOrb = useTransform(scrollYProgress, [0, 1], [0, 56])
-  const yMist = useTransform(scrollYProgress, [0, 1], [0, 32])
-  const fade = useTransform(scrollYProgress, [0, 0.65], [1, 0.88])
-  const scaleGlow = useTransform(scrollYProgress, [0, 1], [1, 1.04])
+  const yOrb = useTransform(scrollYProgress, (p) => (reduceMotion ? 0 : p * 28))
+  const yMist = useTransform(scrollYProgress, (p) => (reduceMotion ? 0 : p * 16))
 
   const floatProps = (duration: number, delay = 0) =>
     reduceMotion
@@ -77,17 +75,17 @@ export function Hero() {
       />
 
       <motion.div
-        style={{ y: yOrb, opacity: fade, scale: scaleGlow }}
+        style={reduceMotion ? undefined : { y: yOrb }}
         className="pointer-events-none absolute -left-[12%] top-[6%] h-[min(460px,58vw)] w-[min(460px,58vw)] rounded-full bg-gradient-to-br from-white/30 via-amber-50/12 to-transparent blur-3xl"
         aria-hidden
       />
       <motion.div
-        style={{ y: yMist }}
+        style={reduceMotion ? undefined : { y: yMist }}
         className="pointer-events-none absolute -right-[8%] top-[18%] h-[min(380px,50vw)] w-[min(380px,50vw)] rounded-full bg-gradient-to-bl from-collection-icon/15 via-slate-300/12 to-transparent blur-3xl"
         aria-hidden
       />
       <motion.div
-        style={{ y: yMist }}
+        style={reduceMotion ? undefined : { y: yMist }}
         className="pointer-events-none absolute bottom-[8%] left-[28%] h-[min(300px,42vw)] w-[min(300px,42vw)] rounded-full bg-gradient-to-t from-amber-100/22 to-transparent blur-3xl"
         aria-hidden
       />

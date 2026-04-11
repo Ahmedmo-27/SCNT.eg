@@ -36,6 +36,8 @@ export const enSite: Record<string, string> = {
   'header.closeSearch': 'Close search',
   'header.catalogue': 'Catalogue',
   'header.contact': 'Contact',
+  'header.contactUs': 'Contact us',
+  'header.language': 'Language',
 
   'footer.blurb':
     'Curated luxury fragrances — four identities, one house. Cairo-born sensibility with a calm, global tone.',

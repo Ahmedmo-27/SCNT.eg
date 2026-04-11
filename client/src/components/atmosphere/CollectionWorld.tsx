@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react'
 import {
   motion,
   useMotionValue,
+  useReducedMotion,
   useScroll,
   useSpring,
   useTransform,
@@ -11,6 +12,12 @@ import { collectionTheme } from '../../data/collectionThemes'
 import { EightPointStar } from '../ui/EightPointStar'
 
 const DURATION_SCNT = 0.65
+
+/** Linear 0→max over the first 900px of scroll (matches previous useTransform input range). */
+function mapScrollParallax(scrollY: number, maxOffset: number) {
+  const t = Math.min(Math.max(scrollY / 900, 0), 1)
+  return maxOffset * t
+}
 
 type CollectionWorldProps = {
   id: CollectionId
@@ -45,7 +52,6 @@ function ExecutiveLayer() {
             linear-gradient(90deg, ${stroke} 1px, transparent 1px)
           `,
           backgroundSize: '48px 48px',
-          backgroundAttachment: 'fixed',
           backgroundPosition: 'center top',
         }}
       />
@@ -85,10 +91,11 @@ function ExecutiveLayer() {
 
 function ExplorerLayer() {
   const t = collectionTheme.explorer
+  const reduceMotion = useReducedMotion()
   const { scrollY } = useScroll()
-  const ySlow = useTransform(scrollY, [0, 900], [0, -72])
-  const yMid = useTransform(scrollY, [0, 900], [0, -110])
-  const yFast = useTransform(scrollY, [0, 900], [0, -148])
+  const ySlow = useTransform(scrollY, (y) => (reduceMotion ? 0 : mapScrollParallax(y, -42)))
+  const yMid = useTransform(scrollY, (y) => (reduceMotion ? 0 : mapScrollParallax(y, -64)))
+  const yFast = useTransform(scrollY, (y) => (reduceMotion ? 0 : mapScrollParallax(y, -86)))
 
   return (
     <>
@@ -110,7 +117,7 @@ function ExplorerLayer() {
             className="absolute inset-0 h-full w-full opacity-[0.42]"
             viewBox="0 0 1200 160"
             preserveAspectRatio="none"
-            style={{ y: ySlow }}
+            style={reduceMotion ? undefined : { y: ySlow }}
           >
             <path
               fill={t.wave}
@@ -122,7 +129,7 @@ function ExplorerLayer() {
             className="absolute inset-0 h-full w-full opacity-[0.5]"
             viewBox="0 0 1200 160"
             preserveAspectRatio="none"
-            style={{ y: yMid }}
+            style={reduceMotion ? undefined : { y: yMid }}
           >
             <path
               fill={t.wave}
@@ -134,7 +141,7 @@ function ExplorerLayer() {
             className="absolute inset-0 h-full w-full opacity-[0.38]"
             viewBox="0 0 1200 180"
             preserveAspectRatio="none"
-            style={{ y: yFast }}
+            style={reduceMotion ? undefined : { y: yFast }}
           >
             <path
               fill="none"
