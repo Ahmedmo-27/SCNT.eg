@@ -443,7 +443,7 @@ export function Header() {
             </Link>
             <Link
               to="/cart"
-              className={`${iconBtnClass} ${topTransparent ? 'gap-2 px-3 py-2' : 'relative'}`}
+              className={`${iconBtnClass} ${topTransparent ? 'lg:gap-2 lg:px-3 lg:py-2' : 'relative'}`}
               aria-label={t('nav.cart')}
             >
               <span className="relative inline-flex shrink-0">
@@ -455,7 +455,9 @@ export function Header() {
                 ) : null}
               </span>
               {topTransparent ? (
-                <span className="text-[0.7rem] font-medium tracking-wide text-scnt-text">{t('nav.cart')}</span>
+                <span className="hidden text-[0.7rem] font-medium tracking-wide text-scnt-text lg:inline">
+                  {t('nav.cart')}
+                </span>
               ) : null}
             </Link>
           </div>
