@@ -12,6 +12,7 @@ import { LoginPage } from './pages/LoginPage'
 import { ProductPage } from './pages/ProductPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { RegisterPage } from './pages/RegisterPage'
+import { VerifyEmailPage } from './pages/VerifyEmailPage'
 import { ShopAllPage } from './pages/ShopAllPage'
 import { FindYourScntPage } from './pages/FindYourScntPage'
 import { WishlistPage } from './pages/WishlistPage'
@@ -46,6 +47,7 @@ export default function App() {
         <Route path="/find-your-scnt" element={<FindYourScntPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
