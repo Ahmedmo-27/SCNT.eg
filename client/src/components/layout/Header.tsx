@@ -114,7 +114,7 @@ export function Header() {
     ro.observe(el)
     document.documentElement.style.setProperty('--scnt-header-h', `${el.offsetHeight}px`)
     return () => ro.disconnect()
-  }, [megaOpen, sideOpen, scrolled, searchOpen, searchExpanded])
+  }, [])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -224,14 +224,14 @@ export function Header() {
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[100] flex justify-center px-0">
       <header
         ref={headerRef}
-        className={`relative pointer-events-auto flex w-full max-w-[100vw] flex-col transition-[background-color,border-color,box-shadow,padding] duration-[820ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] ${
+        className={`relative pointer-events-auto flex w-full max-w-[100vw] flex-col transition-[background-color,border-color,box-shadow,padding] duration-[820ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] max-lg:duration-[260ms] max-lg:ease-out max-lg:transition-[background-color,border-color,padding] ${
           topTransparent
             ? 'border-b border-transparent bg-transparent shadow-none'
-            : 'border-b border-scnt-border/80 bg-scnt-bg/92 shadow-[0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl backdrop-saturate-150'
+            : 'border-b border-scnt-border/80 bg-scnt-bg/92 shadow-[0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl backdrop-saturate-150 max-lg:bg-scnt-bg max-lg:shadow-sm max-lg:backdrop-blur-none max-lg:backdrop-saturate-100'
         }`}
       >
         <div
-          className={`relative mx-auto flex w-full max-w-6xl items-center justify-center px-5 transition-[padding] duration-[820ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] sm:px-8 ${
+          className={`relative mx-auto flex w-full max-w-6xl items-center justify-center px-5 transition-[padding] duration-[820ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] max-lg:duration-[260ms] max-lg:ease-out sm:px-8 ${
             topTransparent ? 'py-5 sm:py-6' : 'py-3 sm:py-3.5'
           }`}
         >
@@ -322,13 +322,13 @@ export function Header() {
           </div>
 
           <div
-            className={`flex justify-center transition-[transform,margin] duration-[900ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] will-change-transform ${
+            className={`flex justify-center transition-[transform,margin] duration-[900ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] will-change-transform max-lg:transition-none max-lg:will-change-auto ${
               scrolled ? 'ltr:lg:-translate-x-[40vw] rtl:lg:translate-x-[40vw]' : ''
             }`}
           >
             <Logo
               tone="default"
-              className={`transition-[font-size,letter-spacing,color,text-shadow,transform] duration-[900ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] will-change-transform ${
+              className={`transition-[font-size,letter-spacing,color,text-shadow,transform] duration-[900ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] will-change-transform max-lg:duration-[280ms] max-lg:ease-out max-lg:will-change-auto max-lg:transition-[font-size,letter-spacing,color] ${
                 topTransparent
                   ? 'text-[2.6rem] tracking-[0.11em] sm:text-[3.2rem]'
                   : 'text-[2rem] tracking-[0.12em] sm:text-[2.4rem]'
@@ -690,14 +690,14 @@ export function Header() {
         ) : null}
 
         <div
-          className={`fixed inset-0 z-[120] bg-scnt-text/25 backdrop-blur-[2px] transition-opacity lg:hidden ${
+          className={`fixed inset-0 z-[120] bg-scnt-text/30 transition-opacity duration-200 ease-out lg:hidden ${
             sideOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
           }`}
           aria-hidden={!sideOpen}
           onClick={() => setSideOpen(false)}
         />
         <aside
-          className={`fixed inset-y-0 start-0 z-[130] m-0 flex h-svh w-[min(320px,92vw)] flex-col overflow-hidden rounded-none border-e border-scnt-border/80 bg-scnt-bg-elevated shadow-2xl transition-[transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] lg:hidden ${
+          className={`fixed inset-y-0 start-0 z-[130] m-0 flex h-svh w-[min(320px,92vw)] flex-col overflow-hidden rounded-none border-e border-scnt-border/80 bg-scnt-bg-elevated shadow-2xl transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] lg:hidden ${
             sideOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'
           }`}
           aria-label={t('nav.menu')}
