@@ -38,6 +38,53 @@ const initialScores: Record<CollectionId, number> = {
   icon: 0,
 }
 
+const QUIZ_SESSION_KEY = 'scnt.findYourScnt.quiz.v1'
+
+type QuizSessionV1 = {
+  v: 1
+  locale: string
+  questions: QuizQuestion[]
+  step: number
+  selections: Record<string, string>
+  quizGender: ProductSummary['gender'] | null
+}
+
+function blueprintQuestionIds(): string[] {
+  return FIND_YOUR_SCNT_BLUEPRINT.map((q) => q.id)
+}
+
+function tryRestoreQuizSession(locale: string): QuizSessionV1 | null {
+  try {
+    const raw = sessionStorage.getItem(QUIZ_SESSION_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw) as QuizSessionV1
+    if (data.v !== 1 || data.locale !== locale) return null
+    if (!Array.isArray(data.questions) || data.questions.length !== FIND_YOUR_SCNT_BLUEPRINT.length) return null
+    const expected = blueprintQuestionIds().join('\0')
+    const got = data.questions.map((q) => q?.id).join('\0')
+    if (expected !== got) return null
+    return data
+  } catch {
+    return null
+  }
+}
+
+function persistQuizSession(payload: QuizSessionV1) {
+  try {
+    sessionStorage.setItem(QUIZ_SESSION_KEY, JSON.stringify(payload))
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+function clearQuizSession() {
+  try {
+    sessionStorage.removeItem(QUIZ_SESSION_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
 function buildQuizQuestions(t: (key: string, vars?: Record<string, string | number>) => string): QuizQuestion[] {
   return FIND_YOUR_SCNT_BLUEPRINT.map((q) => ({
     id: q.id,
@@ -71,6 +118,21 @@ function buildRandomizedQuestions(source: QuizQuestion[]): QuizQuestion[] {
   }))
 }
 
+function recomputeScores(sels: Record<string, string>, questions: QuizQuestion[]): Record<CollectionId, number> {
+  const next: Record<CollectionId, number> = { executive: 0, explorer: 0, charmer: 0, icon: 0 }
+  for (const q of questions) {
+    const choiceId = sels[q.id]
+    if (!choiceId) continue
+    const choice = q.choices.find((c) => c.id === choiceId)
+    if (!choice) continue
+    next.executive += choice.score.executive
+    next.explorer += choice.score.explorer
+    next.charmer += choice.score.charmer
+    next.icon += choice.score.icon
+  }
+  return next
+}
+
 function strongestIds(scores: Record<CollectionId, number>): [CollectionId, CollectionId] {
   const ranked = (Object.keys(scores) as CollectionId[]).sort((a, b) => scores[b] - scores[a])
   return [ranked[0], ranked[1]]
@@ -84,9 +146,13 @@ function pickFragrance(
   collectionId: CollectionId,
   scores: Record<CollectionId, number>,
   products: ProductSummary[],
+  gender: ProductSummary['gender'],
 ): ProductSummary {
-  const candidates = products.filter((p) => p.collection === collectionId)
-  const top = candidates[0] ?? products[0]
+  let candidates = products.filter((p) => p.collection === collectionId && p.gender === gender)
+  if (candidates.length === 0) {
+    candidates = products.filter((p) => p.collection === collectionId)
+  }
+  const top = candidates[0] ?? products.find((p) => p.gender === gender) ?? products[0]
   if (!top) {
     throw new Error('No products found to match quiz result.')
   }
@@ -102,12 +168,13 @@ function calculateResult(
   collections: CollectionSummary[],
   products: ProductSummary[],
   t: (key: string, vars?: Record<string, string | number>) => string,
+  gender: ProductSummary['gender'],
 ): QuizResult | null {
   if (collections.length === 0 || products.length === 0) return null
   const [primaryId, secondaryId] = strongestIds(scores)
   const primary = collections.find((c) => c.id === primaryId) ?? collections[0]
   const secondary = collections.find((c) => c.id === secondaryId) ?? collections[1]
-  const fragrance = pickFragrance(primary.id, scores, products)
+  const fragrance = pickFragrance(primary.id, scores, products, gender)
 
   const pLead = leadLine(primary).toLowerCase()
   const pMood = primary.mood.toLowerCase()
@@ -141,48 +208,130 @@ export function FindYourScntPage() {
   const [scores, setScores] = useState<Record<CollectionId, number>>(initialScores)
   const [selections, setSelections] = useState<Record<string, string>>({})
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([])
+  const [quizGender, setQuizGender] = useState<ProductSummary['gender'] | null>(null)
 
   const templateQuestions = useMemo(() => buildQuizQuestions(t), [t])
 
   useEffect(() => {
+    const restored = tryRestoreQuizSession(locale)
+    if (restored) {
+      const maxStep = restored.questions.length + 1
+      setQuizQuestions(restored.questions)
+      setStep(Math.min(Math.max(0, restored.step), maxStep))
+      setSelections(restored.selections)
+      setScores(recomputeScores(restored.selections, restored.questions))
+      setQuizGender(restored.quizGender ?? null)
+      return
+    }
+    clearQuizSession()
     setQuizQuestions(buildRandomizedQuestions(templateQuestions))
     setStep(0)
     setScores(initialScores)
     setSelections({})
+    setQuizGender(null)
   }, [locale, templateQuestions])
 
+  useEffect(() => {
+    if (quizQuestions.length === 0) return
+    persistQuizSession({
+      v: 1,
+      locale,
+      questions: quizQuestions,
+      step,
+      selections,
+      quizGender,
+    })
+  }, [locale, quizQuestions, step, selections, quizGender])
+
   const total = quizQuestions.length
-  const progress = total > 0 ? Math.round((Math.min(step, total) / total) * 100) : 0
-  const isDone = total > 0 && step >= total
-  const current = quizQuestions[Math.min(step, Math.max(total - 1, 0))]
+  const genderStepIndex = total
+  const doneStepIndex = total + 1
+  const isGenderStep = total > 0 && step === genderStepIndex
+  const isResultStep = total > 0 && step >= doneStepIndex
+  const fullSteps = total + 1
+  const answeredCount = Object.keys(selections).length
+  const progressPhase = Math.max(
+    Math.min(step, doneStepIndex),
+    Math.min(answeredCount, total),
+    isGenderStep ? genderStepIndex : 0,
+    isResultStep ? doneStepIndex : 0,
+  )
+  const progress = fullSteps > 0 ? Math.round((Math.min(progressPhase, fullSteps) / fullSteps) * 100) : 0
+  const current = step < total ? quizQuestions[step] ?? null : null
 
   const result = useMemo(
-    () => (isDone ? calculateResult(scores, collections, products, t) : null),
-    [isDone, scores, collections, products, t],
+    () =>
+      isResultStep && quizGender ? calculateResult(scores, collections, products, t, quizGender) : null,
+    [isResultStep, quizGender, scores, collections, products, t],
   )
 
-  const answeredCount = Object.keys(selections).length
+  function goToQuestion(targetStep: number) {
+    if (total === 0) return
+    if (targetStep < 0 || targetStep > genderStepIndex) return
+    if (targetStep < total) {
+      const q = quizQuestions[targetStep]
+      if (targetStep !== step && !selections[q.id]) return
+    } else if (answeredCount < total) {
+      return
+    }
+    if (targetStep < genderStepIndex) setQuizGender(null)
+    setStep(targetStep)
+  }
+
+  function advanceFromCurrentQuestion() {
+    setStep((s) => {
+      if (s < total - 1) return s + 1
+      if (s === total - 1) return genderStepIndex
+      return s
+    })
+  }
 
   function pickChoice(choice: Choice) {
     if (!current) return
-    if (selections[current.id]) return
+    const prior = selections[current.id]
+    if (prior === choice.id) {
+      advanceFromCurrentQuestion()
+      return
+    }
+    if (prior) {
+      const trimmed: Record<string, string> = {}
+      for (let i = 0; i <= step; i++) {
+        const q = quizQuestions[i]
+        if (i === step) trimmed[q.id] = choice.id
+        else if (selections[q.id]) trimmed[q.id] = selections[q.id]
+      }
+      setSelections(trimmed)
+      setScores(recomputeScores(trimmed, quizQuestions))
+      return
+    }
+    const nextSelections = { ...selections, [current.id]: choice.id }
+    setSelections(nextSelections)
+    setScores(recomputeScores(nextSelections, quizQuestions))
+    advanceFromCurrentQuestion()
+  }
 
-    setSelections((prev) => ({ ...prev, [current.id]: choice.id }))
-    setScores((prev) => ({
-      executive: prev.executive + choice.score.executive,
-      explorer: prev.explorer + choice.score.explorer,
-      charmer: prev.charmer + choice.score.charmer,
-      icon: prev.icon + choice.score.icon,
-    }))
-    setStep((prev) => prev + 1)
+  function pickGender(gender: ProductSummary['gender']) {
+    setQuizGender(gender)
+    setStep(doneStepIndex)
   }
 
   function restart() {
+    clearQuizSession()
     setStep(0)
     setScores(initialScores)
     setSelections({})
+    setQuizGender(null)
     setQuizQuestions(buildRandomizedQuestions(templateQuestions))
   }
+
+  const stepperChipClass = (active: boolean, done: boolean) =>
+    `min-w-9 rounded-full border px-2 py-1.5 text-center text-[0.65rem] font-medium uppercase tracking-wider transition-colors ${
+      active
+        ? 'border-scnt-text bg-scnt-text text-scnt-bg'
+        : done
+          ? 'border-scnt-border/80 bg-scnt-bg/65 text-scnt-text hover:border-scnt-text/25'
+          : 'cursor-not-allowed border-scnt-border/50 bg-scnt-bg/30 text-scnt-text-muted opacity-60'
+    }`
 
   return (
     <Layout>
@@ -207,9 +356,11 @@ export function FindYourScntPage() {
           <div className="mx-auto mt-10 max-w-3xl rounded-3xl border border-scnt-border/90 bg-scnt-bg-elevated/70 p-5 shadow-[0_20px_80px_-52px_rgba(42,38,34,0.35)] sm:p-7">
             <div className="mb-5 flex items-center justify-between gap-4">
               <p className="text-xs uppercase tracking-[0.24em] text-scnt-text-muted">
-                {isDone
+                {isResultStep
                   ? t('fz.resultReady')
-                  : t('fz.question', { cur: String(Math.min(step + 1, total)), total: String(total) })}
+                  : isGenderStep
+                    ? t('fz.question', { cur: String(fullSteps), total: String(fullSteps) })
+                    : t('fz.question', { cur: String(Math.min(step + 1, fullSteps)), total: String(fullSteps) })}
               </p>
               <p className="text-xs text-scnt-text-muted">{t('fz.answered', { n: String(answeredCount) })}</p>
             </div>
@@ -221,6 +372,34 @@ export function FindYourScntPage() {
               />
             </div>
 
+            {!isResultStep && total > 0 ? (
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2" role="navigation" aria-label={t('fz.question')}>
+                {quizQuestions.map((q, i) => {
+                  const answeredHere = Boolean(selections[q.id])
+                  const chipEnabled = answeredHere || i === step
+                  return (
+                    <button
+                      key={q.id}
+                      type="button"
+                      disabled={!chipEnabled}
+                      onClick={() => goToQuestion(i)}
+                      className={stepperChipClass(step === i, answeredHere)}
+                    >
+                      {i + 1}
+                    </button>
+                  )
+                })}
+                <button
+                  type="button"
+                  disabled={answeredCount < total}
+                  onClick={() => goToQuestion(genderStepIndex)}
+                  className={stepperChipClass(isGenderStep, false)}
+                >
+                  {t('fz.genderStepLabel')}
+                </button>
+              </div>
+            ) : null}
+
             <AnimatePresence mode="wait">
               {total === 0 ? (
                 <motion.p
@@ -231,7 +410,42 @@ export function FindYourScntPage() {
                 >
                   {t('fz.loadingQuiz')}
                 </motion.p>
-              ) : !isDone && current ? (
+              ) : isGenderStep ? (
+                <motion.div
+                  key="fz-gender"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-7"
+                >
+                  <h2 className="font-serif text-2xl text-scnt-text sm:text-3xl">{t('fz.genderPrompt')}</h2>
+                  <p className="mt-2 text-sm text-scnt-text-muted">{t('fz.genderDetail')}</p>
+                  <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => pickGender('male')}
+                      className="rounded-2xl border border-scnt-border/80 bg-scnt-bg/65 px-4 py-5 text-center text-sm font-medium text-scnt-text transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-scnt-text/20 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)]"
+                    >
+                      {t('shop.male')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => pickGender('female')}
+                      className="rounded-2xl border border-scnt-border/80 bg-scnt-bg/65 px-4 py-5 text-center text-sm font-medium text-scnt-text transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-scnt-text/20 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)]"
+                    >
+                      {t('shop.female')}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => goToQuestion(genderStepIndex - 1)}
+                    className="mt-6 text-sm text-scnt-text-muted underline-offset-4 transition-colors hover:text-scnt-text hover:underline"
+                  >
+                    {t('fz.back')}
+                  </button>
+                </motion.div>
+              ) : current ? (
                 <motion.div
                   key={current.id}
                   initial={{ opacity: 0, y: 14 }}
@@ -244,22 +458,50 @@ export function FindYourScntPage() {
                   <p className="mt-2 text-sm text-scnt-text-muted">{current.promptDetail}</p>
 
                   <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {current.choices.map((choice) => (
+                    {current.choices.map((choice) => {
+                      const selected = selections[current.id] === choice.id
+                      return (
+                        <button
+                          key={choice.id}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => pickChoice(choice)}
+                          className={`group relative overflow-hidden rounded-2xl border px-4 py-4 text-start transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                            selected
+                              ? 'border-scnt-text/85 bg-scnt-bg-elevated/90 shadow-[0_18px_48px_-36px_rgba(42,38,34,0.45)] ring-2 ring-scnt-text/15'
+                              : 'border-scnt-border/80 bg-scnt-bg/65 hover:-translate-y-0.5 hover:border-scnt-text/20 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)]'
+                          }`}
+                        >
+                          <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                          <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">{choice.aura}</p>
+                          <p className="mt-2 text-sm font-medium text-scnt-text sm:text-base">{choice.title}</p>
+                          <p className="mt-1 text-xs leading-relaxed text-scnt-text-muted sm:text-sm">{choice.subtitle}</p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div className="mt-8 flex flex-wrap items-center gap-4">
+                    {step > 0 ? (
                       <button
-                        key={choice.id}
                         type="button"
-                        onClick={() => pickChoice(choice)}
-                        className="group relative overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg/65 px-4 py-4 text-start transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-scnt-text/20 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)]"
+                        onClick={() => goToQuestion(step - 1)}
+                        className="text-sm text-scnt-text-muted underline-offset-4 transition-colors hover:text-scnt-text hover:underline"
                       >
-                        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                        <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">{choice.aura}</p>
-                        <p className="mt-2 text-sm font-medium text-scnt-text sm:text-base">{choice.title}</p>
-                        <p className="mt-1 text-xs leading-relaxed text-scnt-text-muted sm:text-sm">{choice.subtitle}</p>
+                        {t('fz.back')}
                       </button>
-                    ))}
+                    ) : null}
+                    {selections[current.id] ? (
+                      <button
+                        type="button"
+                        onClick={advanceFromCurrentQuestion}
+                        className="rounded-full border border-scnt-text bg-scnt-text px-5 py-2 text-sm font-medium text-scnt-bg transition-colors hover:bg-scnt-text/90"
+                      >
+                        {t('fz.continue')}
+                      </button>
+                    ) : null}
                   </div>
                 </motion.div>
-              ) : isDone && (loading || !result) ? (
+              ) : isResultStep && (loading || !result) ? (
                 <motion.div
                   key="result-pending"
                   initial={{ opacity: 0, y: 16 }}
@@ -269,7 +511,7 @@ export function FindYourScntPage() {
                 >
                   {loading ? t('fz.preparing') : t('fz.catalogErr')}
                 </motion.div>
-              ) : isDone && result ? (
+              ) : isResultStep && result ? (
                 <motion.div
                   key="result"
                   initial={{ opacity: 0, y: 16 }}
