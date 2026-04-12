@@ -14,6 +14,8 @@ import { formatEgp } from '../../lib/formatEgp'
 
 const MEGA_LEAVE_MS = 28
 const SEARCH_DEBOUNCE_MS = 320
+/** Past this offset we treat scroll as real user movement and drop the search hero lock. */
+const SEARCH_HERO_LOCK_CLEAR_PX = 24
 
 function IconPhone({ className }: { className?: string }) {
   return (
@@ -91,6 +93,9 @@ export function Header() {
   const navigate = useNavigate()
   const headerRef = useRef<HTMLElement>(null)
   const [scrolled, setScrolled] = useState(false)
+  const [scrollY, setScrollY] = useState(() => (typeof window !== 'undefined' ? window.scrollY : 0))
+  /** True when search text was first entered while at the top; avoids layout/search panel from briefly pushing `scrollY` past the hero threshold. */
+  const [preserveHeroForSearch, setPreserveHeroForSearch] = useState(false)
   const [sideOpen, setSideOpen] = useState(false)
   const [mobileCollectionsOpen, setMobileCollectionsOpen] = useState(false)
   const [megaOpen, setMegaOpen] = useState(false)
@@ -117,7 +122,12 @@ export function Header() {
   }, [])
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8)
+    const onScroll = () => {
+      const y = window.scrollY
+      setScrollY(y)
+      setScrolled(y > 8)
+      if (y > SEARCH_HERO_LOCK_CLEAR_PX) setPreserveHeroForSearch(false)
+    }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
@@ -132,6 +142,7 @@ export function Header() {
     setSearchResults([])
     setSearchError(null)
     setSearchExpanded(false)
+    setPreserveHeroForSearch(false)
   }, [location.pathname])
 
   useEffect(() => {
@@ -144,6 +155,7 @@ export function Header() {
         setSearchResults([])
         setSearchError(null)
         setSearchLoading(false)
+        setPreserveHeroForSearch(false)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -188,6 +200,13 @@ export function Header() {
   }, [searchResults, locale, t])
 
   const onSearchInput = (value: string, opts?: { keepOpenWhenEmpty?: boolean }) => {
+    const prevTrim = searchQuery.trim()
+    const nextTrim = value.trim()
+    if (!prevTrim && nextTrim && typeof window !== 'undefined' && window.scrollY <= 8) {
+      setPreserveHeroForSearch(true)
+    }
+    if (!nextTrim) setPreserveHeroForSearch(false)
+
     setSearchQuery(value)
     if (value.trim()) setSearchOpen(true)
     else if (!opts?.keepOpenWhenEmpty) {
@@ -205,6 +224,7 @@ export function Header() {
     setSearchError(null)
     setSearchLoading(false)
     setSearchExpanded(false)
+    setPreserveHeroForSearch(false)
   }
 
   const scheduleMegaClose = () => {
@@ -216,7 +236,16 @@ export function Header() {
 
   const iconBtn =
     'inline-flex items-center justify-center rounded-full p-2 text-scnt-text-muted transition-colors hover:bg-scnt-border/40 hover:text-scnt-text'
-  const topTransparent = !scrolled && !sideOpen && !searchOpen
+
+  const productSearchActive = searchQuery.trim().length > 0
+  const navbarUsesScrolledShape =
+    scrolled &&
+    !(preserveHeroForSearch && productSearchActive && scrollY <= SEARCH_HERO_LOCK_CLEAR_PX)
+  const topTransparent =
+    !sideOpen &&
+    (!searchOpen || productSearchActive) &&
+    !navbarUsesScrolledShape
+
   const iconBtnClass = iconBtn
   const navTone = navText
 
@@ -299,6 +328,7 @@ export function Header() {
                 {searchExpanded ? (
                   <input
                     type="search"
+                    dir="auto"
                     value={searchQuery}
                     onChange={(e) => onSearchInput(e.target.value)}
                     placeholder={t('header.searchPh')}
@@ -323,7 +353,7 @@ export function Header() {
 
           <div
             className={`flex justify-center transition-[transform,margin] duration-[900ms] ease-[cubic-bezier(0.2,0.95,0.28,1)] will-change-transform max-lg:transition-none max-lg:will-change-auto ${
-              scrolled ? 'ltr:lg:-translate-x-[40vw] rtl:lg:translate-x-[40vw]' : ''
+              navbarUsesScrolledShape ? 'ltr:lg:-translate-x-[40vw] rtl:lg:translate-x-[40vw]' : ''
             }`}
           >
             <Logo
@@ -353,6 +383,7 @@ export function Header() {
               {searchExpanded ? (
                 <input
                   type="search"
+                  dir="auto"
                   value={searchQuery}
                   onChange={(e) => onSearchInput(e.target.value)}
                   placeholder={t('header.searchPh')}
@@ -619,6 +650,7 @@ export function Header() {
               <div className="mt-5 sm:hidden">
                 <input
                   type="search"
+                  dir="auto"
                   value={searchQuery}
                   onChange={(e) => onSearchInput(e.target.value, { keepOpenWhenEmpty: true })}
                   placeholder={t('header.searchPhMobile')}

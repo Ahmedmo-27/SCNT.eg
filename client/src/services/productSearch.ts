@@ -2,7 +2,8 @@ import { apiGetData } from './api'
 import type { ApiProductListResponse } from '../types/catalog'
 
 /**
- * Server search: `GET /api/products?q=...` (see server `productService.buildProductFilters`).
+ * Server search: `GET /api/products?q=...` matches English fields, `translations.ar`, and
+ * collections whose Arabic or English copy matches (see server `productService.buildProductFilters`).
  */
 export async function fetchProductsByQuery(q: string, limit = 8, page = 1): Promise<ApiProductListResponse> {
   const trimmed = q.trim()

@@ -1,9 +1,9 @@
 const productRepository = require("../repositories/productRepository");
 const ApiError = require("../utils/ApiError");
+const Collection = require("../models/Collection");
+const { escapeRegex, normalizeArabicSearchInput } = require("../utils/searchText");
 
-const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const buildProductFilters = ({ collection, note, q, gender }) => {
+const buildProductFilters = async ({ collection, note, q, gender }) => {
   const and = [];
 
   if (collection) and.push({ collection });
@@ -13,29 +13,58 @@ const buildProductFilters = ({ collection, note, q, gender }) => {
   }
 
   if (note && String(note).trim()) {
-    const safe = escapeRegex(String(note).trim());
+    const noteNorm = normalizeArabicSearchInput(String(note).trim());
+    const safe = escapeRegex(noteNorm);
     and.push({
       $or: [
         { topNotes: { $regex: safe, $options: "i" } },
         { heartNotes: { $regex: safe, $options: "i" } },
         { baseNotes: { $regex: safe, $options: "i" } },
+        { "translations.ar.topNotes": { $regex: safe, $options: "i" } },
+        { "translations.ar.heartNotes": { $regex: safe, $options: "i" } },
+        { "translations.ar.baseNotes": { $regex: safe, $options: "i" } },
       ],
     });
   }
 
   if (q && String(q).trim()) {
-    const safe = escapeRegex(String(q).trim());
-    and.push({
-      $or: [
-        { name: { $regex: safe, $options: "i" } },
-        { slug: { $regex: safe, $options: "i" } },
-        { inspired_from: { $regex: safe, $options: "i" } },
-        { description: { $regex: safe, $options: "i" } },
-        { topNotes: { $regex: safe, $options: "i" } },
-        { heartNotes: { $regex: safe, $options: "i" } },
-        { baseNotes: { $regex: safe, $options: "i" } },
-      ],
-    });
+    const qNorm = normalizeArabicSearchInput(String(q).trim());
+    const safe = escapeRegex(qNorm);
+    const or = [
+      { name: { $regex: safe, $options: "i" } },
+      { slug: { $regex: safe, $options: "i" } },
+      { inspired_from: { $regex: safe, $options: "i" } },
+      { description: { $regex: safe, $options: "i" } },
+      { topNotes: { $regex: safe, $options: "i" } },
+      { heartNotes: { $regex: safe, $options: "i" } },
+      { baseNotes: { $regex: safe, $options: "i" } },
+      { "translations.ar.name": { $regex: safe, $options: "i" } },
+      { "translations.ar.inspired_from": { $regex: safe, $options: "i" } },
+      { "translations.ar.description": { $regex: safe, $options: "i" } },
+      { "translations.ar.size": { $regex: safe, $options: "i" } },
+      { "translations.ar.topNotes": { $regex: safe, $options: "i" } },
+      { "translations.ar.heartNotes": { $regex: safe, $options: "i" } },
+      { "translations.ar.baseNotes": { $regex: safe, $options: "i" } },
+    ];
+
+    const collectionOr = [
+      { name: { $regex: safe, $options: "i" } },
+      { slug: { $regex: safe, $options: "i" } },
+      { tagline: { $regex: safe, $options: "i" } },
+      { sub_tagline: { $regex: safe, $options: "i" } },
+      { description: { $regex: safe, $options: "i" } },
+      { "translations.ar.name": { $regex: safe, $options: "i" } },
+      { "translations.ar.tagline": { $regex: safe, $options: "i" } },
+      { "translations.ar.sub_tagline": { $regex: safe, $options: "i" } },
+      { "translations.ar.description": { $regex: safe, $options: "i" } },
+    ];
+
+    const matchingCollectionIds = await Collection.find({ $or: collectionOr }).distinct("_id");
+    if (matchingCollectionIds.length > 0) {
+      or.push({ collection: { $in: matchingCollectionIds } });
+    }
+
+    and.push({ $or: or });
   }
 
   if (and.length === 0) return {};
@@ -47,7 +76,7 @@ const getProducts = async (query) => {
   const page = Math.max(Number(query.page || 1), 1);
   const limit = Math.min(Math.max(Number(query.limit || 12), 1), 100);
   const skip = (page - 1) * limit;
-  const filters = buildProductFilters(query);
+  const filters = await buildProductFilters(query);
 
   const [items, total] = await Promise.all([
     productRepository.findProducts({ filters, skip, limit }),
