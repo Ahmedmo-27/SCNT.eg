@@ -20,9 +20,14 @@ export const collectionTheme = {
   },
   charmer: {
     vivid: '#b92d5d',
-    /** Magenta dusk — cursor bloom at 5% */
-    bloomFollow: 'rgba(139, 61, 92, 0.05)',
-    veil: 'rgba(90, 40, 65, 0.06)',
+    /** Magenta dusk — cursor bloom follows the gaze */
+    bloomFollow: 'rgba(139, 61, 92, 0.075)',
+    veil: 'rgba(90, 40, 65, 0.075)',
+    /** Soft candle core — very low opacity */
+    candleCore: 'rgba(255, 214, 178, 0.07)',
+    /** Table / low horizon warmth */
+    amberTable: 'rgba(72, 28, 48, 0.11)',
+    bokeh: 'rgba(255, 198, 175, 0.16)',
   },
   icon: {
     vivid: '#d4af37',

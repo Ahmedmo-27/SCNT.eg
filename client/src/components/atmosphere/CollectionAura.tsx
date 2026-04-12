@@ -9,7 +9,7 @@ const EASE_SCNT: [number, number, number, number] = [0.22, 1, 0.36, 1]
 const AURA_CENTER: Record<CollectionId, { left: string; top: string }> = {
   executive: { left: '12%', top: '18%' },
   explorer: { left: '88%', top: '72%' },
-  charmer: { left: '42%', top: '78%' },
+  charmer: { left: '48%', top: '68%' },
   icon: { left: '58%', top: '24%' },
 }
 

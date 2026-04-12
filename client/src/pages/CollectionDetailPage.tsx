@@ -62,7 +62,7 @@ export function CollectionDetailPage() {
               c.id === 'executive'
                 ? `linear-gradient(180deg, ${c.accentSoft} 0%, transparent 55%)`
                 : c.id === 'charmer'
-                  ? `radial-gradient(ellipse at 10% 100%, ${c.accentSoft} 0%, transparent 55%)`
+                  ? `radial-gradient(ellipse 70% 50% at 88% -8%, rgba(255, 214, 190, 0.14) 0%, transparent 50%), radial-gradient(ellipse at 8% 100%, ${c.accentSoft} 0%, transparent 58%)`
                   : c.id === 'explorer'
                     ? `radial-gradient(ellipse at 50% -10%, ${c.accentSoft} 0%, transparent 60%)`
                     : `linear-gradient(165deg, ${c.accentSoft} 0%, transparent 50%)`,
@@ -86,6 +86,18 @@ export function CollectionDetailPage() {
           animate={{ opacity: 0.3, scale: 1 }}
           transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
         />
+        {c.id === 'charmer' ? (
+          <motion.div
+            className="pointer-events-none absolute -left-[14%] bottom-[18%] -z-10 hidden h-[min(360px,48vw)] w-[min(360px,48vw)] rounded-full opacity-[0.22] blur-3xl sm:block"
+            style={{
+              background: `radial-gradient(circle, rgba(255, 205, 175, 0.35), transparent 72%)`,
+            }}
+            aria-hidden
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 0.22, scale: 1 }}
+            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
+          />
+        ) : null}
 
         <div
           className={`relative mx-auto max-w-6xl ${

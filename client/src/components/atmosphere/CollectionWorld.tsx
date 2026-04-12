@@ -169,8 +169,17 @@ function ExplorerLayer() {
   )
 }
 
+const CHARMER_BOKEH = [
+  { left: '12%', top: '22%', size: 140, delay: 0 },
+  { left: '78%', top: '18%', size: 100, delay: 0.8 },
+  { left: '64%', top: '48%', size: 72, delay: 1.4 },
+  { left: '22%', top: '62%', size: 88, delay: 2.1 },
+  { left: '88%', top: '72%', size: 56, delay: 0.4 },
+] as const
+
 function CharmerLayer() {
   const t = collectionTheme.charmer
+  const reduceMotion = useReducedMotion()
   const mx = useMotionValue(0.5)
   const my = useMotionValue(0.5)
   const sx = useSpring(mx, { stiffness: 28, damping: 92 })
@@ -206,6 +215,61 @@ function CharmerLayer() {
           background: `radial-gradient(ellipse 120% 80% at 50% 100%, ${t.veil}, transparent 55%)`,
         }}
       />
+      <div
+        className="absolute inset-x-0 bottom-0 h-[52%]"
+        style={{
+          background: `linear-gradient(180deg, transparent 0%, ${t.amberTable} 100%)`,
+        }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse 55% 40% at 18% 88%, ${t.candleCore}, transparent 72%)`,
+        }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse 40% 35% at 82% 92%, ${t.candleCore}, transparent 70%)`,
+        }}
+      />
+      {!reduceMotion ? (
+        <motion.div
+          className="pointer-events-none absolute inset-x-[8%] bottom-[6%] h-[38%] rounded-[40%] blur-3xl"
+          style={{
+            background: `radial-gradient(ellipse at 50% 100%, ${t.candleCore}, transparent 70%)`,
+          }}
+          animate={{ opacity: [0.35, 0.55, 0.38, 0.52, 0.35] }}
+          transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      ) : null}
+      {CHARMER_BOKEH.map((b, i) => (
+        <motion.div
+          key={i}
+          className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl"
+          style={{
+            left: b.left,
+            top: b.top,
+            width: b.size,
+            height: b.size,
+            background: `radial-gradient(circle, ${t.bokeh}, transparent 68%)`,
+          }}
+          animate={
+            reduceMotion
+              ? { opacity: 0.2, scale: 1 }
+              : {
+                  opacity: [0.12, 0.38, 0.18, 0.42, 0.14],
+                  scale: [1, 1.06, 0.98, 1.04, 1],
+                }
+          }
+          transition={{
+            duration: reduceMotion ? 0.4 : 11 + i * 0.7,
+            repeat: reduceMotion ? 0 : Infinity,
+            ease: 'easeInOut',
+            delay: reduceMotion ? 0 : b.delay,
+          }}
+        />
+      ))}
     </>
   )
 }
