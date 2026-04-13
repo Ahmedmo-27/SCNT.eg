@@ -14,6 +14,8 @@ const collectionSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, index: true },
+    /** Public URL or site path for collection cards / hero (e.g. /collections/covers/The%20Executive.jpg) */
+    coverImage: { type: String, default: "" },
     themeColor: { type: String, default: "" },
     tagline: { type: String, default: "" },
     sub_tagline: { type: String, default: "" },

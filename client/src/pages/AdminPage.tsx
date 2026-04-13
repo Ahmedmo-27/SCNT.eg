@@ -93,6 +93,7 @@ type CollectionForm = Omit<AdminCollection, '_id'>
 const emptyCollectionForm: CollectionForm = {
   name: '',
   slug: '',
+  coverImage: '',
   themeColor: '',
   tagline: '',
   sub_tagline: '',
@@ -294,6 +295,7 @@ export function AdminPage() {
     setCollectionForm({
       name: item.name,
       slug: item.slug,
+      coverImage: item.coverImage || '',
       themeColor: item.themeColor || '',
       tagline: item.tagline || '',
       sub_tagline: item.sub_tagline || '',
@@ -309,6 +311,7 @@ export function AdminPage() {
       const payload = {
         name: collectionForm.name.trim(),
         slug: collectionForm.slug.trim(),
+        coverImage: collectionForm.coverImage?.trim() || '',
         themeColor: collectionForm.themeColor?.trim() || '',
         tagline: collectionForm.tagline?.trim() || '',
         sub_tagline: collectionForm.sub_tagline?.trim() || '',
@@ -551,6 +554,7 @@ export function AdminPage() {
               <form className="grid gap-3 md:grid-cols-2" onSubmit={submitCollection}>
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Name" value={collectionForm.name} onChange={(e) => setCollectionForm((s) => ({ ...s, name: e.target.value }))} required />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Slug" value={collectionForm.slug} onChange={(e) => setCollectionForm((s) => ({ ...s, slug: e.target.value }))} required />
+                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 md:col-span-2" placeholder="Cover image URL or path (e.g. /collections/covers/The%20Explorer.png)" value={collectionForm.coverImage || ''} onChange={(e) => setCollectionForm((s) => ({ ...s, coverImage: e.target.value }))} />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Theme color" value={collectionForm.themeColor || ''} onChange={(e) => setCollectionForm((s) => ({ ...s, themeColor: e.target.value }))} />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Tagline" value={collectionForm.tagline || ''} onChange={(e) => setCollectionForm((s) => ({ ...s, tagline: e.target.value }))} />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 md:col-span-2" placeholder="Sub tagline" value={collectionForm.sub_tagline || ''} onChange={(e) => setCollectionForm((s) => ({ ...s, sub_tagline: e.target.value }))} />

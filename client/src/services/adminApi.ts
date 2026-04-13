@@ -30,6 +30,7 @@ export type AdminCollection = {
   _id: string
   name: string
   slug: string
+  coverImage?: string
   themeColor?: string
   tagline?: string
   sub_tagline?: string

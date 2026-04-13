@@ -47,13 +47,7 @@ export function CollectionDetailPage() {
   return (
     <Layout collection={c.id}>
       <section
-        className={`relative border-b border-scnt-border/80 px-5 py-16 sm:px-8 sm:py-24 ${
-          c.id === 'icon'
-            ? 'text-center'
-            : c.id === 'executive'
-              ? 'md:grid md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] md:items-center'
-              : 'md:grid md:grid-cols-[minmax(0,1.2fr)_minmax(0,1.1fr)] md:items-center md:gap-10'
-        }`}
+        className={`relative border-b border-scnt-border/80 py-16 sm:py-24 ${c.id === 'icon' ? 'text-center' : ''}`}
       >
         <div
           className="absolute inset-0 -z-10 opacity-95"
@@ -100,24 +94,31 @@ export function CollectionDetailPage() {
         ) : null}
 
         <div
-          className={`relative mx-auto max-w-6xl ${
-            c.id === 'executive'
-              ? 'md:col-span-1 md:pe-16'
-              : c.id === 'charmer'
-                ? 'md:col-span-1 md:pe-10'
-                : c.id === 'explorer'
-                  ? 'md:col-span-1 md:max-w-xl'
-                  : 'md:col-span-2 md:max-w-3xl'
+          className={`relative mx-auto w-full max-w-6xl px-5 sm:px-8 ${
+            c.id === 'icon'
+              ? 'flex flex-col items-center'
+              : 'md:grid md:grid-cols-[minmax(0,1.25fr)_minmax(0,0.92fr)] md:items-center md:gap-12 lg:gap-14'
           }`}
         >
-          <motion.div
-            initial={{ opacity: 0, y: c.id === 'explorer' ? 26 : 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              duration: c.id === 'icon' ? 1.1 : 0.9,
-              ease: [0.22, 1, 0.36, 1],
-            }}
+          <div
+            className={
+              c.id === 'executive'
+                ? 'md:pe-4 lg:pe-8'
+                : c.id === 'charmer'
+                  ? 'md:pe-3 lg:pe-6'
+                  : c.id === 'explorer'
+                    ? 'md:max-w-xl'
+                    : 'max-w-3xl'
+            }
           >
+            <motion.div
+              initial={{ opacity: 0, y: c.id === 'explorer' ? 26 : 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: c.id === 'icon' ? 1.1 : 0.9,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+            >
             <p
               className={`mb-4 inline-flex items-center gap-2 text-xs uppercase text-scnt-text-muted ${
                 c.id === 'executive'
@@ -171,6 +172,19 @@ export function CollectionDetailPage() {
               {c.worldIntro}
             </p>
 
+            {c.id === 'icon' && c.coverImage ? (
+              <motion.div
+                className="relative mt-12 w-full max-w-md px-2"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
+              >
+                <div className="overflow-hidden rounded-2xl border border-scnt-border/45 shadow-[0_28px_70px_-38px_rgba(42,38,34,0.22)]">
+                  <img src={c.coverImage} alt="" className="aspect-[4/5] w-full object-cover" />
+                </div>
+              </motion.div>
+            ) : null}
+
             <Link
               to="/collections"
               className={`mt-10 inline-flex items-center gap-2 text-sm text-scnt-text-muted underline-offset-4 transition-colors duration-[550ms] hover:text-scnt-text ${
@@ -179,7 +193,20 @@ export function CollectionDetailPage() {
             >
               {t('col.allCollections')}
             </Link>
-          </motion.div>
+            </motion.div>
+          </div>
+          {c.coverImage && c.id !== 'icon' ? (
+            <motion.div
+              className="relative mt-12 w-full max-w-md md:mt-0 md:max-w-none md:justify-self-end"
+              initial={{ opacity: 0, y: 22 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
+            >
+              <div className="mx-auto max-h-[min(520px,62vh)] overflow-hidden rounded-2xl border border-scnt-border/40 shadow-[0_32px_80px_-40px_rgba(42,38,34,0.2)] md:mx-0 md:aspect-[4/5] md:max-h-[min(560px,70vh)]">
+                <img src={c.coverImage} alt="" className="h-full min-h-[220px] w-full object-cover sm:min-h-[280px] md:min-h-0" />
+              </div>
+            </motion.div>
+          ) : null}
         </div>
       </section>
 

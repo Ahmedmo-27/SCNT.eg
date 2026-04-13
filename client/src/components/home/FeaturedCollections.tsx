@@ -66,11 +66,22 @@ export function FeaturedCollections() {
             <motion.li key={c.id} variants={item}>
               <Link
                 to={`/collections/${c.id}`}
-                className="group/card block h-full rounded-2xl border border-[rgba(42,38,34,0.1)] backdrop-blur-md transition-[box-shadow,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:-translate-y-1 hover:shadow-[0_36px_90px_-40px_rgba(42,38,34,0.14)]"
+                className="group/card flex h-full flex-col overflow-hidden rounded-2xl border border-[rgba(42,38,34,0.1)] backdrop-blur-md transition-[box-shadow,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:-translate-y-1 hover:shadow-[0_36px_90px_-40px_rgba(42,38,34,0.14)] sm:flex-row sm:items-stretch"
                 style={{ background: tintedBeigeGlass(c.accent) }}
               >
+                {c.coverImage ? (
+                  <div className="relative w-full shrink-0 bg-scnt-bg-muted/35 sm:w-[min(42%,300px)]">
+                    <div className="aspect-[16/10] w-full sm:aspect-auto sm:h-full sm:min-h-[232px]">
+                      <img
+                        src={c.coverImage}
+                        alt=""
+                        className="h-full w-full object-cover transition-[transform,filter] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:scale-[1.03]"
+                      />
+                    </div>
+                  </div>
+                ) : null}
                 <div
-                  className="relative overflow-hidden rounded-2xl px-7 py-8 sm:px-9 sm:py-10"
+                  className="relative flex min-h-0 flex-1 overflow-hidden px-7 py-8 sm:px-9 sm:py-10"
                   style={{
                     background: `linear-gradient(135deg, ${c.accentSoft} 0%, transparent 55%)`,
                   }}

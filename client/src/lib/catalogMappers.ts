@@ -78,6 +78,23 @@ function taglineFallback(pop: ApiCollection | undefined, locale: Locale): string
   return t || 'A signature from the house.'
 }
 
+/** Filenames in `client/public/collections/covers/` (URL-encoded when built into paths). */
+const DEFAULT_COLLECTION_COVER_FILE: Partial<Record<CollectionId, string>> = {
+  executive: 'The Executive.jpg',
+  explorer: 'The Explorer.png',
+  charmer: 'The Charmer.png',
+  icon: 'The Icon.png',
+}
+
+function resolveCollectionCoverImage(c: ApiCollection): string {
+  const fromApi = c.coverImage?.trim()
+  if (fromApi) return fromApi
+  const slug = (c.slug ?? '').trim().toLowerCase()
+  const parsed = parseCollectionIdParam(slug)
+  const file = parsed ? DEFAULT_COLLECTION_COVER_FILE[parsed] : undefined
+  return file ? `/collections/covers/${encodeURIComponent(file)}` : ''
+}
+
 export function mapApiCollectionToSummary(c: ApiCollection, locale: Locale = 'en'): CollectionSummary {
   const accent = safeHex(c.themeColor, '#2a2622')
   const ar = collectionAr(c, locale)
@@ -89,6 +106,7 @@ export function mapApiCollectionToSummary(c: ApiCollection, locale: Locale = 'en
     id: toCollectionId(c.slug),
     name,
     code: c.slug.replace(/-/g, ' ').toUpperCase(),
+    coverImage: resolveCollectionCoverImage(c),
     tagline: tag,
     subTagline: sub,
     heroTagline: tag,

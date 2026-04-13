@@ -124,6 +124,7 @@ const createCollection = asyncHandler(async (req, res) => {
   const collection = await Collection.create({
     name: req.body?.name,
     slug: req.body?.slug,
+    coverImage: req.body?.coverImage,
     themeColor: req.body?.themeColor,
     tagline: req.body?.tagline,
     sub_tagline: req.body?.sub_tagline,
@@ -138,6 +139,7 @@ const updateCollection = asyncHandler(async (req, res) => {
     {
       name: req.body?.name,
       slug: req.body?.slug,
+      coverImage: req.body?.coverImage,
       themeColor: req.body?.themeColor,
       tagline: req.body?.tagline,
       sub_tagline: req.body?.sub_tagline,
@@ -150,7 +152,7 @@ const updateCollection = asyncHandler(async (req, res) => {
 });
 
 const deleteCollection = asyncHandler(async (req, res) => {
-  const productsUsingCollection = await Product.countDocuments({ collection: req.params.id });
+  const productsUsingCollection = await Product.countDocuments({ SCNTcollection: req.params.id });
   if (productsUsingCollection > 0) {
     throw new ApiError(400, "Collection has products and cannot be deleted");
   }

@@ -42,22 +42,33 @@ export function CollectionsPage() {
               >
                 <Link
                   to={`/collections/${c.id}`}
-                  className="group flex h-full flex-col justify-between rounded-xl border border-scnt-border border-t-[3px] bg-scnt-bg-elevated/50 px-5 py-6 text-left transition-[transform,box-shadow] duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:shadow-[0_24px_60px_-32px_rgba(42,38,34,0.14)]"
+                  className="group flex h-full flex-col justify-between overflow-hidden rounded-xl border border-scnt-border border-t-[3px] bg-scnt-bg-elevated/50 text-left transition-[transform,box-shadow] duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:shadow-[0_24px_60px_-32px_rgba(42,38,34,0.14)]"
                   style={{ borderTopColor: c.accent }}
                 >
-                  <div>
-                    <p className="text-[0.65rem] font-medium uppercase tracking-[0.25em] text-scnt-text-muted">
-                      {c.code}
-                    </p>
-                    <h2 className="mt-2 font-serif text-xl text-scnt-text">{c.name}</h2>
-                    <p className="mt-2 line-clamp-2 text-xs italic leading-relaxed text-scnt-text/75">
-                      {c.subTagline || c.tagline}
-                    </p>
+                  {c.coverImage ? (
+                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-scnt-bg-muted/50">
+                      <img
+                        src={c.coverImage}
+                        alt=""
+                        className="h-full w-full object-cover transition-[transform,filter] duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.04]"
+                      />
+                    </div>
+                  ) : null}
+                  <div className="flex flex-1 flex-col justify-between px-5 py-6">
+                    <div>
+                      <p className="text-[0.65rem] font-medium uppercase tracking-[0.25em] text-scnt-text-muted">
+                        {c.code}
+                      </p>
+                      <h2 className="mt-2 font-serif text-xl text-scnt-text">{c.name}</h2>
+                      <p className="mt-2 line-clamp-2 text-xs italic leading-relaxed text-scnt-text/75">
+                        {c.subTagline || c.tagline}
+                      </p>
+                    </div>
+                    <span className="mt-6 inline-flex items-center gap-2 text-xs text-scnt-text-muted transition-colors duration-[550ms] group-hover:text-scnt-text">
+                      {t('collections.enter')}
+                      <EightPointStar size={9} />
+                    </span>
                   </div>
-                  <span className="mt-6 inline-flex items-center gap-2 text-xs text-scnt-text-muted transition-colors duration-[550ms] group-hover:text-scnt-text">
-                    {t('collections.enter')}
-                    <EightPointStar size={9} />
-                  </span>
                 </Link>
               </motion.li>
             ))}
