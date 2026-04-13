@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://scnt-eg-eff9497748ed.herokuapp.com/sitemap.xml
