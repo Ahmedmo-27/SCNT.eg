@@ -25,7 +25,7 @@ const productSchema = new mongoose.Schema(
       default: "male",
       index: true,
     },
-    collection: {
+    SCNTcollection: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Collection",
       required: true,
@@ -45,5 +45,28 @@ const productSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+/** Expose populated ref as `collection` in JSON so the public API shape stays the same. */
+function mapScntCollectionForApi(ret) {
+  if (Object.prototype.hasOwnProperty.call(ret, "SCNTcollection")) {
+    ret.collection = ret.SCNTcollection;
+    delete ret.SCNTcollection;
+  }
+  return ret;
+}
+
+productSchema.set("toJSON", {
+  virtuals: true,
+  transform(_doc, ret) {
+    return mapScntCollectionForApi(ret);
+  },
+});
+
+productSchema.set("toObject", {
+  virtuals: true,
+  transform(_doc, ret) {
+    return mapScntCollectionForApi(ret);
+  },
+});
 
 module.exports = mongoose.model("Product", productSchema);

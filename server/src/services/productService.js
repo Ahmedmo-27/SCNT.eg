@@ -6,7 +6,7 @@ const { escapeRegex, normalizeArabicSearchInput } = require("../utils/searchText
 const buildProductFilters = async ({ collection, note, q, gender }) => {
   const and = [];
 
-  if (collection) and.push({ collection });
+  if (collection) and.push({ SCNTcollection: collection });
 
   if (gender && ["male", "female"].includes(String(gender).toLowerCase())) {
     and.push({ gender: String(gender).toLowerCase() });
@@ -61,7 +61,7 @@ const buildProductFilters = async ({ collection, note, q, gender }) => {
 
     const matchingCollectionIds = await Collection.find({ $or: collectionOr }).distinct("_id");
     if (matchingCollectionIds.length > 0) {
-      or.push({ collection: { $in: matchingCollectionIds } });
+      or.push({ SCNTcollection: { $in: matchingCollectionIds } });
     }
 
     and.push({ $or: or });
