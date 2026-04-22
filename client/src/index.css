@@ -50,6 +50,36 @@
   #root {
     @apply min-h-svh overflow-x-hidden;
   }
+
+  /* Ensure button-like controls always communicate clickability. */
+  :where(button, input[type='button'], input[type='submit'], input[type='reset'], a[role='button']) {
+    cursor: pointer;
+  }
+
+  :where(button:disabled, input[type='button']:disabled, input[type='submit']:disabled, input[type='reset']:disabled) {
+    cursor: not-allowed;
+  }
+
+  /* Wishlist controls: subtle scale + red intent on hover across the site. */
+  :where(
+    button[aria-label*='wishlist' i],
+    button[title*='wishlist' i],
+    a[aria-label*='wishlist' i],
+    a[title*='wishlist' i]
+  ) {
+    transition: color 180ms var(--ease-scnt), transform 180ms var(--ease-scnt);
+    transform-origin: center;
+  }
+
+  :where(
+    button[aria-label*='wishlist' i],
+    button[title*='wishlist' i],
+    a[aria-label*='wishlist' i],
+    a[title*='wishlist' i]
+  ):hover {
+    color: #c62828;
+    transform: scale(1.08);
+  }
 }
 
 @layer utilities {

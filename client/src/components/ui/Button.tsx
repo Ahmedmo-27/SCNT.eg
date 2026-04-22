@@ -23,7 +23,7 @@ type ButtonProps = Omit<
 }
 
 const base =
-  'group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full px-8 py-3 text-sm font-medium tracking-wide transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] disabled:pointer-events-none disabled:opacity-45'
+  'group relative inline-flex cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-full px-8 py-3 text-sm font-medium tracking-wide transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] disabled:pointer-events-none disabled:opacity-45'
 
 const variants: Record<NonNullable<ButtonProps['variant']>, string> = {
   primary:

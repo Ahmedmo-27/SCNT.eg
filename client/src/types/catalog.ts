@@ -12,6 +12,7 @@ export type ApiCollection = {
   name: string
   slug: string
   coverImage?: string
+  clearBackground_Image?: string
   themeColor: string
   tagline: string
   sub_tagline?: string
@@ -41,6 +42,8 @@ export type ApiProduct = {
   price: number
   size: string
   images: string[]
+  coverImage?: string
+  clearBackground_Image?: string
   topNotes: string[]
   heartNotes: string[]
   baseNotes: string[]
@@ -76,6 +79,7 @@ export type CollectionSummary = {
   code: string
   /** Card / hero image — from API or default file in `/collections/covers/` by slug */
   coverImage: string
+  clearBackground_Image: string
   tagline: string
   subTagline: string
   heroTagline: string
@@ -110,5 +114,7 @@ export type ProductSummary = {
   volume: string
   concentrationHint: string
   galleryImages: readonly [string, string, string]
+  coverImage?: string
+  clearBackground_Image?: string
   scentMood: ScentMood
 }

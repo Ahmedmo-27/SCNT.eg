@@ -230,12 +230,6 @@ export function ProductPage() {
                         ) : null}
                       </AnimatePresence>
                     </div>
-                    <Link
-                      to="/cart"
-                      className="text-sm text-scnt-text-muted transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:text-scnt-text"
-                    >
-                      {t('product.viewCart')}
-                    </Link>
                     <button
                       type="button"
                       onClick={handleToggleWishlist}
@@ -263,12 +257,6 @@ export function ProductPage() {
                       </svg>
                       {isWishlisted ? t('product.savedWishlist') : t('product.addWishlist')}
                     </button>
-                    <Link
-                      to="/wishlist"
-                      className="text-sm text-scnt-text-muted transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:text-scnt-text"
-                    >
-                      {t('product.viewWishlist')}
-                    </Link>
                   </div>
                 </div>
               </div>

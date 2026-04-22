@@ -8,7 +8,6 @@ import { useCartStore } from '../../store/cartStore'
 import type { CollectionId } from '../../types/catalog'
 import type { ProductSummary } from '../../types/catalog'
 import { productImageFrameFull, productImageFrameTop } from './productImageFrame'
-import { EightPointStar } from '../ui/EightPointStar'
 import { useCollectionVisual } from '../../context/CollectionVisualContext'
 import { Button } from '../ui/Button'
 import { useI18n } from '../../i18n/I18nContext'
@@ -271,19 +270,6 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                 ))}
               </div>
             )}
-            <div className="absolute end-4 top-4 z-[4] text-scnt-bg/90 opacity-0 transition-all duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:translate-y-0 group-hover:opacity-100 sm:translate-y-1">
-              <motion.span
-                initial={false}
-                whileHover={
-                  isExecutive || isIcon
-                    ? { scale: 1.04 }
-                    : { scale: 1.08, rotate: 12 }
-                }
-                transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <EightPointStar size={18} />
-              </motion.span>
-            </div>
           </div>
           <div className="space-y-2 px-5 py-6 text-center">
             <p
@@ -317,42 +303,41 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
             <p className="pt-1 text-sm text-scnt-text-muted">{formatEgp(product.price, locale)}</p>
           </div>
         </Link>
+        <button
+          type="button"
+          onClick={handleToggleWishlist}
+          className={`absolute end-4 top-4 z-[7] inline-flex h-10 w-10 items-center justify-center rounded-full border border-scnt-border/70 backdrop-blur-sm transition-colors ${
+            isWishlisted
+              ? 'bg-scnt-text text-scnt-bg'
+              : 'bg-scnt-bg-elevated/85 text-scnt-text-muted hover:text-scnt-text'
+          }`}
+          aria-label={
+            isWishlisted
+              ? t('pc.rmWishlist', { name: product.name })
+              : t('pc.addWishlist', { name: product.name })
+          }
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill={isWishlisted ? 'currentColor' : 'none'}
+            stroke="currentColor"
+            strokeWidth="1.8"
+            aria-hidden
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 21s-7-4.3-9-8.5C1.2 8.5 3.3 5 7 5c2 0 3.4 1 5 3 1.6-2 3-3 5-3 3.7 0 5.8 3.5 4 7.5C19 16.7 12 21 12 21z"
+            />
+          </svg>
+        </button>
         <div className="border-t border-scnt-border/75 px-5 pb-5 pt-4 text-center">
-          <div className="flex items-center justify-center gap-3">
-            <Button type="button" className="px-5 py-2 text-xs" onClick={handleAddToCart}>
+          <div className="space-y-2">
+            <Button type="button" className="w-full px-5 py-2 text-xs" onClick={handleAddToCart}>
               {t('pc.addToCart')}
             </Button>
-            <button
-              type="button"
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs transition-colors ${
-                isWishlisted
-                  ? 'bg-scnt-text/10 text-scnt-text'
-                  : 'bg-transparent text-scnt-text-muted hover:text-scnt-text'
-              }`}
-              onClick={handleToggleWishlist}
-              aria-label={
-                isWishlisted
-                  ? t('pc.rmWishlist', { name: product.name })
-                  : t('pc.addWishlist', { name: product.name })
-              }
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill={isWishlisted ? 'currentColor' : 'none'}
-                stroke="currentColor"
-                strokeWidth="1.8"
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 21s-7-4.3-9-8.5C1.2 8.5 3.3 5 7 5c2 0 3.4 1 5 3 1.6-2 3-3 5-3 3.7 0 5.8 3.5 4 7.5C19 16.7 12 21 12 21z"
-                />
-              </svg>
-              {isWishlisted ? t('pc.saved') : t('pc.wishlist')}
-            </button>
             {justAdded ? (
               <span className="text-xs text-scnt-text-muted">{t('pc.added')}</span>
             ) : null}

@@ -31,6 +31,7 @@ export type AdminCollection = {
   name: string
   slug: string
   coverImage?: string
+  clearBackground_Image?: string
   themeColor?: string
   tagline?: string
   sub_tagline?: string
@@ -59,6 +60,7 @@ export type AdminProduct = {
   price: number
   size?: string
   description?: string
+  coverImage?: string
   stock: number
 }
 

@@ -67,6 +67,7 @@ type ProductForm = {
   size: string
   stock: string
   images: string
+  coverImage: string
   topNotes: string
   heartNotes: string
   baseNotes: string
@@ -83,6 +84,7 @@ const emptyProductForm: ProductForm = {
   size: '100ml',
   stock: '0',
   images: '',
+  coverImage: '',
   topNotes: '',
   heartNotes: '',
   baseNotes: '',
@@ -94,6 +96,7 @@ const emptyCollectionForm: CollectionForm = {
   name: '',
   slug: '',
   coverImage: '',
+  clearBackground_Image: '',
   themeColor: '',
   tagline: '',
   sub_tagline: '',
@@ -231,6 +234,7 @@ export function AdminPage() {
       size: item.size ?? '100ml',
       stock: String(item.stock ?? 0),
       images: '',
+      coverImage: item.coverImage || '',
       topNotes: '',
       heartNotes: '',
       baseNotes: '',
@@ -258,6 +262,7 @@ export function AdminPage() {
         size: productForm.size.trim(),
         stock: Number(productForm.stock || 0),
         images: toCsvList(productForm.images),
+        coverImage: productForm.coverImage.trim(),
         topNotes: toCsvList(productForm.topNotes),
         heartNotes: toCsvList(productForm.heartNotes),
         baseNotes: toCsvList(productForm.baseNotes),
@@ -296,6 +301,7 @@ export function AdminPage() {
       name: item.name,
       slug: item.slug,
       coverImage: item.coverImage || '',
+      clearBackground_Image: item.clearBackground_Image || '',
       themeColor: item.themeColor || '',
       tagline: item.tagline || '',
       sub_tagline: item.sub_tagline || '',
@@ -312,6 +318,7 @@ export function AdminPage() {
         name: collectionForm.name.trim(),
         slug: collectionForm.slug.trim(),
         coverImage: collectionForm.coverImage?.trim() || '',
+        clearBackground_Image: collectionForm.clearBackground_Image?.trim() || '',
         themeColor: collectionForm.themeColor?.trim() || '',
         tagline: collectionForm.tagline?.trim() || '',
         sub_tagline: collectionForm.sub_tagline?.trim() || '',
@@ -519,6 +526,7 @@ export function AdminPage() {
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Stock" type="number" value={productForm.stock} onChange={(e) => setProductForm((s) => ({ ...s, stock: e.target.value }))} required />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Size (e.g. 100ml)" value={productForm.size} onChange={(e) => setProductForm((s) => ({ ...s, size: e.target.value }))} />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 md:col-span-2" placeholder="Image URLs (comma separated)" value={productForm.images} onChange={(e) => setProductForm((s) => ({ ...s, images: e.target.value }))} />
+                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 md:col-span-2" placeholder="Cover image URL or path (optional)" value={productForm.coverImage} onChange={(e) => setProductForm((s) => ({ ...s, coverImage: e.target.value }))} />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Top notes (comma separated)" value={productForm.topNotes} onChange={(e) => setProductForm((s) => ({ ...s, topNotes: e.target.value }))} />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Heart notes (comma separated)" value={productForm.heartNotes} onChange={(e) => setProductForm((s) => ({ ...s, heartNotes: e.target.value }))} />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 md:col-span-2" placeholder="Base notes (comma separated)" value={productForm.baseNotes} onChange={(e) => setProductForm((s) => ({ ...s, baseNotes: e.target.value }))} />
@@ -555,6 +563,7 @@ export function AdminPage() {
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Name" value={collectionForm.name} onChange={(e) => setCollectionForm((s) => ({ ...s, name: e.target.value }))} required />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Slug" value={collectionForm.slug} onChange={(e) => setCollectionForm((s) => ({ ...s, slug: e.target.value }))} required />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 md:col-span-2" placeholder="Cover image URL or path (e.g. /collections/covers/The%20Explorer.png)" value={collectionForm.coverImage || ''} onChange={(e) => setCollectionForm((s) => ({ ...s, coverImage: e.target.value }))} />
+                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 md:col-span-2" placeholder="Clear background image URL or path (e.g. /Products/The%20Executive%20Collection%20Bottle%20Mockup%20(Front).png)" value={collectionForm.clearBackground_Image || ''} onChange={(e) => setCollectionForm((s) => ({ ...s, clearBackground_Image: e.target.value }))} />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Theme color" value={collectionForm.themeColor || ''} onChange={(e) => setCollectionForm((s) => ({ ...s, themeColor: e.target.value }))} />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Tagline" value={collectionForm.tagline || ''} onChange={(e) => setCollectionForm((s) => ({ ...s, tagline: e.target.value }))} />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 md:col-span-2" placeholder="Sub tagline" value={collectionForm.sub_tagline || ''} onChange={(e) => setCollectionForm((s) => ({ ...s, sub_tagline: e.target.value }))} />

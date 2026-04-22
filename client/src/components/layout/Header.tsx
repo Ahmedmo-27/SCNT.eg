@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { getStoredAuthToken } from '../../lib/authStorage'
 import { Logo } from '../brand/Logo'
 import { useCatalog } from '../../context/CatalogContext'
+import { useSectionScroll } from '../../context/SectionScrollContext'
 import { sortCollectionsForDisplay } from '../../lib/catalogDisplayOrder'
 import { fetchProductsByQuery } from '../../services/productSearch'
 import { localizedCollectionName, localizedProductName } from '../../lib/catalogMappers'
@@ -86,6 +87,7 @@ const navText = 'text-scnt-text/90 hover:text-scnt-text'
 export function Header() {
   const { t, locale, setLocale } = useI18n()
   const { collections, previewImageByCollectionId } = useCatalog()
+  const { activeSectionIndex } = useSectionScroll()
   const wishlistCount = useWishlistStore((s) => s.items.length)
   const cartCount = useCartStore((s) => s.items.length)
   const navCollections = useMemo(() => sortCollectionsForDisplay(collections), [collections])
@@ -238,8 +240,9 @@ export function Header() {
     'inline-flex items-center justify-center rounded-full p-2 text-scnt-text-muted transition-colors hover:bg-scnt-border/40 hover:text-scnt-text'
 
   const productSearchActive = searchQuery.trim().length > 0
+  const isOnCollectionPage = activeSectionIndex > 0
   const navbarUsesScrolledShape =
-    scrolled &&
+    (scrolled || isOnCollectionPage) &&
     !(preserveHeroForSearch && productSearchActive && scrollY <= SEARCH_HERO_LOCK_CLEAR_PX)
   const topTransparent =
     !sideOpen &&

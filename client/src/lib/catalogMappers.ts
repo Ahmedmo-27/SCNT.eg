@@ -107,6 +107,7 @@ export function mapApiCollectionToSummary(c: ApiCollection, locale: Locale = 'en
     name,
     code: c.slug.replace(/-/g, ' ').toUpperCase(),
     coverImage: resolveCollectionCoverImage(c),
+    clearBackground_Image: c.clearBackground_Image?.trim() || '',
     tagline: tag,
     subTagline: sub,
     heroTagline: tag,
@@ -133,6 +134,10 @@ export function mapApiProductToSummary(p: ApiProduct, locale: Locale = 'en'): Pr
   const name = (ar?.name?.trim() ? ar.name : p.name).trim() || p.name
   const inspiredBy = (ar?.inspired_from?.trim() ? ar.inspired_from : p.inspired_from).trim() || p.inspired_from
   const volume = (ar?.size?.trim() ? ar.size : p.size || '100 ml').trim() || '100 ml'
+  const collectionCoverImage = pop?.coverImage?.trim() || ''
+  const collectionClearBackgroundImage = pop?.clearBackground_Image?.trim() || ''
+  const coverImage = p.coverImage?.trim() || collectionCoverImage
+  const clearBackgroundImage = p.clearBackground_Image?.trim() || collectionClearBackgroundImage
 
   return {
     apiId: p._id,
@@ -153,6 +158,8 @@ export function mapApiProductToSummary(p: ApiProduct, locale: Locale = 'en'): Pr
     volume,
     concentrationHint: 'High concentration · Exceptional longevity',
     galleryImages: galleryTuple(p.images ?? []),
+    coverImage: coverImage || undefined,
+    clearBackground_Image: clearBackgroundImage || undefined,
     scentMood: scentMoodForCollection(cid),
   }
 }

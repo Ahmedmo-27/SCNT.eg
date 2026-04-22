@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { CartPage } from './pages/CartPage'
 import { CollectionDetailPage } from './pages/CollectionDetailPage'
@@ -29,10 +29,40 @@ function ScrollToTop() {
   return null
 }
 
+function RouteScrollLock() {
+  const { pathname } = useLocation()
+  const lockScroll = pathname === '/collections' || pathname.startsWith('/collections/')
+
+  useLayoutEffect(() => {
+    if (!lockScroll) return
+
+    const { body, documentElement } = document
+    const previousBodyOverflow = body.style.overflow
+    const previousHtmlOverflow = documentElement.style.overflow
+    const previousBodyOverscroll = body.style.overscrollBehavior
+    const previousHtmlOverscroll = documentElement.style.overscrollBehavior
+
+    body.style.overflow = 'hidden'
+    documentElement.style.overflow = 'hidden'
+    body.style.overscrollBehavior = 'none'
+    documentElement.style.overscrollBehavior = 'none'
+
+    return () => {
+      body.style.overflow = previousBodyOverflow
+      documentElement.style.overflow = previousHtmlOverflow
+      body.style.overscrollBehavior = previousBodyOverscroll
+      documentElement.style.overscrollBehavior = previousHtmlOverscroll
+    }
+  }, [lockScroll])
+
+  return null
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <RouteScrollLock />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<ShopAllPage />} />
