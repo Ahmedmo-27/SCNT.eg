@@ -14,12 +14,8 @@ export function BrandHeritage() {
         transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
         className="flex w-full flex-col pr-0 sm:w-1/2 sm:pr-20"
       >
-        <span className="mb-4 text-xs uppercase tracking-[0.4em] text-scnt-text-muted">
-          {t('home.heritage.kicker')}
-        </span>
         <h2 className="font-serif text-4xl font-medium leading-[1.15] text-scnt-text sm:text-5xl lg:text-6xl text-balance">
-          {t('home.heritage.title')}{' '}
-          <span className="italic text-scnt-text/85 block mt-2 sm:mt-1">{t('home.heritage.titleItalic')}</span>
+          {t('home.heritage.title')}
         </h2>
         <p className="mt-5 max-w-md text-sm leading-relaxed text-scnt-text-muted sm:text-base">
           {t('home.heritage.body')}
