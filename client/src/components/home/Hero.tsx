@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useI18n } from '../../i18n/I18nContext'
 import { Button } from '../ui/Button'
 import { EightPointStar } from '../ui/EightPointStar'
@@ -26,12 +26,6 @@ export function Hero() {
   const { t } = useI18n()
   const ref = useRef<HTMLElement>(null)
   const reduceMotion = useReducedMotion()
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start start', 'end start'],
-  })
-  const yOrb = useTransform(scrollYProgress, (p) => (reduceMotion ? 0 : p * 28))
-  const yMist = useTransform(scrollYProgress, (p) => (reduceMotion ? 0 : p * 16))
 
   const floatProps = (duration: number, delay = 0) =>
     reduceMotion
@@ -64,38 +58,23 @@ export function Hero() {
       ref={ref}
       className="relative min-h-[min(88vh,900px)] overflow-hidden px-5 pb-28 pt-20 sm:px-8 sm:pb-36 sm:pt-28"
     >
-      {/* Soft vignette + depth */}
+      <picture className="pointer-events-none absolute inset-0 z-0">
+        <source srcSet="/Hero%20Section%20Image.png" type="image/png" />
+        <img
+          src="/Hero%20Section%20Image.png"
+          alt=""
+          className="h-full w-full object-cover object-center"
+          aria-hidden="true"
+        />
+      </picture>
+      <div className="pointer-events-none absolute inset-0 z-0 bg-scnt-bg/40" aria-hidden="true" />
       <div
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_70%_at_50%_38%,transparent_0%,rgba(42,38,34,0.035)_100%)]"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-b from-transparent via-scnt-bg-muted/20 to-scnt-bg-muted/45"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-44 bg-gradient-to-b from-transparent via-scnt-bg-muted/40 to-scnt-bg-muted"
         aria-hidden
       />
 
       <motion.div
-        style={reduceMotion ? undefined : { y: yOrb }}
-        className="pointer-events-none absolute -left-[12%] top-[6%] h-[min(460px,58vw)] w-[min(460px,58vw)] rounded-full bg-gradient-to-br from-white/30 via-amber-50/12 to-transparent blur-3xl"
-        aria-hidden
-      />
-      <motion.div
-        style={reduceMotion ? undefined : { y: yMist }}
-        className="pointer-events-none absolute -right-[8%] top-[18%] h-[min(380px,50vw)] w-[min(380px,50vw)] rounded-full bg-gradient-to-bl from-collection-icon/15 via-slate-300/12 to-transparent blur-3xl"
-        aria-hidden
-      />
-      <motion.div
-        style={reduceMotion ? undefined : { y: yMist }}
-        className="pointer-events-none absolute bottom-[8%] left-[28%] h-[min(300px,42vw)] w-[min(300px,42vw)] rounded-full bg-gradient-to-t from-amber-100/22 to-transparent blur-3xl"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute left-1/2 top-[42%] h-[min(520px,85vw)] w-[min(720px,120%)] max-w-4xl -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(ellipse_55%_45%_at_50%_50%,rgba(184,155,94,0.09),transparent_72%)]"
-        aria-hidden
-      />
-
-      <motion.div
-        className="pointer-events-none absolute left-[10%] top-[28%] text-scnt-text/[0.08]"
+        className="pointer-events-none absolute left-[10%] top-[28%] z-0 text-scnt-text/[0.15]"
         initial={{ y: 0, rotate: 0 }}
         {...floatProps(14)}
         aria-hidden
@@ -103,7 +82,7 @@ export function Hero() {
         <EightPointStar size={16} />
       </motion.div>
       <motion.div
-        className="pointer-events-none absolute right-[12%] top-[36%] text-scnt-text/[0.07]"
+        className="pointer-events-none absolute right-[12%] top-[36%] z-0 text-scnt-text/[0.12]"
         initial={{ y: 0, rotate: 0 }}
         {...floatPropsAlt(17, 1.2)}
         aria-hidden
@@ -111,7 +90,7 @@ export function Hero() {
         <EightPointStar size={12} />
       </motion.div>
       <motion.div
-        className="pointer-events-none absolute bottom-[32%] left-[8%] text-collection-icon/[0.12] sm:left-[14%]"
+        className="pointer-events-none absolute bottom-[32%] left-[8%] z-0 text-collection-icon/[0.2] sm:left-[14%]"
         initial={{ y: 0, rotate: 0 }}
         {...floatPropsAlt(19, 2.4)}
         aria-hidden
@@ -119,7 +98,7 @@ export function Hero() {
         <EightPointStar size={10} />
       </motion.div>
 
-      <div className="relative mx-auto flex min-h-[min(52vh,540px)] max-w-3xl flex-col justify-center text-center">
+      <div className="relative z-10 mx-auto flex min-h-[min(52vh,540px)] max-w-3xl flex-col justify-center text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
