@@ -16,11 +16,12 @@ const container = {
 }
 
 const item = {
-  hidden: { opacity: 0, y: 26 },
+  hidden: { opacity: 0, y: 30, filter: 'blur(8px)' },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] as const },
+    filter: 'blur(0px)',
+    transition: { duration: 1.2, ease: [0.22, 1, 0.36, 1] as const },
   },
 }
 
@@ -30,14 +31,14 @@ export function FeaturedCollections() {
 
   if (loading) {
     return (
-      <section className="relative border-t border-scnt-border/80 bg-gradient-to-b from-scnt-bg-muted/25 via-scnt-bg/40 to-scnt-bg px-5 py-24 sm:px-8 sm:py-28">
+      <section className="relative border-t border-scnt-border/80 bg-gradient-to-b from-scnt-bg-muted/25 via-scnt-bg/40 to-scnt-bg px-5 py-24 sm:px-8 sm:py-32 lg:px-24 lg:py-40">
         <StarLoader className="py-16" label={t('home.fc.loading')} />
       </section>
     )
   }
 
   return (
-    <section className="relative border-t border-scnt-border/80 bg-gradient-to-b from-scnt-bg-muted/25 via-scnt-bg/40 to-scnt-bg px-5 py-24 sm:px-8 sm:py-28">
+    <section className="relative border-t border-scnt-border/80 bg-gradient-to-b from-scnt-bg-muted/25 via-scnt-bg/40 to-scnt-bg px-5 py-24 sm:px-8 sm:py-32 lg:px-24 lg:py-40">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-scnt-border to-transparent opacity-80" />
 
       <div className="mx-auto max-w-6xl">

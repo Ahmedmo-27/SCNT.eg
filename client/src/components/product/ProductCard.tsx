@@ -212,7 +212,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                 <img
                   src={product.galleryImages[imageIndex]}
                   alt=""
-                  className="block h-full w-full object-contain object-center"
+                  className="block h-full w-full object-contain object-center transition-[transform,filter] duration-700 ease-out group-hover/card:scale-105"
                   loading="lazy"
                   decoding="async"
                   draggable={false}
@@ -273,6 +273,19 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                 ))}
               </div>
             )}
+            {/* Glassmorphism Add to Cart Reveal (Desktop only) */}
+            <div className="absolute inset-x-0 bottom-6 z-[6] hidden items-center justify-center px-6 sm:flex pointer-events-none">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  handleAddToCart()
+                }}
+                className="pointer-events-auto flex w-[90%] translate-y-6 items-center justify-center rounded-full border border-white/10 bg-black/30 px-6 py-3.5 text-[0.65rem] tracking-[0.2em] font-medium uppercase text-white opacity-0 shadow-lg backdrop-blur-md transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover/card:translate-y-0 group-hover/card:opacity-100 hover:bg-black/50 hover:scale-[1.02]"
+              >
+                {t('pc.addToCart')}
+              </button>
+            </div>
           </div>
           <div className="space-y-2 px-5 py-6 text-center">
             <p
@@ -336,7 +349,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
             />
           </svg>
         </button>
-        <div className="border-t border-scnt-border/75 px-5 pb-5 pt-4 text-center">
+        <div className="border-t border-scnt-border/75 px-5 pb-5 pt-4 text-center sm:hidden">
           <div className="space-y-2">
             <Button type="button" className="w-full px-5 py-2 text-xs" onClick={handleAddToCart}>
               {t('pc.addToCart')}

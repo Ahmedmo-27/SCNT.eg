@@ -60,6 +60,11 @@ export const arSite: Record<string, string> = {
     'ليست تصنيفات — بل أشخاص. اختر الخط الذي يشبهك، ثم العطر الذي يلائم مزاجك.',
   'home.fc.enter': 'دخول المجموعة',
 
+  'home.heritage.kicker': 'فن الاستخلاص',
+  'home.heritage.title': 'تُقطف في ',
+  'home.heritage.titleItalic': 'الساعة الذهبية.',
+  'home.heritage.body': 'تُحصد موادنا الخام يدوياً عند الفجر حصراً، لضمان توازن الزيوت العطرية تماماً قبل أن تمسها الشمس. نية خالصة، محفوظة في زجاجة.',
+
   'home.gender.kicker': 'تنقل سريع',
   'home.gender.title': 'تسوق حسب الجنس',
   'home.gender.sub': 'ابدأ بشكل عام، ثم اضبط حسب الخط والمكونات.',

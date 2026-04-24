@@ -60,6 +60,11 @@ export const enSite: Record<string, string> = {
     'Not categories — people. Pick the line that sounds like you, then find the fragrance that fits your mood.',
   'home.fc.enter': 'Enter collection',
 
+  'home.heritage.kicker': 'The Art of Extraction',
+  'home.heritage.title': 'Captured at the ',
+  'home.heritage.titleItalic': 'golden hour.',
+  'home.heritage.body': 'Our raw materials are hand-harvested exclusively at dawn, ensuring the essential oils remain perfectly balanced before the sun touches them. Pure intent, preserved in glass.',
+
   'home.gender.kicker': 'Quick navigation',
   'home.gender.title': 'Shop by gender',
   'home.gender.sub': 'Start broad, then refine by line and notes.',

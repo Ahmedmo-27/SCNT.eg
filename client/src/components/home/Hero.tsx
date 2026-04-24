@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion'
 import { useI18n } from '../../i18n/I18nContext'
 import { Button } from '../ui/Button'
 import { EightPointStar } from '../ui/EightPointStar'
@@ -9,16 +9,17 @@ const headlineContainer = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.14, delayChildren: 0.06 },
+    transition: { staggerChildren: 0.25, delayChildren: 0.1 },
   },
 }
 
 const headlineLine = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: { opacity: 0, y: 30, filter: 'blur(8px)' },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.9, ease: [0.22, 1, 0.36, 1] as const },
+    filter: 'blur(0px)',
+    transition: { duration: 1.4, ease: [0.22, 1, 0.36, 1] as const },
   },
 }
 
@@ -26,6 +27,13 @@ export function Hero() {
   const { t } = useI18n()
   const ref = useRef<HTMLElement>(null)
   const reduceMotion = useReducedMotion()
+  
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start start', 'end start'],
+  })
+  const y = useTransform(scrollYProgress, [0, 1], ['0%', '25%'])
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.05])
 
   const floatProps = (duration: number, delay = 0) =>
     reduceMotion
@@ -58,7 +66,13 @@ export function Hero() {
       ref={ref}
       className="relative min-h-[min(88vh,900px)] overflow-hidden px-5 pb-28 pt-20 sm:px-8 sm:pb-36 sm:pt-28"
     >
-      <picture className="pointer-events-none absolute inset-0 z-0">
+      <motion.picture 
+        className="pointer-events-none absolute inset-0 z-0 origin-top"
+        style={{ y, scale }}
+        initial={{ scale: 1.1, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 2.5, ease: 'easeOut' }}
+      >
         <source srcSet="/Hero%20Section%20Image.png" type="image/png" />
         <img
           src="/Hero%20Section%20Image.png"
@@ -66,7 +80,7 @@ export function Hero() {
           className="h-full w-full object-cover object-center"
           aria-hidden="true"
         />
-      </picture>
+      </motion.picture>
       <div className="pointer-events-none absolute inset-0 z-0 bg-scnt-bg/40" aria-hidden="true" />
       <div
         className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-44 bg-gradient-to-b from-transparent via-scnt-bg-muted/40 to-scnt-bg-muted"

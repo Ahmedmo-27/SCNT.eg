@@ -14,11 +14,12 @@ const grid = {
 }
 
 const cell = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 30, filter: 'blur(8px)' },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.72, ease: [0.22, 1, 0.36, 1] as const },
+    filter: 'blur(0px)',
+    transition: { duration: 1.2, ease: [0.22, 1, 0.36, 1] as const },
   },
 }
 
@@ -29,22 +30,22 @@ export function BestSellers() {
 
   if (loading) {
     return (
-      <section className="relative px-5 py-24 sm:px-8 sm:py-28">
+      <section className="relative px-5 py-32 sm:px-8 sm:py-40 lg:px-24">
         <StarLoader className="py-16" label={t('home.bs.loading')} />
       </section>
     )
   }
 
   return (
-    <section className="relative px-5 py-24 sm:px-8 sm:py-28">
+    <section className="relative px-5 py-32 sm:px-8 sm:py-40 lg:px-24">
       <div className="pointer-events-none absolute inset-x-8 top-0 hidden h-px bg-gradient-to-r from-transparent via-scnt-border/70 to-transparent sm:block" />
 
       <div className="mx-auto max-w-6xl">
         <motion.header
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
+          whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
           viewport={{ once: true, margin: '-40px' }}
-          transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
           className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between"
         >
           <div>
