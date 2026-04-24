@@ -111,11 +111,52 @@ useEffect(() => {
       }
     }
 
+    let touchStartY = 0
+    let touchStartX = 0
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return
+      touchStartY = e.touches[0].clientY
+      touchStartX = e.touches[0].clientX
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (lockRef.current) {
+        e.preventDefault()
+      }
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (lockRef.current) return
+      if (isEditableTarget(e.target)) return
+      if (e.changedTouches.length !== 1) return
+
+      const touchEndY = e.changedTouches[0].clientY
+      const touchEndX = e.changedTouches[0].clientX
+      
+      const deltaY = touchStartY - touchEndY
+      const deltaX = touchStartX - touchEndX
+
+      // If horizontal swipe is more significant than vertical, ignore it (could be a carousel)
+      if (Math.abs(deltaX) > Math.abs(deltaY)) return
+
+      if (Math.abs(deltaY) < 40) return // Swipe threshold
+
+      requestLock()
+      deltaY > 0 ? next() : prev()
+    }
+
     root.addEventListener('wheel', onWheel, { passive: false })
     root.addEventListener('keydown', onKeyDown)
+    root.addEventListener('touchstart', onTouchStart, { passive: true })
+    root.addEventListener('touchmove', onTouchMove, { passive: false })
+    root.addEventListener('touchend', onTouchEnd)
     return () => {
       root.removeEventListener('wheel', onWheel as EventListener)
       root.removeEventListener('keydown', onKeyDown)
+      root.removeEventListener('touchstart', onTouchStart)
+      root.removeEventListener('touchmove', onTouchMove)
+      root.removeEventListener('touchend', onTouchEnd)
     }
   }, [cooldownMs, sections.length])
 
