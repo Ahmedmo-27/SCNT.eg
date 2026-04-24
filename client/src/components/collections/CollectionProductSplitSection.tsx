@@ -54,7 +54,7 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
   }
 
   return (
-    <div className="relative min-h-[calc(100svh-var(--scnt-header-h,5.5rem))]">
+    <div className="relative h-[calc(100svh-var(--scnt-header-h,5.5rem))] lg:h-auto lg:min-h-[calc(100svh-var(--scnt-header-h,5.5rem))]">
       <div
         className="pointer-events-none absolute inset-0 -z-10 opacity-95"
         style={{
@@ -64,8 +64,8 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
       />
 
       <div className="relative mx-auto h-full w-full overflow-hidden">
-        <div className="grid h-full min-h-[62rem] w-full items-stretch lg:min-h-[calc(100svh-var(--scnt-header-h,5.5rem))] lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.64fr)_minmax(0,1.16fr)]">
-          <div className="relative flex flex-col justify-center px-5 pb-10 pt-4 sm:px-8 md:pb-12 md:pt-4 lg:pe-12">
+        <div className="flex h-full w-full flex-col lg:grid lg:min-h-[calc(100svh-var(--scnt-header-h,5.5rem))] lg:grid-cols-[minmax(0,1.02fr)_minmax(0,0.64fr)_minmax(0,1.16fr)] lg:items-stretch">
+          <div className="order-2 flex h-[70%] flex-col justify-start px-5 py-8 pb-12 lg:order-1 lg:h-auto lg:justify-center lg:overflow-visible lg:px-8 lg:py-4 lg:pe-12">
             <div className="w-full max-w-[53rem]">
               <p className="mb-3 inline-flex items-center gap-2 text-[0.68rem] uppercase tracking-[0.34em] text-scnt-text/70">
                 <EightPointStar size={9} className="opacity-45" />
@@ -82,12 +82,12 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
                 </Link>
               </div>
 
-              <p className="mt-5 max-w-xl whitespace-pre-line text-[0.94rem] leading-relaxed text-scnt-text/78">
+              <p className="mt-5 hidden max-w-xl whitespace-pre-line text-[0.94rem] leading-relaxed text-scnt-text/78 md:block">
                 {product.vibeSentence}
               </p>
 
-              <div className="relative z-40 mt-6 max-w-[42rem] rounded-3xl border border-scnt-border/70 bg-scnt-bg-elevated/55 p-4 backdrop-blur-sm sm:p-5">
-                <div className="grid grid-cols-3 gap-3 sm:gap-4">
+              <div className="relative z-40 mt-6 flex max-w-[42rem] flex-col gap-5 md:gap-6 md:rounded-3xl md:border md:border-scnt-border/70 md:bg-scnt-bg-elevated/55 md:p-4 md:backdrop-blur-sm lg:p-5">
+                <div className="hidden grid-cols-3 gap-3 sm:gap-4 md:grid">
                   <div>
                     <p className="text-[1.25rem] uppercase tracking-[0.3em] text-scnt-text/60">Top</p>
                     <p className="mt-1.5 text-[1.15rem] text-scnt-text">{firstOrDash(product.topNotes)}</p>
@@ -103,13 +103,13 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
                 </div>
 
                 {product.inspiredBy ? (
-                  <div className="mt-6">
+                  <div>
                     <p className="text-[0.62rem] uppercase tracking-[0.3em] text-scnt-text/60">Inspired By</p>
                     <p className="mt-1.5 text-[1.3rem] font-serif italic leading-none text-scnt-text sm:text-[1.8rem]">{product.inspiredBy}</p>
                   </div>
                 ) : null}
 
-                <div className="mt-6 rounded-2xl border border-scnt-border/70 bg-scnt-bg/68 p-4">
+                <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/68 p-4">
                   <p className="font-serif text-[1.45rem] leading-none text-scnt-text">{formatEgp(product.price, locale)}</p>
 
                   <div className="mt-4">
@@ -118,11 +118,10 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
                       <button
                         type="button"
                         onClick={() => setSelectedSize(product.volume)}
-                        className={`rounded-xl border px-4 py-2 text-[0.88rem] font-semibold transition-all ${
-                          selectedSize === product.volume
-                            ? 'border-scnt-text bg-scnt-text text-scnt-bg'
-                            : 'border-scnt-border/60 bg-scnt-bg text-scnt-text hover:border-scnt-text'
-                        }`}
+                        className={`rounded-xl border px-4 py-2 text-[0.88rem] font-semibold transition-all ${selectedSize === product.volume
+                          ? 'border-scnt-text bg-scnt-text text-scnt-bg'
+                          : 'border-scnt-border/60 bg-scnt-bg text-scnt-text hover:border-scnt-text'
+                          }`}
                       >
                         {product.volume}
                       </button>
@@ -162,28 +161,28 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
             </div>
           </div>
 
-          <div className="relative z-30 flex items-center justify-center overflow-hidden border-y border-scnt-border/40 bg-scnt-bg/28 px-6 py-10 lg:overflow-visible lg:border-x lg:border-y-0">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex h-[30%] items-center justify-center lg:pointer-events-auto lg:relative lg:order-2 lg:h-auto lg:border-x lg:border-scnt-border/40 lg:bg-scnt-bg/28 lg:px-6 lg:py-10 lg:overflow-visible">
             {bottleSrc ? (
               <img
                 src={bottleSrc}
                 alt=""
-                className="relative z-30 scale-[1.1] max-h-[80vh] w-[min(31rem,100%)] object-contain object-center lg:translate-x-[25%]"
+                className="relative z-30 h-[120%] max-h-[50vh] w-auto object-contain object-center drop-shadow-2xl translate-y-5 lg:translate-y-0 lg:h-auto lg:max-h-[80vh] lg:w-[min(31rem,100%)] lg:scale-[1.1] lg:translate-x-[25%]"
                 loading="lazy"
                 decoding="async"
               />
             ) : (
-              <div className="grid h-[28rem] w-[min(31rem,100%)] place-items-center bg-scnt-bg-elevated/35">
+              <div className="hidden h-[28rem] w-[min(31rem,100%)] place-items-center bg-scnt-bg-elevated/35 lg:grid">
                 <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">Image slot</p>
               </div>
             )}
 
             <div
-              className="pointer-events-none absolute inset-0"
+              className="pointer-events-none absolute inset-0 hidden lg:block"
               aria-hidden
             />
           </div>
 
-          <div className="relative z-10 hidden overflow-hidden border-s border-scnt-border/40 lg:-ml-24 lg:block lg:w-[calc(100%+6rem)]">
+          <div className="relative z-10 order-1 h-[30%] w-full overflow-hidden border-b border-scnt-border/40 lg:order-3 lg:-ml-24 lg:block lg:h-auto lg:w-[calc(100%+6rem)] lg:border-b-0 lg:border-s">
             {coverSrc ? (
               <img
                 src={coverSrc}
