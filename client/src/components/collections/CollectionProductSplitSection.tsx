@@ -109,7 +109,7 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
                   </div>
                 ) : null}
 
-                <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/68 p-4">
+                <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/68 p-4 md:rounded-none md:border-none md:bg-transparent md:p-0">
                   <p className="font-serif text-[1.45rem] leading-none text-scnt-text">{formatEgp(product.price, locale)}</p>
 
                   <div className="mt-4">
@@ -161,14 +161,14 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
             </div>
           </div>
 
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex h-[clamp(10rem,26svh,16rem)] items-center justify-center lg:pointer-events-auto lg:relative lg:order-2 lg:h-auto lg:items-center lg:border-x lg:border-scnt-border/40 lg:bg-scnt-bg/28 lg:px-6 lg:py-10 lg:overflow-visible">
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex h-[clamp(12rem,30svh,18rem)] items-center justify-center lg:pointer-events-auto lg:relative lg:order-2 lg:h-auto lg:items-center lg:border-x lg:border-scnt-border/40 lg:bg-scnt-bg/28 lg:px-6 lg:py-10 lg:overflow-visible">
             {bottleSrc ? (
               <picture>
                 <source srcSet={bottleSrc} type="image/png" />
                 <img
                   src={bottleSrc}
                   alt=""
-                  className="relative z-30 h-[clamp(9rem,24svh,13.5rem)] sm:h-[clamp(10rem,26svh,14.5rem)] md:h-[clamp(12rem,28svh,16rem)] w-auto object-contain drop-shadow-2xl -translate-y-[clamp(0.5rem,1svh,1.5rem)] lg:translate-y-0 lg:h-auto lg:max-h-[80vh] lg:w-[min(31rem,100%)] lg:scale-[1.1] lg:translate-x-[25%]"
+                  className="relative z-30 h-[clamp(9rem,23svh,15rem)] sm:h-[clamp(12rem,30svh,16rem)] md:h-[clamp(14rem,32svh,19rem)] w-auto object-contain drop-shadow-2xl -translate-y-[clamp(0.5rem,1svh,1.5rem)] lg:translate-y-0 lg:h-auto lg:max-h-[80vh] lg:w-[min(31rem,100%)] lg:scale-[1.1] lg:translate-x-[25%]"
                   loading="lazy"
                   decoding="async"
                 />
@@ -185,7 +185,7 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
             />
           </div>
 
-          <div className="relative z-10 order-1 h-[clamp(8rem,22svh,15rem)] w-full overflow-hidden border-b border-scnt-border/40 lg:order-3 lg:-ml-24 lg:block lg:h-auto lg:w-[calc(100%+6rem)] lg:border-b-0 lg:border-s">
+          <div className="relative z-10 order-1 h-[clamp(9rem,22svh,16rem)] w-full overflow-hidden border-b border-scnt-border/40 lg:order-3 lg:-ml-24 lg:block lg:h-auto lg:w-[calc(100%+6rem)] lg:border-b-0 lg:border-s">
             {coverSrc ? (
               <picture>
                 <source srcSet={coverSrc} type="image/png" />
