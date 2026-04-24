@@ -52,12 +52,15 @@ export function WishlistPage() {
                   className="rounded-2xl border border-scnt-border bg-scnt-bg-elevated/45 p-4 backdrop-blur-sm sm:p-5"
                 >
                   <Link to={`/product/${item.slug}`} className="block">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="h-52 w-full rounded-xl object-cover ring-1 ring-scnt-border/80"
-                      loading="lazy"
-                    />
+                    <picture>
+                      <source srcSet={item.image} type="image/png" />
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="h-52 w-full rounded-xl object-cover ring-1 ring-scnt-border/80"
+                        loading="lazy"
+                      />
+                    </picture>
                     <div className="mt-4">
                       <p className="text-[0.65rem] uppercase tracking-[0.18em] text-scnt-text-muted">
                         {item.collection}

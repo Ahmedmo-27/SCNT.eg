@@ -207,14 +207,17 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
             <div
               className={`pointer-events-none absolute inset-0 z-[1] overflow-hidden ${productImageFrameTop}`}
             >
-              <img
-                src={product.galleryImages[imageIndex]}
-                alt=""
-                className="block h-full w-full object-contain object-center"
-                loading="lazy"
-                decoding="async"
-                draggable={false}
-              />
+              <picture>
+                <source srcSet={product.galleryImages[imageIndex]} type="image/png" />
+                <img
+                  src={product.galleryImages[imageIndex]}
+                  alt=""
+                  className="block h-full w-full object-contain object-center"
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                />
+              </picture>
             </div>
             {carousel && imagesCount > 1 && (
               <div className="absolute inset-x-0 top-1/2 z-[5] flex -translate-y-1/2 justify-between px-1 sm:px-2">

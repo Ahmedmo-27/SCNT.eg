@@ -12,6 +12,7 @@ type Choice = {
   title: string
   subtitle: string
   aura: string
+  imageUrl: string
   score: Record<CollectionId, number>
 }
 
@@ -38,10 +39,10 @@ const initialScores: Record<CollectionId, number> = {
   icon: 0,
 }
 
-const QUIZ_SESSION_KEY = 'scnt.findYourScnt.quiz.v1'
+const QUIZ_SESSION_KEY = 'scnt.findYourScnt.quiz.v2'
 
-type QuizSessionV1 = {
-  v: 1
+type QuizSessionV2 = {
+  v: 2
   locale: string
   questions: QuizQuestion[]
   step: number
@@ -53,12 +54,12 @@ function blueprintQuestionIds(): string[] {
   return FIND_YOUR_SCNT_BLUEPRINT.map((q) => q.id)
 }
 
-function tryRestoreQuizSession(locale: string): QuizSessionV1 | null {
+function tryRestoreQuizSession(locale: string): QuizSessionV2 | null {
   try {
     const raw = sessionStorage.getItem(QUIZ_SESSION_KEY)
     if (!raw) return null
-    const data = JSON.parse(raw) as QuizSessionV1
-    if (data.v !== 1 || data.locale !== locale) return null
+    const data = JSON.parse(raw) as QuizSessionV2
+    if (data.v !== 2 || data.locale !== locale) return null
     if (!Array.isArray(data.questions) || data.questions.length !== FIND_YOUR_SCNT_BLUEPRINT.length) return null
     const expected = blueprintQuestionIds().join('\0')
     const got = data.questions.map((q) => q?.id).join('\0')
@@ -69,7 +70,7 @@ function tryRestoreQuizSession(locale: string): QuizSessionV1 | null {
   }
 }
 
-function persistQuizSession(payload: QuizSessionV1) {
+function persistQuizSession(payload: QuizSessionV2) {
   try {
     sessionStorage.setItem(QUIZ_SESSION_KEY, JSON.stringify(payload))
   } catch {
@@ -95,6 +96,7 @@ function buildQuizQuestions(t: (key: string, vars?: Record<string, string | numb
       title: t(c.titleKey),
       subtitle: t(c.subtitleKey),
       aura: t(c.auraKey),
+      imageUrl: c.imageUrl,
       score: c.score,
     })),
   }))
@@ -234,7 +236,7 @@ export function FindYourScntPage() {
   useEffect(() => {
     if (quizQuestions.length === 0) return
     persistQuizSession({
-      v: 1,
+      v: 2,
       locale,
       questions: quizQuestions,
       step,
@@ -325,12 +327,11 @@ export function FindYourScntPage() {
   }
 
   const stepperChipClass = (active: boolean, done: boolean) =>
-    `min-w-9 rounded-full border px-2 py-1.5 text-center text-[0.65rem] font-medium uppercase tracking-wider transition-colors ${
-      active
-        ? 'border-scnt-text bg-scnt-text text-scnt-bg'
-        : done
-          ? 'border-scnt-border/80 bg-scnt-bg/65 text-scnt-text hover:border-scnt-text/25'
-          : 'cursor-not-allowed border-scnt-border/50 bg-scnt-bg/30 text-scnt-text-muted opacity-60'
+    `min-w-9 rounded-full border px-2 py-1.5 text-center text-[0.65rem] font-medium uppercase tracking-wider transition-colors ${active
+      ? 'border-scnt-text bg-scnt-text text-scnt-bg'
+      : done
+        ? 'border-scnt-border/80 bg-scnt-bg/65 text-scnt-text hover:border-scnt-text/25'
+        : 'cursor-not-allowed border-scnt-border/50 bg-scnt-bg/30 text-scnt-text-muted opacity-60'
     }`
 
   return (
@@ -353,7 +354,7 @@ export function FindYourScntPage() {
             </p>
           </div>
 
-          <div className="mx-auto mt-10 max-w-3xl rounded-3xl border border-scnt-border/90 bg-scnt-bg-elevated/70 p-5 shadow-[0_20px_80px_-52px_rgba(42,38,34,0.35)] sm:p-7">
+          <div className="mx-auto mt-10 max-w-4.5xl rounded-3xl border border-scnt-border/90 bg-scnt-bg-elevated/70 p-5 shadow-[0_20px_80px_-52px_rgba(42,38,34,0.35)] sm:p-7">
             <div className="mb-5 flex items-center justify-between gap-4">
               <p className="text-xs uppercase tracking-[0.24em] text-scnt-text-muted">
                 {isResultStep
@@ -466,16 +467,30 @@ export function FindYourScntPage() {
                           type="button"
                           aria-pressed={selected}
                           onClick={() => pickChoice(choice)}
-                          className={`group relative overflow-hidden rounded-2xl border px-4 py-4 text-start transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                            selected
-                              ? 'border-scnt-text/85 bg-scnt-bg-elevated/90 shadow-[0_18px_48px_-36px_rgba(42,38,34,0.45)] ring-2 ring-scnt-text/15'
-                              : 'border-scnt-border/80 bg-scnt-bg/65 hover:-translate-y-0.5 hover:border-scnt-text/20 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)]'
-                          }`}
+                          className={`group relative overflow-hidden rounded-2xl border text-start transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] aspect-[4/3] sm:aspect-video ${selected
+                              ? 'border-scnt-text/85 shadow-[0_18px_48px_-36px_rgba(42,38,34,0.45)] ring-2 ring-scnt-text/15 z-10'
+                              : 'border-scnt-border/80 hover:-translate-y-0.5 hover:border-scnt-text/40 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)]'
+                            }`}
                         >
+                          <picture>
+                            <source srcSet={choice.imageUrl} type="image/png" />
+                            <img
+                              src={choice.imageUrl}
+                              alt=""
+                              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105"
+                            />
+                          </picture>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10 transition-opacity duration-500" />
+                          {selected && (
+                            <div className="absolute inset-0 bg-white/5 transition-opacity duration-500" />
+                          )}
                           <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                          <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">{choice.aura}</p>
-                          <p className="mt-2 text-sm font-medium text-scnt-text sm:text-base">{choice.title}</p>
-                          <p className="mt-1 text-xs leading-relaxed text-scnt-text-muted sm:text-sm">{choice.subtitle}</p>
+
+                          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 text-white drop-shadow-md">
+                            <p className="text-[0.65rem] uppercase tracking-[0.22em] text-white/80">{choice.aura}</p>
+                            <p className="mt-2 text-base font-medium sm:text-lg">{choice.title}</p>
+                            <p className="mt-1 text-xs leading-relaxed text-white/70 sm:text-sm">{choice.subtitle}</p>
+                          </div>
                         </button>
                       )
                     })}
@@ -527,25 +542,53 @@ export function FindYourScntPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/70 p-5">
-                    <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">{t('fz.collectionMatch')}</p>
-                    <h3 className="mt-3 font-serif text-2xl text-scnt-text">{result.collection.name}</h3>
-                    {result.collection.subTagline ? (
-                      <p className="mt-2 text-sm italic text-scnt-text-muted">{result.collection.subTagline}</p>
-                    ) : null}
-                    <p className="mt-3 text-sm text-scnt-text-muted">{result.collection.tagline}</p>
-                    <p className="mt-3 text-sm leading-relaxed text-scnt-text-muted sm:text-base">
-                      {result.collectionWhy}
-                    </p>
+                  <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/70 p-5 flex flex-col-reverse sm:flex-row gap-6 items-center sm:items-start">
+                    <div className="flex-1">
+                      <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">{t('fz.collectionMatch')}</p>
+                      <h3 className="mt-3 font-serif text-2xl text-scnt-text">{result.collection.name}</h3>
+                      {result.collection.subTagline ? (
+                        <p className="mt-2 text-sm italic text-scnt-text-muted">{result.collection.subTagline}</p>
+                      ) : null}
+                      <p className="mt-3 text-sm text-scnt-text-muted">{result.collection.tagline}</p>
+                      <p className="mt-3 text-sm leading-relaxed text-scnt-text-muted sm:text-base">
+                        {result.collectionWhy}
+                      </p>
+                    </div>
+                    {result.collection.coverImage && (
+                      <div className="w-full sm:w-1/3 shrink-0">
+                        <picture>
+                          <source srcSet={result.collection.coverImage} type="image/png" />
+                          <img 
+                            src={result.collection.coverImage} 
+                            alt={result.collection.name} 
+                            className="w-full aspect-[4/3] sm:aspect-square object-cover rounded-xl border border-scnt-border/50" 
+                          />
+                        </picture>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/70 p-5">
-                    <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">{t('fz.fragranceMatch')}</p>
-                    <h3 className="mt-3 font-serif text-2xl text-scnt-text">{result.fragrance.name}</h3>
-                    <p className="mt-2 text-sm text-scnt-text-muted">{result.fragrance.vibeSentence}</p>
-                    <p className="mt-3 text-sm leading-relaxed text-scnt-text-muted sm:text-base">
-                      {result.fragranceWhy}
-                    </p>
+                  <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/70 p-5 flex flex-col-reverse sm:flex-row gap-6 items-center sm:items-start">
+                    <div className="flex-1">
+                      <p className="text-xs uppercase tracking-[0.22em] text-scnt-text-muted">{t('fz.fragranceMatch')}</p>
+                      <h3 className="mt-3 font-serif text-2xl text-scnt-text">{result.fragrance.name}</h3>
+                      <p className="mt-2 text-sm text-scnt-text-muted">{result.fragrance.vibeSentence}</p>
+                      <p className="mt-3 text-sm leading-relaxed text-scnt-text-muted sm:text-base">
+                        {result.fragranceWhy}
+                      </p>
+                    </div>
+                    {(result.fragrance.clearBackground_Image || result.fragrance.galleryImages?.[0]) && (
+                      <div className="w-full sm:w-1/3 shrink-0 flex items-center justify-center bg-scnt-bg/50 rounded-xl border border-scnt-border/50 aspect-[4/3] sm:aspect-square p-4">
+                        <picture>
+                          <source srcSet={result.fragrance.clearBackground_Image || result.fragrance.galleryImages[0]} type="image/png" />
+                          <img 
+                            src={result.fragrance.clearBackground_Image || result.fragrance.galleryImages[0]} 
+                            alt={result.fragrance.name} 
+                            className="w-full h-full object-contain" 
+                          />
+                        </picture>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex flex-col gap-3 pt-1 sm:flex-row">

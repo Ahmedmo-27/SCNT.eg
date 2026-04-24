@@ -617,11 +617,14 @@ export function Header() {
                   >
                     <div className="aspect-[3/4] w-full overflow-hidden bg-scnt-bg-muted/50">
                       {previewImageByCollectionId[c.id] ? (
-                        <img
-                          src={previewImageByCollectionId[c.id]}
-                          alt=""
-                          className="h-full w-full object-cover transition-[filter,transform] duration-500 group-hover:scale-[1.03] group-hover:brightness-[0.92]"
-                        />
+                        <picture>
+                          <source srcSet={previewImageByCollectionId[c.id]} type="image/png" />
+                          <img
+                            src={previewImageByCollectionId[c.id]}
+                            alt=""
+                            className="h-full w-full object-cover transition-[filter,transform] duration-500 group-hover:scale-[1.03] group-hover:brightness-[0.92]"
+                          />
+                        </picture>
                       ) : null}
                     </div>
                     <p className="px-2 py-3 text-center text-[0.65rem] font-medium uppercase tracking-[0.16em] text-scnt-text">
@@ -695,7 +698,10 @@ export function Header() {
                             >
                               <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-scnt-bg-muted/60 ring-1 ring-scnt-border/50">
                                 {p.images?.[0] ? (
-                                  <img src={p.images[0]} alt="" className="h-full w-full object-cover" />
+                                  <picture>
+                                    <source srcSet={p.images[0]} type="image/png" />
+                                    <img src={p.images[0]} alt="" className="h-full w-full object-cover" />
+                                  </picture>
                                 ) : null}
                               </div>
                               <div className="min-w-0 flex-1">

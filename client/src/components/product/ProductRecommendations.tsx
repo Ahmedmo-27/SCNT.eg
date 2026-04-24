@@ -86,13 +86,16 @@ export function ProductRecommendations({
                   <div
                     className={`pointer-events-none absolute inset-0 z-[1] overflow-hidden ${productImageFrameTop}`}
                   >
-                    <img
-                      src={bottleFront}
-                      alt=""
-                      className="block h-full w-full object-contain object-center"
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <picture>
+                      <source srcSet={bottleFront} type="image/png" />
+                      <img
+                        src={bottleFront}
+                        alt=""
+                        className="block h-full w-full object-contain object-center"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
                   </div>
                 </div>
                 <div className="space-y-1.5 px-5 py-5">

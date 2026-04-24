@@ -72,12 +72,15 @@ export function CollectionSplitSection({
               <div className="relative h-full w-full overflow-hidden border-b border-scnt-border/45 md:bg-scnt-bg-elevated/35 md:shadow-sm md:rounded-2xl md:border md:shadow-[0_32px_80px_-40px_rgba(42,38,34,0.2)]">
                 <div className="relative h-full w-full overflow-hidden md:overflow-visible">
                   {imageSrc ? (
-                    <img
-                      src={imageSrc}
-                      alt={imageAlt}
-                      className="h-full w-full object-cover md:h-[min(560px,70vh)] lg:h-[min(620px,72vh)]"
-                      loading="lazy"
-                    />
+                    <picture>
+                      <source srcSet={imageSrc} type="image/png" />
+                      <img
+                        src={imageSrc}
+                        alt={imageAlt}
+                        className="h-full w-full object-cover md:h-[min(560px,70vh)] lg:h-[min(620px,72vh)]"
+                        loading="lazy"
+                      />
+                    </picture>
                   ) : (
                     <div className="grid h-full w-full place-items-center md:h-[min(560px,70vh)] lg:h-[min(620px,72vh)]">
                       <div className="text-center">
@@ -103,13 +106,16 @@ export function CollectionSplitSection({
 
                 {productImageSrc ? (
                   <div className="pointer-events-none absolute inset-y-0 left-0 flex w-full items-center justify-center p-4 md:w-auto md:items-start md:justify-start md:ps-5 md:pt-6 lg:ps-7 lg:pt-8">
-                    <img
-                      src={productImageSrc}
-                      alt=""
-                      className="relative z-30 h-[min(360px,50vh)] w-auto object-contain drop-shadow-2xl md:h-[min(420px,52vh)] md:object-left-top"
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    <picture>
+                      <source srcSet={productImageSrc} type="image/png" />
+                      <img
+                        src={productImageSrc}
+                        alt=""
+                        className="relative z-30 h-[min(360px,50vh)] w-auto object-contain drop-shadow-2xl md:h-[min(420px,52vh)] md:object-left-top"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
                   </div>
                 ) : null}
               </div>

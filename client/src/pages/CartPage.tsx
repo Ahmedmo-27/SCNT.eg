@@ -163,12 +163,15 @@ export function CartPage() {
                   >
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex min-w-0 items-center gap-3.5">
-                        <img
-                          src={i.image}
-                          alt={i.name}
-                          className="h-16 w-16 rounded-lg object-cover ring-1 ring-scnt-border sm:h-20 sm:w-20"
-                          loading="lazy"
-                        />
+                        <picture>
+                          <source srcSet={i.image} type="image/png" />
+                          <img
+                            src={i.image}
+                            alt={i.name}
+                            className="h-16 w-16 rounded-lg object-cover ring-1 ring-scnt-border sm:h-20 sm:w-20"
+                            loading="lazy"
+                          />
+                        </picture>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-scnt-text sm:text-base">
                             {i.name}

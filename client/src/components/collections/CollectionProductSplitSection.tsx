@@ -163,13 +163,16 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
 
           <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex h-[30%] items-center justify-center lg:pointer-events-auto lg:relative lg:order-2 lg:h-auto lg:border-x lg:border-scnt-border/40 lg:bg-scnt-bg/28 lg:px-6 lg:py-10 lg:overflow-visible">
             {bottleSrc ? (
-              <img
-                src={bottleSrc}
-                alt=""
-                className="relative z-30 h-[120%] max-h-[50vh] w-auto object-contain object-center drop-shadow-2xl translate-y-5 lg:translate-y-0 lg:h-auto lg:max-h-[80vh] lg:w-[min(31rem,100%)] lg:scale-[1.1] lg:translate-x-[25%]"
-                loading="lazy"
-                decoding="async"
-              />
+              <picture>
+                <source srcSet={bottleSrc} type="image/png" />
+                <img
+                  src={bottleSrc}
+                  alt=""
+                  className="relative z-30 h-[120%] max-h-[50vh] w-auto object-contain object-center drop-shadow-2xl translate-y-5 lg:translate-y-0 lg:h-auto lg:max-h-[80vh] lg:w-[min(31rem,100%)] lg:scale-[1.1] lg:translate-x-[25%]"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </picture>
             ) : (
               <div className="hidden h-[28rem] w-[min(31rem,100%)] place-items-center bg-scnt-bg-elevated/35 lg:grid">
                 <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">Image slot</p>
@@ -184,13 +187,16 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
 
           <div className="relative z-10 order-1 h-[30%] w-full overflow-hidden border-b border-scnt-border/40 lg:order-3 lg:-ml-24 lg:block lg:h-auto lg:w-[calc(100%+6rem)] lg:border-b-0 lg:border-s">
             {coverSrc ? (
-              <img
-                src={coverSrc}
-                alt=""
-                className="h-full w-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
+              <picture>
+                <source srcSet={coverSrc} type="image/png" />
+                <img
+                  src={coverSrc}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </picture>
             ) : (
               <div className="grid h-full w-full place-items-center bg-scnt-bg-elevated/35">
                 <div className="text-center">

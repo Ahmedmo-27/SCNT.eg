@@ -156,13 +156,16 @@ export function ProductImageCarousel({
             transition={{ duration: 0.4, ease: easeScnt }}
             className={`absolute inset-0 z-[1] overflow-hidden ${productImageFrameFull}`}
           >
-            <img
-              src={images[index]}
-              alt={`${productName} — ${SLIDE_LABELS[index]}`}
-              className="block h-full w-full object-contain object-center"
-              decoding={index === 0 ? 'sync' : 'async'}
-              draggable={false}
-            />
+            <picture>
+              <source srcSet={images[index]} type="image/png" />
+              <img
+                src={images[index]}
+                alt={`${productName} — ${SLIDE_LABELS[index]}`}
+                className="block h-full w-full object-contain object-center"
+                decoding={index === 0 ? 'sync' : 'async'}
+                draggable={false}
+              />
+            </picture>
           </motion.div>
         </AnimatePresence>
 

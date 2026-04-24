@@ -522,12 +522,15 @@ export function ProfilePage() {
                             >
                               <div className="flex min-w-0 items-center gap-3">
                                 {lineProductImage(line) ? (
-                                  <img
-                                    src={lineProductImage(line) ?? ''}
-                                    alt={lineProductName(line, t('profile.item'))}
-                                    className="h-12 w-12 shrink-0 rounded-md border border-scnt-border/70 object-cover"
-                                    loading="lazy"
-                                  />
+                                  <picture>
+                                    <source srcSet={lineProductImage(line) ?? ''} type="image/png" />
+                                    <img
+                                      src={lineProductImage(line) ?? ''}
+                                      alt={lineProductName(line, t('profile.item'))}
+                                      className="h-12 w-12 shrink-0 rounded-md border border-scnt-border/70 object-cover"
+                                      loading="lazy"
+                                    />
+                                  </picture>
                                 ) : (
                                   <div className="h-12 w-12 shrink-0 rounded-md border border-scnt-border/70 bg-scnt-bg-muted/40" />
                                 )}

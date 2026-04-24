@@ -447,12 +447,15 @@ export function CheckoutPage() {
               <ul className="mt-6 space-y-4 border-b border-scnt-border pb-6">
                 {items.map((i) => (
                   <li key={i.productId} className="flex items-center gap-3">
-                    <img
-                      src={i.image}
-                      alt={i.name}
-                      className="h-12 w-12 rounded-md object-cover ring-1 ring-scnt-border"
-                      loading="lazy"
-                    />
+                    <picture>
+                      <source srcSet={i.image} type="image/png" />
+                      <img
+                        src={i.image}
+                        alt={i.name}
+                        className="h-12 w-12 rounded-md object-cover ring-1 ring-scnt-border"
+                        loading="lazy"
+                      />
+                    </picture>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm text-scnt-text">{i.name}</p>
                       <p className="text-xs text-scnt-text-muted">

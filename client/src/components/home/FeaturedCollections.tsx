@@ -72,11 +72,14 @@ export function FeaturedCollections() {
                 {c.coverImage ? (
                   <div className="relative w-full shrink-0 bg-scnt-bg-muted/35 sm:w-[min(42%,300px)]">
                     <div className="aspect-[16/10] w-full sm:aspect-auto sm:h-full sm:min-h-[232px]">
-                      <img
-                        src={c.coverImage}
-                        alt=""
-                        className="h-full w-full object-cover transition-[transform,filter] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:scale-[1.03]"
-                      />
+                      <picture>
+                        <source srcSet={c.coverImage} type="image/png" />
+                        <img
+                          src={c.coverImage}
+                          alt=""
+                          className="h-full w-full object-cover transition-[transform,filter] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:scale-[1.03]"
+                        />
+                      </picture>
                     </div>
                   </div>
                 ) : null}
