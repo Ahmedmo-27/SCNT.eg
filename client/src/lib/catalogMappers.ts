@@ -33,11 +33,10 @@ function placeholderPairFromAccent(accent: string): [string, string] {
   return [hexToRgba(a, 0.12), darkenHex(a, 0.12)]
 }
 
-export function galleryTuple(images: string[]): readonly [string, string, string] {
-  const a = images[0] ?? ''
-  const b = images[1] ?? a
-  const c = images[2] ?? a
-  return [a, b, c] as const
+export function galleryTuple(images: string[]): readonly string[] {
+  // Filter out empty strings and duplicates to show only actual unique images
+  const filtered = Array.from(new Set(images.filter(img => img && img.trim())))
+  return filtered.length > 0 ? filtered : ['']
 }
 
 function collectionAr(c: ApiCollection | undefined, locale: Locale) {

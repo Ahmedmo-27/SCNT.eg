@@ -117,7 +117,7 @@ export type ProductSummary = {
   format: string
   volume: string
   concentrationHint: string
-  galleryImages: readonly [string, string, string]
+  galleryImages: readonly string[]
   coverImage?: string
   clearBackground_Image?: string
   scentMood: ScentMood
