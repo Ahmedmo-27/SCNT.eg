@@ -16,6 +16,10 @@ const collectionSchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true, index: true },
     /** Public URL or site path for collection cards / hero artwork. */
     coverImage: { type: String, default: "" },
+    /** Public URL or site path for the collection artwork image. */
+    artwork: { type: String, default: "" },
+    /** Public URL or site path for the main collection image. */
+    mainImage: { type: String, default: "" },
     /** Public URL or site path for the clear-background collection image. */
     clearBackground_Image: { type: String, default: "" },
     themeColor: { type: String, default: "" },

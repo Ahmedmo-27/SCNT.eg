@@ -71,7 +71,7 @@ export function CollectionDetailPage() {
                   title={c.name}
                   body={`${collectionPersonaLine(c, t)}\n\n${headlineBody.head}\n${headlineBody.body}`.trim()}
                   accent={c.accent}
-                  imageSrc={c.coverImage}
+                  imageSrc={c.mainImage || c.coverImage}
                   productImageSrc={c.clearBackground_Image}
                   imageAlt=""
                 />
@@ -86,7 +86,7 @@ export function CollectionDetailPage() {
                   title={headlineBody.head}
                   body={c.worldIntro}
                   accent={c.accent}
-                  imageSrc=""
+                  imageSrc={c.artwork}
                   imageAlt=""
                   flip
                 />

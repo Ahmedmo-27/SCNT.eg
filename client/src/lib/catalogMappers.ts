@@ -107,6 +107,8 @@ export function mapApiCollectionToSummary(c: ApiCollection, locale: Locale = 'en
     name,
     code: c.slug.replace(/-/g, ' ').toUpperCase(),
     coverImage: resolveCollectionCoverImage(c),
+    mainImage: c.mainImage?.trim() || '',
+    artwork: c.artwork?.trim() || '',
     clearBackground_Image: c.clearBackground_Image?.trim() || '',
     tagline: tag,
     subTagline: sub,

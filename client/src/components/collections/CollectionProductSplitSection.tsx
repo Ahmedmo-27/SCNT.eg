@@ -22,7 +22,7 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
   const { locale } = useI18n()
   const accent = collection?.accent ?? '#2a2622'
   const bottleSrc = product.clearBackground_Image?.trim() || ''
-  const coverSrc = product.coverImage?.trim() || ''
+  const coverSrc = collection?.coverImage?.trim() || ''
   const [selectedSize, setSelectedSize] = useState(product.volume)
   const [justAdded, setJustAdded] = useState(false)
   const addItem = useCartStore((s) => s.addItem)

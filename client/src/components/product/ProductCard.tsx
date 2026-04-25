@@ -212,7 +212,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
                 <img
                   src={product.galleryImages[imageIndex]}
                   alt=""
-                  className="block h-full w-full object-contain object-center transition-[transform,filter] duration-700 ease-out group-hover/card:scale-105"
+                  className="block h-full w-full object-cover object-center transition-[transform,filter] duration-700 ease-out group-hover/card:scale-105"
                   loading="lazy"
                   decoding="async"
                   draggable={false}

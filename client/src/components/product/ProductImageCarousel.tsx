@@ -161,7 +161,7 @@ export function ProductImageCarousel({
               <img
                 src={images[index]}
                 alt={`${productName} — ${SLIDE_LABELS[index]}`}
-                className="block h-full w-full object-contain object-center"
+                className="block h-full w-full object-cover object-center"
                 decoding={index === 0 ? 'sync' : 'async'}
                 draggable={false}
               />

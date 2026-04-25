@@ -12,6 +12,8 @@ export type ApiCollection = {
   name: string
   slug: string
   coverImage?: string
+  mainImage?: string
+  artwork?: string
   clearBackground_Image?: string
   themeColor: string
   tagline: string
@@ -79,6 +81,8 @@ export type CollectionSummary = {
   code: string
   /** Card / hero image — from API or default file in `/collections/covers/` by slug */
   coverImage: string
+  mainImage: string
+  artwork: string
   clearBackground_Image: string
   tagline: string
   subTagline: string

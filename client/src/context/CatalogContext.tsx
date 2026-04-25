@@ -64,7 +64,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const previewImageByCollectionId = useMemo(() => {
     const map: Record<string, string> = {}
     for (const c of collections) {
-      if (c.coverImage) map[c.id] = c.coverImage
+      if (c.mainImage || c.coverImage) map[c.id] = c.mainImage || c.coverImage
     }
     for (const p of products) {
       const key = p.collection

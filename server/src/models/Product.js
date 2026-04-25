@@ -34,7 +34,6 @@ const productSchema = new mongoose.Schema(
     price: { type: Number, required: true, min: 0 },
     size: { type: String, default: "100ml" },
     images: [{ type: String }],
-    coverImage: { type: String, default: "" },
     clearBackground_Image: { type: String, default: "" },
     topNotes: [{ type: String }],
     heartNotes: [{ type: String }],

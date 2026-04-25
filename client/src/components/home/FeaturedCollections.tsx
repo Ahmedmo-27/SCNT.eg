@@ -70,13 +70,13 @@ export function FeaturedCollections() {
                 className="group/card flex h-full flex-col overflow-hidden rounded-2xl border border-[rgba(42,38,34,0.1)] backdrop-blur-md transition-[box-shadow,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:-translate-y-1 hover:shadow-[0_36px_90px_-40px_rgba(42,38,34,0.14)] sm:flex-row sm:items-stretch"
                 style={{ background: tintedBeigeGlass(c.accent) }}
               >
-                {c.coverImage ? (
+                {c.mainImage || c.coverImage ? (
                   <div className="relative w-full shrink-0 bg-scnt-bg-muted/35 sm:w-[min(42%,300px)]">
                     <div className="aspect-[16/10] w-full sm:aspect-auto sm:h-full sm:min-h-[232px]">
                       <picture>
-                        <source srcSet={c.coverImage} type="image/png" />
+                        <source srcSet={c.mainImage || c.coverImage} type="image/png" />
                         <img
-                          src={c.coverImage}
+                          src={c.mainImage || c.coverImage}
                           alt=""
                           className="h-full w-full object-cover transition-[transform,filter] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:scale-[1.03]"
                         />
