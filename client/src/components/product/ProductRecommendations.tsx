@@ -91,7 +91,7 @@ export function ProductRecommendations({
                       <img
                         src={bottleFront}
                         alt=""
-                        className="block h-full w-full object-contain object-center"
+                        className="block h-full w-full object-cover object-center transition-[transform,filter] duration-700 ease-out group-hover:scale-105"
                         loading="lazy"
                         decoding="async"
                       />
