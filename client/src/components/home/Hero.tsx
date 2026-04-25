@@ -83,7 +83,7 @@ export function Hero() {
       </motion.picture>
       <div className="pointer-events-none absolute inset-0 z-0 bg-scnt-bg/40" aria-hidden="true" />
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-44 bg-gradient-to-b from-transparent via-scnt-bg-muted/40 to-scnt-bg-muted"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-44 bg-gradient-to-b from-transparent via-scnt-bg-muted/60 to-scnt-bg-muted"
         aria-hidden
       />
 
@@ -112,7 +112,7 @@ export function Hero() {
         <EightPointStar size={10} />
       </motion.div>
 
-      <div className="relative z-10 mx-auto flex min-h-[min(52vh,540px)] max-w-3xl flex-col justify-center text-center">
+      <div className="relative z-10 mx-auto flex min-h-[min(52vh,540px)] max-w-3xl flex-col justify-center rounded-2xl px-6 py-8 text-center sm:px-8 sm:py-10 bg-scnt-bg/30 backdrop-blur-[2px]">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
