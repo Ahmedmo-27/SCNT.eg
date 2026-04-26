@@ -744,7 +744,7 @@ export function Header() {
             sideOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'
           }`}
           aria-label={t('nav.menu')}
-          aria-hidden={!sideOpen}
+          inert={!sideOpen}
         >
           <div className="flex items-center justify-between border-b border-scnt-border/60 px-4 py-3">
             <span className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">{t('nav.menu')}</span>
