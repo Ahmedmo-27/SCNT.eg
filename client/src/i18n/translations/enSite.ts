@@ -75,6 +75,10 @@ export const enSite: Record<string, string> = {
   'home.bs.title': 'The quiet favorites',
   'home.bs.sub': 'Worn often, talked about softly — where skin meets intention.',
 
+  'home.heritage.title': 'Inspired by the raw beauty of perfumery’s finest ingredients.',
+  'home.heritage.body':
+    'Each composition reflects the character, depth, and balance found in nature — refined into a modern signature.',
+
   'home.hiw.step1': 'Order',
   'home.hiw.step1b':
     'Place your order and enjoy free shipping on any order over 1,500 EGP within Cairo only.',
