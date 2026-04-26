@@ -34,9 +34,8 @@ function placeholderPairFromAccent(accent: string): [string, string] {
 }
 
 export function galleryTuple(images: string[]): readonly string[] {
-  // Filter out empty strings and duplicates to show only actual unique images
-  const filtered = Array.from(new Set(images.filter(img => img && img.trim())))
-  return filtered.length > 0 ? filtered : ['']
+  // Preserve the real image count while removing empty values and duplicates.
+  return Array.from(new Set(images.filter((img) => img && img.trim())))
 }
 
 function collectionAr(c: ApiCollection | undefined, locale: Locale) {

@@ -52,7 +52,7 @@ function ChevronRight({ className }: { className?: string }) {
 type ProductImageCarouselProps = {
   productId: string
   productName: string
-  images: readonly [string, string, string]
+  images: readonly string[]
   gradient: readonly [string, string]
   accent: string
 }
@@ -70,6 +70,8 @@ export function ProductImageCarousel({
   const touchStartY = useRef<number | null>(null)
 
   const count = images.length
+  const hasImages = count > 0
+  const getSlideLabel = (i: number) => SLIDE_LABELS[i] ?? `Image ${i + 1}`
 
   useEffect(() => {
     setIndex(0)
@@ -78,6 +80,7 @@ export function ProductImageCarousel({
 
   const go = useCallback(
     (delta: number) => {
+      if (count <= 1) return
       setDirection(delta)
       setIndex((i) => (i + delta + count) % count)
     },
@@ -91,6 +94,7 @@ export function ProductImageCarousel({
   }, [index])
 
   const [g0, g1] = gradient
+  const activeImage = hasImages ? images[index] : ''
   const swipeThresholdPx = 48
 
   return (
@@ -145,29 +149,38 @@ export function ProductImageCarousel({
           aria-hidden
         />
 
-        <AnimatePresence initial={false} custom={direction}>
-          <motion.div
-            key={`${productId}-${index}`}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.4, ease: easeScnt }}
-            className={`absolute inset-0 z-[1] overflow-hidden ${productImageFrameFull}`}
+        {hasImages ? (
+          <AnimatePresence initial={false} custom={direction}>
+            <motion.div
+              key={`${productId}-${index}`}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.4, ease: easeScnt }}
+              className={`absolute inset-0 z-[1] overflow-hidden ${productImageFrameFull}`}
+            >
+              <picture>
+                <source srcSet={activeImage} type="image/png" />
+                <img
+                  src={activeImage}
+                  alt={`${productName} — ${getSlideLabel(index)}`}
+                  className="block h-full w-full object-cover object-center"
+                  decoding={index === 0 ? 'sync' : 'async'}
+                  draggable={false}
+                />
+              </picture>
+            </motion.div>
+          </AnimatePresence>
+        ) : (
+          <div
+            className={`absolute inset-0 z-[1] grid place-items-center ${productImageFrameFull}`}
+            aria-label={`${productName} image unavailable`}
           >
-            <picture>
-              <source srcSet={images[index]} type="image/png" />
-              <img
-                src={images[index]}
-                alt={`${productName} — ${SLIDE_LABELS[index]}`}
-                className="block h-full w-full object-cover object-center"
-                decoding={index === 0 ? 'sync' : 'async'}
-                draggable={false}
-              />
-            </picture>
-          </motion.div>
-        </AnimatePresence>
+            <span className="text-sm text-scnt-text-muted">Image unavailable</span>
+          </div>
+        )}
 
         <div className="pointer-events-none absolute inset-x-0 top-1/2 z-[2] flex -translate-y-1/2 justify-between px-0.5 sm:px-2 lg:px-3">
           <button
@@ -175,6 +188,7 @@ export function ProductImageCarousel({
             onClick={() => go(-1)}
             className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-scnt-bg-elevated/90 text-scnt-text shadow-sm ring-1 ring-scnt-border/90 backdrop-blur-sm transition-[background-color,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:bg-scnt-bg-elevated active:scale-95 lg:h-10 lg:w-10"
             aria-label="Previous image"
+            disabled={count <= 1}
           >
             <ChevronLeft className="opacity-80" />
           </button>
@@ -183,6 +197,7 @@ export function ProductImageCarousel({
             onClick={() => go(1)}
             className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-scnt-bg-elevated/90 text-scnt-text shadow-sm ring-1 ring-scnt-border/90 backdrop-blur-sm transition-[background-color,transform] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:bg-scnt-bg-elevated active:scale-95 lg:h-10 lg:w-10"
             aria-label="Next image"
+            disabled={count <= 1}
           >
             <ChevronRight className="opacity-80" />
           </button>
@@ -206,15 +221,17 @@ export function ProductImageCarousel({
                   ? 'h-2 w-8 bg-scnt-text/70'
                   : 'h-2 w-2 bg-scnt-text/20 hover:bg-scnt-text/35'
               }`}
-              aria-label={`Show ${SLIDE_LABELS[i]}`}
+              aria-label={`Show ${getSlideLabel(i)}`}
               aria-current={selected ? 'true' : undefined}
             />
           )
         })}
       </div>
-      <p className="sr-only" aria-live="polite">
-        {SLIDE_LABELS[index]}
-      </p>
+      {hasImages ? (
+        <p className="sr-only" aria-live="polite">
+          {getSlideLabel(index)}
+        </p>
+      ) : null}
     </div>
   )
 }

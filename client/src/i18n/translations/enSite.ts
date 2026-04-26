@@ -60,9 +60,6 @@ export const enSite: Record<string, string> = {
     'Not categories — people. Pick the line that sounds like you, then find the fragrance that fits your mood.',
   'home.fc.enter': 'Enter collection',
 
-  'home.heritage.title': 'Inspired by the raw beauty of perfumery’s finest ingredients.',
-  'home.heritage.body': 'Each composition reflects the character, depth, and balance found in nature — refined into a modern signature.',
-
   'home.gender.kicker': 'Quick navigation',
   'home.gender.title': 'Shop by gender',
   'home.gender.sub': 'Start broad, then refine by line and notes.',
