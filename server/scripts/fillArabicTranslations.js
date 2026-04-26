@@ -37,7 +37,7 @@ Output ONLY valid JSON with no markdown fences.
 Rules:
 1) For every field named "name" (product title or collection title): write Arabic SCRIPT that phonetically matches the English—transliteration / Arabic-letter spelling of the same name. Do NOT translate the meaning. Examples: "Azure Code" → Arabic letters sounding like Azure Code; "The Executive" → Arabic letters for that phrase.
 2) For "inspired_from": transliterate brand and fragrance names; you may use standard Arabic beauty terms for product types (e.g. Eau de Parfum → أو دو بارفام or أو دو بارفان).
-3) For "description", "tagline", "sub_tagline": fluent Modern Standard Arabic, luxury retail tone.
+3) For "description", "tagline", "sub_tagline": fluent Modern Standard Arabic, polished retail tone.
 4) For "topNotes", "heartNotes", "baseNotes" arrays: translate each string to natural Arabic ingredient/note names used in perfumery. Same array length as input.
 5) For "size": Arabic-friendly text reflecting the same volume (e.g. 100 ml → 100 مل).
 

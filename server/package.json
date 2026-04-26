@@ -1,7 +1,7 @@
 {
   "name": "scnt-eg-server",
   "version": "1.0.0",
-  "description": "Backend API for SCNT.eg luxury fragrance e-commerce",
+  "description": "Backend API for SCNT.eg fragrance e-commerce",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {

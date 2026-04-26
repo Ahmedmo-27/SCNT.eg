@@ -1,6 +1,6 @@
 import type { CollectionId } from '../types/catalog'
 
-/** Visual tokens for immersive collection backdrops — keep opacity low for luxury control. */
+/** Visual tokens for immersive collection backdrops — keep opacity low for visual control. */
 export const collectionTheme = {
   executive: {
     /** High-impact UI (sweeps, chromatic accents) */

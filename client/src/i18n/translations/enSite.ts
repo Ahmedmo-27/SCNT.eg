@@ -40,7 +40,7 @@ export const enSite: Record<string, string> = {
   'header.language': 'Language',
 
   'footer.blurb':
-    'Curated luxury fragrances — four identities, one house. Cairo-born sensibility with a calm, global tone.',
+    'Curated fragrances — four identities, one house. Cairo-born sensibility with a calm, global tone.',
   'footer.shop': 'Shop',
   'footer.house': 'House',
   'footer.rights': '© {{year}} SCNT.eg. All rights reserved.',
@@ -425,14 +425,14 @@ export const enSite: Record<string, string> = {
   'about.p1':
     "At SCNT.eg, we don't believe a fragrance is just an accessory—we believe it is a silent architecture that defines the space you occupy.",
   'about.p2':
-    'Born in the heart of Egypt, SCNT.eg was founded on a singular frustration: the gap between world-class luxury and everyday accessibility. We saw a market filled with fleeting scents and unattainable price tags. We decided to rewrite the code.',
+    'Born in the heart of Egypt, SCNT.eg was founded on a singular frustration: the gap between world-class fragrance and everyday accessibility. We saw a market filled with fleeting scents and unattainable price tags. We decided to rewrite the code.',
   'about.missionTitle': 'Our Mission: High Performance. No Compromise.',
   'about.missionBody':
     'We specialize in "Beast Mode" performance. By prioritizing high-concentration oils and meticulous sourcing, we\'ve engineered a collection of fragrances inspired by the world\'s most iconic profiles, optimized for longevity and sillage that lasts from the morning board meeting to the midnight hour.',
   'about.philoTitle': 'The SCNT.eg Philosophy',
   'about.philoBody':
-    "Whether it's the professional precision of The Executive or the spirited curiosity of The Explorer, every bottle in our lineup is a tribute to the modern individual. We've stripped away the retail markup of traditional luxury houses, leaving only what matters: the scent, the performance, and the persona.",
-  'about.tagline': 'Luxury, Redefined. Performance, Engineered.',
+    "Whether it's the professional precision of The Executive or the spirited curiosity of The Explorer, every bottle in our lineup is a tribute to the modern individual. We've stripped away the retail markup of traditional fragrance houses, leaving only what matters: the scent, the performance, and the persona.",
+  'about.tagline': 'Fragrance, Redefined. Performance, Engineered.',
   'about.back': 'Back to home',
 
   'notFound.kicker': '404',

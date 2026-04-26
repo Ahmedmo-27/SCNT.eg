@@ -36,7 +36,7 @@ function RouteSeo() {
 
   const defaults: Record<string, { title: string; description: string; noindex?: boolean }> = {
     '/': {
-      title: 'Luxury Fragrances in Egypt',
+      title: 'Fragrances in Egypt',
       description: 'Shop premium fragrances in Egypt from SCNT.eg. Discover signature scent collections, notes, and identity-led perfume stories.',
     },
     '/shop': {

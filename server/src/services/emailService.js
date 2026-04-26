@@ -95,7 +95,7 @@ const wrapEmailLayout = ({ eyebrow, title, intro, bodyHtml, ctaHtml, footerNote 
             You received this email from ${escapeHtml(BRAND.name)}.
           </p>
           <p style="margin:6px 0 0 0;font-size:12px;line-height:1.6;color:${BRAND.muted};">
-            Curated luxury fragrances. Four identities, one house.
+            Curated fragrances. Four identities, one house.
           </p>
         </td>
       </tr>
