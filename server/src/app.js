@@ -1,5 +1,6 @@
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
 const cors = require("cors");
 const helmet = require("helmet");
 const compression = require("compression");
@@ -54,6 +55,20 @@ app.get("/sitemap.xml", async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+app.use((req, res, next) => {
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
+  if (req.path.startsWith("/api") || req.path.includes(".")) return next();
+
+  const clientDist = path.resolve(__dirname, "../../client/dist");
+  const relativePath = req.path === "/" ? "index.html" : path.join(req.path.slice(1), "index.html");
+  const prerenderedFile = path.join(clientDist, "prerender", relativePath);
+
+  if (!fs.existsSync(prerenderedFile)) return next();
+
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  return res.sendFile(prerenderedFile);
 });
 
 /** No DB — use this to verify the function is reachable when Atlas/network/env fails. */

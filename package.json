@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "concurrently -k -n server,client -c cyan,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
     "start": "npm run start -w server",
-    "build": "npm run build -w client",
-    "heroku-postbuild": "npm run build -w client"
+    "build": "npm run build -w client && node scripts/prerender.cjs",
+    "prerender": "node scripts/prerender.cjs",
+    "heroku-postbuild": "npm run build -w client && node scripts/prerender.cjs"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
