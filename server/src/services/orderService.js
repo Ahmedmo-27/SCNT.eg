@@ -1,8 +1,10 @@
 const orderRepository = require("../repositories/orderRepository");
 const productRepository = require("../repositories/productRepository");
 const cartRepository = require("../repositories/cartRepository");
+const userRepository = require("../repositories/userRepository");
 const PromoCode = require("../models/PromoCode");
 const ApiError = require("../utils/ApiError");
+const { sendOrderConfirmationEmail } = require("./emailService");
 
 /** Flat COD shipping fee (EGP), aligned with checkout UI. */
 const SHIPPING_FEE_EGP = 80;
@@ -55,6 +57,11 @@ const calculateDiscount = (promo, subtotal) => {
 const createOrderFromCart = async (userId, address) => {
   validateAddress(address);
 
+  const user = await userRepository.findById(userId).select("email full_name");
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
   const cart = await cartRepository.findRawByUserId(userId);
   if (!cart || cart.items.length === 0) {
     throw new ApiError(400, "Cart is empty");
@@ -65,6 +72,7 @@ const createOrderFromCart = async (userId, address) => {
   const productMap = new Map(products.map((product) => [product._id.toString(), product]));
 
   const orderItems = [];
+  const emailItems = [];
   let subtotal = 0;
 
   for (const item of cart.items) {
@@ -88,6 +96,12 @@ const createOrderFromCart = async (userId, address) => {
       quantity,
       price: unitPrice,
     });
+    emailItems.push({
+      name: product.name,
+      quantity,
+      unitPrice,
+      lineTotal: unitPrice * quantity,
+    });
     subtotal += unitPrice * quantity;
   }
 
@@ -110,6 +124,22 @@ const createOrderFromCart = async (userId, address) => {
     address,
   });
   await cartRepository.upsertByUserId(userId, [], "");
+
+  sendOrderConfirmationEmail({
+    to: user.email,
+    customerName: user.full_name,
+    orderNumber: order._id,
+    orderDate: order.createdAt || new Date(),
+    items: emailItems,
+    subtotal: order.subtotal,
+    shipping: order.shipping,
+    discount: order.discount,
+    total: order.total,
+    shippingAddress: order.address,
+  }).catch((error) => {
+    console.error("Failed to send order confirmation email:", error.message);
+  });
+
   return order;
 };
 
