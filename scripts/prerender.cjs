@@ -214,32 +214,38 @@ async function main() {
   const Collection = require('../server/src/models/Collection')
   const Product = require('../server/src/models/Product')
 
-  await connectDb()
+  const mongoose = await connectDb()
 
-  const [collectionDocs, productDocs] = await Promise.all([
-    Collection.find({}, { name: 1, slug: 1, coverImage: 1, mainImage: 1, artwork: 1, clearBackground_Image: 1, themeColor: 1, tagline: 1, sub_tagline: 1, description: 1 }).lean(),
-    Product.find({}, { name: 1, slug: 1, inspired_from: 1, collection: 1, price: 1, size: 1, images: 1, coverImage: 1, clearBackground_Image: 1, topNotes: 1, heartNotes: 1, baseNotes: 1, description: 1 })
-      .populate('SCNTcollection', 'name slug coverImage mainImage artwork clearBackground_Image themeColor tagline sub_tagline description')
-      .lean(),
-  ])
+  try {
+    const [collectionDocs, productDocs] = await Promise.all([
+      Collection.find({}, { name: 1, slug: 1, coverImage: 1, mainImage: 1, artwork: 1, clearBackground_Image: 1, themeColor: 1, tagline: 1, sub_tagline: 1, description: 1 }).lean(),
+      Product.find({}, { name: 1, slug: 1, inspired_from: 1, collection: 1, price: 1, size: 1, images: 1, coverImage: 1, clearBackground_Image: 1, topNotes: 1, heartNotes: 1, baseNotes: 1, description: 1 })
+        .populate('SCNTcollection', 'name slug coverImage mainImage artwork clearBackground_Image themeColor tagline sub_tagline description')
+        .lean(),
+    ])
 
-  const collections = sortByOrder(collectionDocs, 'slug', COLLECTION_ORDER)
-  const products = sortByOrder(productDocs.map((product) => ({ ...product, collection: product.SCNTcollection })), 'slug', PRODUCT_ORDER)
+    const collections = sortByOrder(collectionDocs, 'slug', COLLECTION_ORDER)
+    const products = sortByOrder(productDocs.map((product) => ({ ...product, collection: product.SCNTcollection })), 'slug', PRODUCT_ORDER)
 
-  await fs.rm(OUTPUT_ROOT, { recursive: true, force: true })
-  await fs.mkdir(OUTPUT_ROOT, { recursive: true })
+    await fs.rm(OUTPUT_ROOT, { recursive: true, force: true })
+    await fs.mkdir(OUTPUT_ROOT, { recursive: true })
 
-  await writePage('/', renderHome({ collections, products }))
-  await writePage('/shop', renderShop({ collections, products }))
-  await writePage('/collections', renderCollections({ collections }))
+    await writePage('/', renderHome({ collections, products }))
+    await writePage('/shop', renderShop({ collections, products }))
+    await writePage('/collections', renderCollections({ collections }))
 
-  const topProducts = products.slice(0, 4)
-  for (const product of topProducts) {
-    if (!product.SCNTcollection?.slug) continue
-    await writePage(`/product/${product.slug}`, renderProduct(product, product.SCNTcollection))
+    const topProducts = products.slice(0, 4)
+    for (const product of topProducts) {
+      if (!product.SCNTcollection?.slug) continue
+      await writePage(`/product/${product.slug}`, renderProduct(product, product.SCNTcollection))
+    }
+
+    console.log(`[prerender] Wrote ${3 + topProducts.length} prerendered pages to ${OUTPUT_ROOT}`)
+  } finally {
+    if (mongoose?.disconnect) {
+      await mongoose.disconnect()
+    }
   }
-
-  console.log(`[prerender] Wrote ${3 + topProducts.length} prerendered pages to ${OUTPUT_ROOT}`)
 }
 
 main().catch((error) => {
