@@ -167,6 +167,8 @@ export function ProductImageCarousel({
                   src={activeImage}
                   alt={`${productName} — ${getSlideLabel(index)}`}
                   className="block h-full w-full object-cover object-center"
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  fetchPriority={index === 0 ? 'high' : 'auto'}
                   decoding={index === 0 ? 'sync' : 'async'}
                   draggable={false}
                 />

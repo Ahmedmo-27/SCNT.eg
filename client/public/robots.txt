@@ -1,4 +1,11 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /checkout
+Disallow: /cart
+Disallow: /wishlist
+Disallow: /profile
+Disallow: /login
+Disallow: /register
 
-Sitemap: https://scnt-eg-eff9497748ed.herokuapp.com/sitemap.xml
+Sitemap: https://scnt-eg.me/sitemap.xml

@@ -18,6 +18,14 @@ import { useWishlistStore } from '../store/wishlistStore'
 import { PlaceholderPage } from './PlaceholderPage'
 import { useI18n } from '../i18n/I18nContext'
 import { formatEgp } from '../lib/formatEgp'
+import { Seo } from '../components/seo/Seo'
+import {
+  buildBreadcrumbSchema,
+  buildFaqSchema,
+  buildOrganizationSchema,
+  buildProductSchema,
+  buildWebsiteSchema,
+} from '../seo/schema'
 
 const cardShell =
   'rounded-2xl bg-scnt-bg-elevated/65 p-6 ring-1 ring-scnt-border/90 backdrop-blur-md'
@@ -41,12 +49,12 @@ export function ProductPage() {
 
   useEffect(() => {
     if (!id) {
-      setProduct(undefined)
-      setPending(false)
       return
     }
     let cancelled = false
-    setPending(true)
+    queueMicrotask(() => {
+      if (!cancelled) setPending(true)
+    })
     apiGetData<ApiProduct>(`/products/${id}`)
       .then((raw) => {
         if (!cancelled) setProduct(mapApiProductToSummary(raw, locale))
@@ -61,6 +69,12 @@ export function ProductPage() {
       cancelled = true
     }
   }, [id, locale])
+
+  if (!id) {
+    return (
+      <PlaceholderPage title={t('product.notFound')} subtitle={t('product.notFoundSub')} />
+    )
+  }
 
   if (pending) {
     return (
@@ -79,6 +93,40 @@ export function ProductPage() {
   const col = collections.find((x) => x.id === product.collection)
   const accent = col?.accent ?? '#2a2622'
   const related = getRelatedProducts(products, product.id, 3)
+  const path = `/product/${product.id}`
+  const productDescription = `${product.name} by SCNT.eg. Inspired by ${product.inspiredBy}. Top notes: ${product.topNotes.join(', ')}. Heart notes: ${product.heartNotes.join(', ')}. Base notes: ${product.baseNotes.join(', ')}.`
+  const quickAnswers = [
+    {
+      question: `Who is ${product.name} best for?`,
+      answer: `${product.name} is designed for ${product.gender === 'female' ? 'women' : 'men'} who enjoy ${product.vibeSentence.toLowerCase()}`,
+    },
+    {
+      question: `What are the main notes in ${product.name}?`,
+      answer: `Top notes: ${product.topNotes.join(', ')}. Heart notes: ${product.heartNotes.join(', ')}. Base notes: ${product.baseNotes.join(', ')}.`,
+    },
+    {
+      question: `What fragrance family does ${product.name} belong to?`,
+      answer: `${product.name} belongs to the ${col?.name ?? product.collection} collection by SCNT.eg.`,
+    },
+  ]
+
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: 'Home', path: '/' },
+    { name: 'Collections', path: '/collections' },
+    {
+      name: col?.name ?? product.collection,
+      path: col ? `/collections/${col.id}` : '/collections',
+    },
+    { name: product.name, path },
+  ])
+
+  const productSchema = buildProductSchema({
+    product,
+    collectionName: col?.name ?? product.collection,
+    description: productDescription,
+    image: product.galleryImages[0] ?? '/collections/covers/executive-cover.png',
+    path,
+  })
 
   function handleAddToCart() {
     if (!product) return
@@ -107,6 +155,20 @@ export function ProductPage() {
 
   return (
     <Layout collection={product.collection}>
+      <Seo
+        title={`${product.name} Perfume in Egypt`}
+        description={productDescription}
+        path={path}
+        type="product"
+        image={product.galleryImages[0]}
+        jsonLd={[
+          buildOrganizationSchema(),
+          buildWebsiteSchema(),
+          breadcrumbSchema,
+          productSchema,
+          buildFaqSchema(quickAnswers),
+        ]}
+      />
       <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16">
         <nav className="mb-10 text-xs text-scnt-text-muted">
           <Link to="/" className="hover:text-scnt-text">
@@ -283,6 +345,18 @@ export function ProductPage() {
                 heartNotes={product.heartNotes}
                 baseNotes={product.baseNotes}
               />
+            </div>
+
+            <div className="mt-10 space-y-4 rounded-2xl bg-scnt-bg-elevated/65 p-6 ring-1 ring-scnt-border/90 backdrop-blur-md">
+              <h2 className="font-serif text-2xl text-scnt-text">Quick answers</h2>
+              {quickAnswers.map((item) => (
+                <article key={item.question} className="space-y-1.5">
+                  <h3 className="text-sm font-medium uppercase tracking-[0.15em] text-scnt-text-muted">
+                    {item.question}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-scnt-text/90">{item.answer}</p>
+                </article>
+              ))}
             </div>
           </div>
         </div>

@@ -11,6 +11,8 @@ import { CollectionSplitSection } from '../components/collections/CollectionSpli
 import { CollectionProductSplitSection } from '../components/collections/CollectionProductSplitSection'
 import { collectionPersonaLine } from '../data/collectionSections'
 import { SectionScrollProvider } from '../context/SectionScrollContext'
+import { Seo } from '../components/seo/Seo'
+import { buildBreadcrumbSchema, buildOrganizationSchema, buildWebsiteSchema } from '../seo/schema'
 
 export function CollectionDetailPage() {
   const { t } = useI18n()
@@ -47,6 +49,7 @@ export function CollectionDetailPage() {
   }
 
   const line = products.filter((p) => p.collection === c.id)
+  const path = `/collections/${c.id}`
 
   const headlineBody = (() => {
     if (c.id === 'executive')
@@ -58,6 +61,21 @@ export function CollectionDetailPage() {
 
   return (
     <Layout collection={c.id} hideFooter>
+      <Seo
+        title={`${c.name} Fragrance Collection`}
+        description={`${c.name} by SCNT.eg. ${c.tagline}. Explore signature perfumes, scent notes, and identity-led fragrance stories in Egypt.`}
+        path={path}
+        image={c.coverImage || c.mainImage}
+        jsonLd={[
+          buildOrganizationSchema(),
+          buildWebsiteSchema(),
+          buildBreadcrumbSchema([
+            { name: 'Home', path: '/' },
+            { name: 'Collections', path: '/collections' },
+            { name: c.name, path },
+          ]),
+        ]}
+      />
       <SectionScrollProvider activeSectionIndex={activeSectionIndex}>
         <FullPageScroller
           stepperLabel={c.name}

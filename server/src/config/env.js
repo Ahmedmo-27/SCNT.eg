@@ -16,6 +16,7 @@ const env = {
   smtpPass: process.env.SMTP_PASS,
   smtpFrom: process.env.SMTP_FROM,
   clientBaseUrl: process.env.CLIENT_BASE_URL,
+  siteBaseUrl: process.env.SITE_BASE_URL || process.env.CLIENT_BASE_URL,
   emailVerificationTokenExpiresInMinutes: Number(process.env.EMAIL_VERIFICATION_TOKEN_EXPIRES_MINUTES || 60),
 };
 
