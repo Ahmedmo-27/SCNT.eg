@@ -7,7 +7,7 @@ import { EightPointStar } from '../components/ui/EightPointStar'
 import { StarDivider } from '../components/ui/StarDivider'
 
 const INSTAGRAM_USER = 'scnt.eg'
-const EMAIL = 'scnt.eg.fragrances@gmail.com'
+const EMAIL = 'support@scnt-eg.me'
 const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_USER}/`
 
 export function ContactPage() {
