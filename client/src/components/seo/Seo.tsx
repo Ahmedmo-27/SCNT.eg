@@ -75,10 +75,17 @@ export function Seo({
     addMetaByProperty('og:description', cleanDescription)
     addMetaByProperty('og:url', canonical)
     addMetaByProperty('og:image', ogImage)
+    addMetaByProperty('og:image:secure_url', ogImage)
+    addMetaByProperty('og:image:type', 'image/png')
+    addMetaByProperty('og:image:width', '3168')
+    addMetaByProperty('og:image:height', '1344')
     addMetaByName('twitter:card', 'summary_large_image')
     addMetaByName('twitter:title', cleanTitle)
     addMetaByName('twitter:description', cleanDescription)
     addMetaByName('twitter:image', ogImage)
+    addMetaByName('twitter:image:alt', 'SCNT.eg fragrance showcase')
+    addLink('icon', absoluteUrl('/SCNT.eg_Monogram.png'))
+    addLink('apple-touch-icon', absoluteUrl('/SCNT.eg_Monogram.png'))
 
     if (import.meta.env.VITE_GSC_VERIFICATION) {
       addMetaByName('google-site-verification', import.meta.env.VITE_GSC_VERIFICATION)

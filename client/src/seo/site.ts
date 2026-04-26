@@ -17,7 +17,7 @@ export function getSiteOrigin(): string {
 export function absoluteUrl(path: string): string {
   const origin = getSiteOrigin()
   const safePath = path.startsWith('/') ? path : `/${path}`
-  return `${origin}${safePath}`
+  return new URL(safePath, `${origin}/`).toString()
 }
 
 export function normalizeRoutePath(pathname: string): string {
