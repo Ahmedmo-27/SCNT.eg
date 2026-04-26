@@ -13,7 +13,20 @@ const STATIC_ROUTES = [
 
 function safeBaseUrl(value) {
   if (!value) return '';
-  return String(value).trim().replace(/\/$/, '').toLowerCase();
+  const raw = String(value).trim().toLowerCase();
+  if (!raw) return '';
+
+  // Ensure a fully qualified URL so robots.txt always contains a valid sitemap URL.
+  const normalized = /^https?:\/\//.test(raw)
+    ? raw
+    : `https://${raw.replace(/^\/\//, '')}`;
+
+  try {
+    const parsed = new URL(normalized);
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch (_error) {
+    return '';
+  }
 }
 
 function xmlEscape(value) {

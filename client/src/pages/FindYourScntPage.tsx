@@ -467,8 +467,8 @@ export function FindYourScntPage() {
                           type="button"
                           aria-pressed={selected}
                           onClick={() => pickChoice(choice)}
-                          className={`group relative overflow-hidden rounded-2xl border text-start transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] aspect-[4/3] sm:aspect-video ${selected
-                              ? 'border-scnt-text/85 shadow-[0_18px_48px_-36px_rgba(42,38,34,0.45)] ring-2 ring-scnt-text/15 z-10'
+                          className={`rounded-2xl border bg-scnt-bg/70 p-5 text-start transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${selected
+                              ? 'border-scnt-text/85 shadow-[0_18px_48px_-36px_rgba(42,38,34,0.45)] ring-2 ring-scnt-text/15'
                               : 'border-scnt-border/80 hover:-translate-y-0.5 hover:border-scnt-text/40 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)]'
                             }`}
                         >
@@ -482,16 +482,10 @@ export function FindYourScntPage() {
                             />
                           </picture>
                           */}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10 transition-opacity duration-500" />
-                          {selected && (
-                            <div className="absolute inset-0 bg-white/5 transition-opacity duration-500" />
-                          )}
-                          <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-
-                          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 text-white drop-shadow-md">
-                            <p className="text-[0.65rem] uppercase tracking-[0.22em] text-white/80">{choice.aura}</p>
-                            <p className="mt-2 text-base font-medium sm:text-lg">{choice.title}</p>
-                            <p className="mt-1 text-xs leading-relaxed text-white/70 sm:text-sm">{choice.subtitle}</p>
+                          <div>
+                            <p className="text-[0.65rem] uppercase tracking-[0.22em] text-scnt-text-muted">{choice.aura}</p>
+                            <p className="mt-2 text-base font-medium text-scnt-text sm:text-lg">{choice.title}</p>
+                            <p className="mt-1 text-xs leading-relaxed text-scnt-text-muted sm:text-sm">{choice.subtitle}</p>
                           </div>
                         </button>
                       )
@@ -556,9 +550,9 @@ export function FindYourScntPage() {
                         {result.collectionWhy}
                       </p>
                     </div>
+                    {/*
                     {result.collection.coverImage && (
                       <div className="w-full sm:w-1/3 shrink-0">
-                        {/*
                         <picture>
                           <source srcSet={result.collection.coverImage} type="image/png" />
                           <img 
@@ -567,9 +561,9 @@ export function FindYourScntPage() {
                             className="w-full aspect-[4/3] sm:aspect-square object-cover rounded-xl border border-scnt-border/50" 
                           />
                         </picture>
-                        */}
                       </div>
                     )}
+                    */}
                   </div>
 
                   <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/70 p-5 flex flex-col-reverse sm:flex-row gap-6 items-center sm:items-start">
@@ -581,9 +575,9 @@ export function FindYourScntPage() {
                         {result.fragranceWhy}
                       </p>
                     </div>
+                    {/*
                     {(result.fragrance.clearBackground_Image || result.fragrance.galleryImages?.[0]) && (
                       <div className="w-full sm:w-1/3 shrink-0 flex items-center justify-center bg-scnt-bg/50 rounded-xl border border-scnt-border/50 aspect-[4/3] sm:aspect-square p-4">
-                        {/*
                         <picture>
                           <source srcSet={result.fragrance.clearBackground_Image || result.fragrance.galleryImages[0]} type="image/png" />
                           <img 
@@ -592,9 +586,9 @@ export function FindYourScntPage() {
                             className="w-full h-full object-contain" 
                           />
                         </picture>
-                        */}
                       </div>
                     )}
+                    */}
                   </div>
 
                   <div className="flex flex-col gap-3 pt-1 sm:flex-row">

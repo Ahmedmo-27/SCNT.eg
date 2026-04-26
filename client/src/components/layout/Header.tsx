@@ -115,11 +115,13 @@ export function Header() {
   useLayoutEffect(() => {
     const el = headerRef.current
     if (!el) return
-    const ro = new ResizeObserver(() => {
-      document.documentElement.style.setProperty('--scnt-header-h', `${el.offsetHeight}px`)
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      const height = entry?.borderBoxSize?.[0]?.blockSize ?? entry?.contentRect.height
+      if (typeof height !== 'number') return
+      document.documentElement.style.setProperty('--scnt-header-h', `${height}px`)
     })
     ro.observe(el)
-    document.documentElement.style.setProperty('--scnt-header-h', `${el.offsetHeight}px`)
     return () => ro.disconnect()
   }, [])
 
