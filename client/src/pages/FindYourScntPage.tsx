@@ -472,6 +472,7 @@ export function FindYourScntPage() {
                               : 'border-scnt-border/80 hover:-translate-y-0.5 hover:border-scnt-text/40 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)]'
                             }`}
                         >
+                          {/*
                           <picture>
                             <source srcSet={choice.imageUrl} type="image/png" />
                             <img
@@ -480,6 +481,7 @@ export function FindYourScntPage() {
                               className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105"
                             />
                           </picture>
+                          */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10 transition-opacity duration-500" />
                           {selected && (
                             <div className="absolute inset-0 bg-white/5 transition-opacity duration-500" />
@@ -556,6 +558,7 @@ export function FindYourScntPage() {
                     </div>
                     {result.collection.coverImage && (
                       <div className="w-full sm:w-1/3 shrink-0">
+                        {/*
                         <picture>
                           <source srcSet={result.collection.coverImage} type="image/png" />
                           <img 
@@ -564,6 +567,7 @@ export function FindYourScntPage() {
                             className="w-full aspect-[4/3] sm:aspect-square object-cover rounded-xl border border-scnt-border/50" 
                           />
                         </picture>
+                        */}
                       </div>
                     )}
                   </div>
@@ -579,6 +583,7 @@ export function FindYourScntPage() {
                     </div>
                     {(result.fragrance.clearBackground_Image || result.fragrance.galleryImages?.[0]) && (
                       <div className="w-full sm:w-1/3 shrink-0 flex items-center justify-center bg-scnt-bg/50 rounded-xl border border-scnt-border/50 aspect-[4/3] sm:aspect-square p-4">
+                        {/*
                         <picture>
                           <source srcSet={result.fragrance.clearBackground_Image || result.fragrance.galleryImages[0]} type="image/png" />
                           <img 
@@ -587,6 +592,7 @@ export function FindYourScntPage() {
                             className="w-full h-full object-contain" 
                           />
                         </picture>
+                        */}
                       </div>
                     )}
                   </div>
