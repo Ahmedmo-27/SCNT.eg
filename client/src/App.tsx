@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { StarLoader } from './components/ui/StarLoader'
 import { Seo } from './components/seo/Seo'
 import { buildOrganizationSchema, buildWebsiteSchema } from './seo/schema'
+import { useI18n } from './i18n/I18nContext'
 
 const Home = lazy(() => import('./pages/Home').then((m) => ({ default: m.Home })))
 const ShopAllPage = lazy(() => import('./pages/ShopAllPage').then((m) => ({ default: m.ShopAllPage })))
@@ -31,90 +32,112 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((m) => ({ de
 
 function RouteSeo() {
   const { pathname } = useLocation()
+  const { locale } = useI18n()
 
   if (pathname.startsWith('/product/') || pathname.startsWith('/collections/')) return null
 
-  const defaults: Record<string, { title: string; description: string; noindex?: boolean }> = {
+  const defaults: Record<string, { title: { en: string; ar: string }; description: { en: string; ar: string }; noindex?: boolean }> = {
     '/': {
-      title: 'SCNT.eg Fragrances',
-      description: 'Shop premium fragrances in Egypt from SCNT.eg. Discover signature scent collections, notes, and identity-led perfume stories.',
+      title: { en: 'SCNT.eg Fragrances', ar: 'عطور SCNT.eg' },
+      description: {
+        en: 'Shop premium fragrances in Egypt from SCNT.eg. Discover signature scent collections, notes, and identity-led perfume stories.',
+        ar: 'تسوق عطور SCNT.eg في مصر. اكتشف مجموعات عطرية مميزة ونفحات مصممة لهوية شخصية واضحة.',
+      },
     },
     '/shop': {
-      title: 'Shop Perfumes Online Egypt',
-      description: 'Explore SCNT.eg perfumes by collection, notes, and style. Find long-lasting fragrances crafted for modern Egyptian lifestyles.',
+      title: { en: 'Shop Perfumes Online Egypt', ar: 'تسوق العطور أونلاين في مصر' },
+      description: {
+        en: 'Explore SCNT.eg perfumes by collection, notes, and style. Find long-lasting fragrances crafted for modern Egyptian lifestyles.',
+        ar: 'استكشف عطور SCNT.eg حسب المجموعة والمكونات والأسلوب. اعثر على عطور ثابتة تناسب أسلوب الحياة العصري في مصر.',
+      },
     },
     '/collections': {
-      title: 'Fragrance Collections',
-      description: 'Discover the SCNT.eg fragrance collections and explore scent families designed around mood, identity, and everyday rituals.',
+      title: { en: 'Fragrance Collections', ar: 'مجموعات العطور' },
+      description: {
+        en: 'Discover the SCNT.eg fragrance collections and explore scent families designed around mood, identity, and everyday rituals.',
+        ar: 'تعرف على مجموعات SCNT.eg واستكشف عائلات عطرية مصممة حول المزاج والهوية والروتين اليومي.',
+      },
     },
     '/find-your-scnt': {
-      title: 'Find Your Signature Scent',
-      description: 'Use the SCNT.eg scent finder to match your personality with notes, styles, and occasions for your next signature perfume.',
+      title: { en: 'Find Your Signature Scent', ar: 'اعثر على عطرك المميز' },
+      description: {
+        en: 'Use the SCNT.eg scent finder to match your personality with notes, styles, and occasions for your next signature perfume.',
+        ar: 'استخدم أداة SCNT.eg لاختيار العطر الأنسب لشخصيتك حسب النوتات والأسلوب والمناسبة.',
+      },
     },
     '/about': {
-      title: 'About SCNT.eg',
-      description: 'Learn the story behind SCNT.eg and our fragrance philosophy, craftsmanship, and identity-first approach to perfume in Egypt.',
+      title: { en: 'About SCNT.eg', ar: 'عن SCNT.eg' },
+      description: {
+        en: 'Learn the story behind SCNT.eg and our fragrance philosophy, craftsmanship, and identity-first approach to perfume in Egypt.',
+        ar: 'تعرف على قصة SCNT.eg وفلسفتنا في صناعة العطور ونهجنا المبني على الهوية في مصر.',
+      },
     },
     '/contact': {
-      title: 'Contact SCNT.eg',
-      description: 'Get in touch with SCNT.eg for fragrance support, order help, and product recommendations tailored to your scent preferences.',
+      title: { en: 'Contact SCNT.eg', ar: 'تواصل مع SCNT.eg' },
+      description: {
+        en: 'Get in touch with SCNT.eg for fragrance support, order help, and product recommendations tailored to your scent preferences.',
+        ar: 'تواصل مع SCNT.eg للمساعدة في الطلبات وتوصيات عطرية مناسبة لذوقك.',
+      },
     },
     '/faqs': {
-      title: 'Fragrance FAQs',
-      description: 'Read common SCNT.eg perfume FAQs about scent longevity, notes, shipping, and choosing fragrances for your identity and routine.',
+      title: { en: 'Fragrance FAQs', ar: 'أسئلة شائعة عن العطور' },
+      description: {
+        en: 'Read common SCNT.eg perfume FAQs about scent longevity, notes, shipping, and choosing fragrances for your identity and routine.',
+        ar: 'اقرأ أكثر الأسئلة شيوعاً عن ثبات العطر والمكونات والشحن وكيفية اختيار العطر المناسب لك.',
+      },
     },
     '/cart': {
-      title: 'Your Cart',
-      description: 'Review your selected SCNT.eg fragrances before checkout.',
+      title: { en: 'Your Cart', ar: 'سلتك' },
+      description: { en: 'Review your selected SCNT.eg fragrances before checkout.', ar: 'راجع اختياراتك قبل إتمام الطلب.' },
       noindex: true,
     },
     '/checkout': {
-      title: 'Checkout',
-      description: 'Secure checkout for your SCNT.eg fragrance order.',
+      title: { en: 'Checkout', ar: 'الدفع' },
+      description: { en: 'Secure checkout for your SCNT.eg fragrance order.', ar: 'إتمام آمن لطلبك من SCNT.eg.' },
       noindex: true,
     },
     '/wishlist': {
-      title: 'Your Wishlist',
-      description: 'Save your favorite SCNT.eg fragrances for later.',
+      title: { en: 'Your Wishlist', ar: 'المفضلة' },
+      description: { en: 'Save your favorite SCNT.eg fragrances for later.', ar: 'احفظ عطورك المفضلة للعودة إليها لاحقاً.' },
       noindex: true,
     },
     '/login': {
-      title: 'Login',
-      description: 'Sign in to your SCNT.eg account.',
+      title: { en: 'Login', ar: 'تسجيل الدخول' },
+      description: { en: 'Sign in to your SCNT.eg account.', ar: 'سجّل الدخول إلى حسابك في SCNT.eg.' },
       noindex: true,
     },
     '/register': {
-      title: 'Create Account',
-      description: 'Create your SCNT.eg account to manage orders and wishlist.',
+      title: { en: 'Create Account', ar: 'إنشاء حساب' },
+      description: { en: 'Create your SCNT.eg account to manage orders and wishlist.', ar: 'أنشئ حسابك لإدارة الطلبات والمفضلة.' },
       noindex: true,
     },
     '/verify-email': {
-      title: 'Verify Email',
-      description: 'Verify your email to secure your SCNT.eg account.',
+      title: { en: 'Verify Email', ar: 'تأكيد البريد الإلكتروني' },
+      description: { en: 'Verify your email to secure your SCNT.eg account.', ar: 'أكّد بريدك لحماية حسابك.' },
       noindex: true,
     },
     '/profile': {
-      title: 'My Profile',
-      description: 'Manage your SCNT.eg account profile and preferences.',
+      title: { en: 'My Profile', ar: 'حسابي' },
+      description: { en: 'Manage your SCNT.eg account profile and preferences.', ar: 'أدر بيانات حسابك وتفضيلاتك.' },
       noindex: true,
     },
     '/admin': {
-      title: 'Admin',
-      description: 'SCNT.eg administration panel.',
+      title: { en: 'Admin', ar: 'لوحة الإدارة' },
+      description: { en: 'SCNT.eg administration panel.', ar: 'لوحة إدارة SCNT.eg.' },
       noindex: true,
     },
   }
 
   const page = defaults[pathname] ?? {
-    title: 'SCNT.eg',
-    description: 'Explore SCNT.eg fragrances in Egypt.',
+    title: { en: 'SCNT.eg', ar: 'SCNT.eg' },
+    description: { en: 'Explore SCNT.eg fragrances in Egypt.', ar: 'اكتشف عطور SCNT.eg في مصر.' },
     noindex: pathname !== '/',
   }
 
   return (
     <Seo
-      title={page.title}
-      description={page.description}
+      title={page.title[locale]}
+      description={page.description[locale]}
       path={pathname}
       noindex={Boolean(page.noindex)}
       jsonLd={[buildOrganizationSchema(), buildWebsiteSchema()]}

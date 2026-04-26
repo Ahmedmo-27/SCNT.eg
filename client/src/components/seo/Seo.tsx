@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { DEFAULT_OG_IMAGE, absoluteUrl, normalizeRoutePath, truncateText } from '../../seo/site'
+import { useI18n } from '../../i18n/I18nContext'
 
 type SeoProps = {
   title: string
@@ -25,6 +26,8 @@ export function Seo({
   noindex = false,
   jsonLd = [],
 }: SeoProps) {
+  const { locale } = useI18n()
+
   useEffect(() => {
     const normalizedPath = normalizeRoutePath(path)
     const canonical = absoluteUrl(normalizedPath)
@@ -32,9 +35,10 @@ export function Seo({
     const cleanTitle = truncateText(titleWithBrand(title), 60)
     const cleanDescription = truncateText(description, 158)
     const robots = noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large'
+    const localeOg = locale === 'ar' ? 'ar_EG' : 'en_US'
+    const localeAlt = locale === 'ar' ? 'en_US' : 'ar_EG'
 
     document.title = cleanTitle
-    document.documentElement.lang = 'en'
 
     const created: HTMLElement[] = []
 
@@ -56,10 +60,13 @@ export function Seo({
       created.push(el)
     }
 
-    function addLink(rel: string, href: string) {
+    function addLink(rel: string, href: string, attrs?: Record<string, string>) {
       const el = document.createElement('link')
       el.setAttribute('rel', rel)
       el.setAttribute('href', href)
+      if (attrs) {
+        Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v))
+      }
       el.setAttribute('data-scnt-seo', 'true')
       document.head.appendChild(el)
       created.push(el)
@@ -67,8 +74,10 @@ export function Seo({
 
     addMetaByName('description', cleanDescription)
     addMetaByName('robots', robots)
+    addMetaByName('googlebot', robots)
     addLink('canonical', canonical)
-    addMetaByProperty('og:locale', 'en_US')
+    addMetaByProperty('og:locale', localeOg)
+    addMetaByProperty('og:locale:alternate', localeAlt)
     addMetaByProperty('og:type', type)
     addMetaByProperty('og:site_name', 'SCNT.eg')
     addMetaByProperty('og:title', cleanTitle)
@@ -118,7 +127,7 @@ export function Seo({
     return () => {
       created.forEach((el) => el.remove())
     }
-  }, [title, description, path, image, type, noindex, jsonLd])
+  }, [title, description, path, image, type, noindex, jsonLd, locale])
 
   return null
 }
