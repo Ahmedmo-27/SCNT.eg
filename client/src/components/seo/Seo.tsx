@@ -77,8 +77,6 @@ export function Seo({
     addMetaByProperty('og:image', ogImage)
     addMetaByProperty('og:image:secure_url', ogImage)
     addMetaByProperty('og:image:type', 'image/png')
-    addMetaByProperty('og:image:width', '3168')
-    addMetaByProperty('og:image:height', '1344')
     addMetaByName('twitter:card', 'summary_large_image')
     addMetaByName('twitter:title', cleanTitle)
     addMetaByName('twitter:description', cleanDescription)

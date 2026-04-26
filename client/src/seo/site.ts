@@ -1,5 +1,5 @@
 export const SITE_NAME = 'SCNT.eg'
-export const DEFAULT_OG_IMAGE = '/Hero Section Image.png'
+export const DEFAULT_OG_IMAGE = '/SCNT.eg_Monogram.png'
 
 function normalizeOrigin(value: string): string {
   return value.replace(/\/$/, '').toLowerCase()
