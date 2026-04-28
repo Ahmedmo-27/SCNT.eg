@@ -11,7 +11,7 @@ export function getSiteOrigin(): string {
   if (typeof window !== 'undefined' && window.location.origin) {
     return normalizeOrigin(window.location.origin)
   }
-  return 'https://scnt-eg.me'
+  return 'https://www.scnt-eg.me'
 }
 
 export function absoluteUrl(path: string): string {

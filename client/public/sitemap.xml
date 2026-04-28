@@ -1,37 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://scnt-eg.me/</loc>
+    <loc>https://www.scnt-eg.me/</loc>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://scnt-eg.me/shop</loc>
+    <loc>https://www.scnt-eg.me/shop</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://scnt-eg.me/collections</loc>
+    <loc>https://www.scnt-eg.me/collections</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://scnt-eg.me/find-your-scnt</loc>
+    <loc>https://www.scnt-eg.me/find-your-scnt</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://scnt-eg.me/about</loc>
+    <loc>https://www.scnt-eg.me/about</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://scnt-eg.me/contact</loc>
+    <loc>https://www.scnt-eg.me/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://scnt-eg.me/faqs</loc>
+    <loc>https://www.scnt-eg.me/faqs</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

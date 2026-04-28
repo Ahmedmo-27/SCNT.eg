@@ -12,7 +12,7 @@ function ensureAbsoluteUrl(value: string, origin: string): string {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const apiTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:5000'
-  const siteUrl = (env.VITE_SITE_URL || 'https://scnt-eg.me').replace(/\/$/, '')
+  const siteUrl = (env.VITE_SITE_URL || 'https://www.scnt-eg.me').replace(/\/$/, '')
 
   return {
     plugins: [

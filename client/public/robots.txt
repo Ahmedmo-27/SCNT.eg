@@ -8,4 +8,4 @@ Disallow: /profile
 Disallow: /login
 Disallow: /register
 
-Sitemap: https://scnt-eg.me/sitemap.xml
+Sitemap: https://www.scnt-eg.me/sitemap.xml
