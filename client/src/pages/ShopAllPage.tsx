@@ -242,11 +242,11 @@ export function ShopAllPage() {
             variants={grid}
             initial="hidden"
             animate="show"
-            className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10"
+            className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 lg:gap-10"
           >
             {visible.map((p) => (
               <motion.div key={p.id} variants={cell}>
-                <ProductCard product={p} entrance={false} carousel />
+                <ProductCard product={p} entrance={false} carousel compact />
               </motion.div>
             ))}
           </motion.div>

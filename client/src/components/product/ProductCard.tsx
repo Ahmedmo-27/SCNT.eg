@@ -20,9 +20,11 @@ type ProductCardProps = {
   entrance?: boolean
   /** Enable image carousel controls/swipe on the card media. */
   carousel?: boolean
+  /** Use a tighter layout for dense grids like Shop All. */
+  compact?: boolean
 }
 
-export function ProductCard({ product, entrance = true, carousel = false }: ProductCardProps) {
+export function ProductCard({ product, entrance = true, carousel = false, compact = false }: ProductCardProps) {
   const { t, locale } = useI18n()
   const isRtl = locale === 'ar'
   const { collections } = useCatalog()
@@ -57,10 +59,6 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
       : isExplorer
         ? -4
         : -5
-
-  useEffect(() => {
-    setImageIndex(0)
-  }, [product.id])
 
   const goImage = useCallback(
     (delta: number) => {
@@ -123,7 +121,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
               : isExplorer
                 ? 'hover:shadow-[0_32px_90px_-44px_rgba(4,40,60,0.9)]'
                 : 'hover:shadow-[0_36px_96px_-48px_rgba(42,38,34,0.95)]'
-        } ${productImageFrameFull}`}
+        } ${compact ? 'rounded-[1.5rem]' : productImageFrameFull}`}
         style={{
           background: tintedBeigeGlass(accent),
           boxShadow: isIcon
@@ -133,7 +131,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
       >
         <Link to={`/product/${product.id}`} className="block">
           <div
-            className={`relative aspect-scnt-product w-full overflow-hidden ${productImageFrameTop}`}
+            className={`relative w-full overflow-hidden ${compact ? 'aspect-[1182/900]' : 'aspect-scnt-product'} ${compact ? 'rounded-t-[1.5rem]' : productImageFrameTop}`}
             style={{
               background: `linear-gradient(145deg, ${g0}, ${g1})`,
             }}
@@ -287,7 +285,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
               </button>
             </div>
           </div>
-          <div className="space-y-2 px-5 py-6 text-center">
+          <div className={`space-y-1.5 text-center ${compact ? 'px-4 py-3.5' : 'px-5 py-6'}`}>
             <p
               className={`text-xs uppercase text-scnt-text-muted ${
                 isExecutive
@@ -301,7 +299,7 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
             >
               {col?.name ?? product.collection}
             </p>
-            <h3 className="font-serif text-xl text-scnt-text">{product.name}</h3>
+            <h3 className={`font-serif text-scnt-text ${compact ? 'text-[1.05rem] leading-tight' : 'text-xl'}`}>{product.name}</h3>
             <p
               className={`text-[0.65rem] uppercase text-scnt-text/45 ${
                 isCharmer
@@ -313,16 +311,16 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
             >
               {t('pc.inspiredBy')} {product.inspiredBy}
             </p>
-            <p className="line-clamp-2 text-xs italic leading-relaxed text-scnt-text-muted/95">
+            <p className={`line-clamp-1 italic leading-relaxed text-scnt-text-muted/95 ${compact ? 'text-[0.68rem]' : 'text-xs'}`}>
               {product.vibeSentence}
             </p>
-            <p className="pt-1 text-sm text-scnt-text-muted">{formatEgp(product.price, locale)}</p>
+            <p className={`pt-0.5 text-scnt-text-muted ${compact ? 'text-[0.9rem]' : 'text-sm'}`}>{formatEgp(product.price, locale)}</p>
           </div>
         </Link>
         <button
           type="button"
           onClick={handleToggleWishlist}
-          className={`absolute end-4 top-4 z-[7] inline-flex h-10 w-10 items-center justify-center rounded-full border border-scnt-border/70 backdrop-blur-sm transition-colors ${
+          className={`absolute end-3 top-3 z-[7] inline-flex ${compact ? 'h-8 w-8' : 'h-10 w-10'} items-center justify-center rounded-full border border-scnt-border/70 backdrop-blur-sm transition-colors ${
             isWishlisted
               ? 'bg-scnt-text text-scnt-bg'
               : 'bg-scnt-bg-elevated/85 text-scnt-text-muted hover:text-scnt-text'
@@ -334,8 +332,8 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
           }
         >
           <svg
-            width="16"
-            height="16"
+            width={compact ? '13' : '16'}
+            height={compact ? '13' : '16'}
             viewBox="0 0 24 24"
             fill={isWishlisted ? 'currentColor' : 'none'}
             stroke="currentColor"
@@ -349,9 +347,9 @@ export function ProductCard({ product, entrance = true, carousel = false }: Prod
             />
           </svg>
         </button>
-        <div className="border-t border-scnt-border/75 px-5 pb-5 pt-4 text-center sm:hidden">
+        <div className={`border-t border-scnt-border/75 text-center sm:hidden ${compact ? 'px-4 pb-3.5 pt-2.5' : 'px-5 pb-5 pt-4'}`}>
           <div className="space-y-2">
-            <Button type="button" className="w-full px-5 py-2 text-xs" onClick={handleAddToCart}>
+            <Button type="button" className={`w-full ${compact ? 'px-4 py-1.75 text-[0.72rem]' : 'px-5 py-2 text-xs'}`} onClick={handleAddToCart}>
               {t('pc.addToCart')}
             </Button>
             {justAdded ? (
