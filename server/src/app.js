@@ -90,8 +90,45 @@ app.use("/api", routes);
 // Serve the built client in production (e.g. Heroku)
 if (process.env.NODE_ENV === "production") {
   const clientDist = path.resolve(__dirname, "../../client/dist");
-  app.use(express.static(clientDist));
+  const oneYear = 31536000;
+  const oneHour = 3600;
+
+  app.use(
+    express.static(clientDist, {
+      setHeaders: (res, filePath) => {
+        try {
+          const name = path.basename(filePath);
+          // index.html should not be cached long-term
+          if (name === 'index.html') {
+            res.setHeader('Cache-Control', 'no-cache');
+            return;
+          }
+
+          // Hashed filenames (common pattern: name.<hash>.ext) can be cached long-term
+          if (/\.[a-f0-9]{8,}\./i.test(name)) {
+            res.setHeader('Cache-Control', `public, max-age=${oneYear}, immutable`);
+            return;
+          }
+
+          // Common static extensions — give them a long cache but not immutable
+          const ext = path.extname(name).toLowerCase();
+          const longCacheExt = new Set(['.js', '.css', '.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif', '.woff2', '.woff', '.ttf', '.eot']);
+          if (longCacheExt.has(ext)) {
+            res.setHeader('Cache-Control', `public, max-age=${oneYear}`);
+            return;
+          }
+
+          // Default: short cache
+          res.setHeader('Cache-Control', `public, max-age=${oneHour}`);
+        } catch (err) {
+          // On error, don't block serving the file
+        }
+      },
+    })
+  );
+
   app.get("*", (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(path.join(clientDist, "index.html"));
   });
 }

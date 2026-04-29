@@ -14,3 +14,13 @@ createRoot(document.getElementById('root')!).render(
     </I18nProvider>
   </StrictMode>,
 )
+
+// Register service worker in production to enable caching of assets
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((reg) => console.log('Service worker registered.', reg))
+      .catch((err) => console.error('Service worker registration failed:', err));
+  });
+}
