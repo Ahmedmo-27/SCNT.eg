@@ -4,6 +4,7 @@ const productRepository = require("../repositories/productRepository");
 const PromoCode = require("../models/PromoCode");
 const Order = require("../models/Order");
 const ApiError = require("../utils/ApiError");
+const { getCache, setCache, deleteCache } = require("../utils/cache");
 
 const SHIPPING_FEE_EGP = 80;
 
@@ -121,15 +122,29 @@ const buildCartResponse = async (userId, items, promoCode) => {
 };
 
 const getCart = async (userId) => {
+  const cacheKey = `cart:${userId}`;
+
+  // Try to get from cache
+  const cachedCart = await getCache(cacheKey);
+  if (cachedCart) {
+    return cachedCart;
+  }
+
   const cart = await cartRepository.findByUserId(userId);
   if (!cart) {
-    return buildCartResponse(userId, [], "");
+    const response = await buildCartResponse(userId, [], "");
+    await setCache(cacheKey, response, 1800); // Cache for 30 minutes
+    return response;
   }
 
   const response = await buildCartResponse(userId, cart.items || [], cart.promoCode || "");
   if ((cart.promoCode || "") !== response.promoCode) {
     await cartRepository.upsertByUserId(userId, cart.items || [], response.promoCode);
   }
+
+  // Cache the result for 30 minutes
+  await setCache(cacheKey, response, 1800);
+
   return response;
 };
 
@@ -147,6 +162,10 @@ const addItem = async (userId, productId, quantity = 1) => {
   }
 
   await cartRepository.upsertByUserId(userId, cart.items, cart.promoCode || "");
+  
+  // Invalidate cache
+  await deleteCache(`cart:${userId}`);
+  
   return getCart(userId);
 };
 
@@ -154,6 +173,10 @@ const removeItem = async (userId, productId) => {
   const cart = (await cartRepository.findRawByUserId(userId)) || { items: [], promoCode: "" };
   const filtered = cart.items.filter((item) => item.product.toString() !== productId);
   await cartRepository.upsertByUserId(userId, filtered, cart.promoCode || "");
+  
+  // Invalidate cache
+  await deleteCache(`cart:${userId}`);
+  
   return getCart(userId);
 };
 
@@ -172,6 +195,10 @@ const updateItem = async (userId, productId, quantity) => {
   }
 
   await cartRepository.upsertByUserId(userId, cart.items, cart.promoCode || "");
+  
+  // Invalidate cache
+  await deleteCache(`cart:${userId}`);
+  
   return getCart(userId);
 };
 
@@ -196,6 +223,10 @@ const replaceItems = async (userId, lines) => {
   }
 
   await cartRepository.upsertByUserId(userId, normalizedItems, cart.promoCode || "");
+  
+  // Invalidate cache
+  await deleteCache(`cart:${userId}`);
+  
   return getCart(userId);
 };
 
@@ -243,17 +274,28 @@ const applyPromoCode = async (userId, code) => {
   }
 
   await cartRepository.upsertByUserId(userId, cart.items, normalized);
+  
+  // Invalidate cache
+  await deleteCache(`cart:${userId}`);
+  
   return getCart(userId);
 };
 
 const removePromoCode = async (userId) => {
   const cart = (await cartRepository.findRawByUserId(userId)) || { items: [], promoCode: "" };
   await cartRepository.upsertByUserId(userId, cart.items, "");
+  
+  // Invalidate cache
+  await deleteCache(`cart:${userId}`);
+  
   return getCart(userId);
 };
 
 const clearCart = async (userId) => {
   await cartRepository.upsertByUserId(userId, [], "");
+  
+  // Invalidate cache
+  await deleteCache(`cart:${userId}`);
 };
 
 module.exports = {

@@ -9,19 +9,49 @@ const Collection = require("../models/Collection");
 const Order = require("../models/Order");
 const userRepository = require("../repositories/userRepository");
 const { sendPromotionalEmail } = require("../services/emailService");
+const { getCache, setCache, deleteCache, invalidatePattern } = require("../utils/cache");
 
 const getAllOrders = asyncHandler(async (req, res) => {
+  const cacheKey = "admin:orders:all";
+
+  // Try to get from cache
+  const cachedOrders = await getCache(cacheKey);
+  if (cachedOrders) {
+    return res.status(200).json(successResponse(cachedOrders));
+  }
+
   const orders = await orderService.getAllOrders();
+  
+  // Cache for 10 minutes (orders change frequently)
+  await setCache(cacheKey, orders, 600);
+  
   res.status(200).json(successResponse(orders));
 });
 
 const updateOrderStatus = asyncHandler(async (req, res) => {
   const order = await orderService.updateOrderStatus(req.params.id, req.body.status);
+  
+  // Invalidate related caches
+  await deleteCache("admin:orders:all");
+  await invalidatePattern("admin:dashboard:*");
+  
   res.status(200).json(successResponse(order, "Order status updated"));
 });
 
 const listPromoCodes = asyncHandler(async (_req, res) => {
+  const cacheKey = "admin:promoCodes:all";
+
+  // Try to get from cache
+  const cachedPromos = await getCache(cacheKey);
+  if (cachedPromos) {
+    return res.status(200).json(successResponse(cachedPromos));
+  }
+
   const promos = await PromoCode.find({}).sort({ createdAt: -1 });
+  
+  // Cache for 30 minutes (promos change less frequently)
+  await setCache(cacheKey, promos, 1800);
+  
   res.status(200).json(successResponse(promos));
 });
 
@@ -36,6 +66,10 @@ const createPromoCode = asyncHandler(async (req, res) => {
     startsAt: req.body?.startsAt,
     expiresAt: req.body?.expiresAt,
   });
+  
+  // Invalidate cache
+  await deleteCache("admin:promoCodes:all");
+  
   res.status(201).json(successResponse(promo, "Promo code created"));
 });
 
@@ -55,16 +89,32 @@ const updatePromoCode = asyncHandler(async (req, res) => {
     { new: true, runValidators: true }
   );
   if (!promo) throw new ApiError(404, "Promo code not found");
+  
+  // Invalidate cache
+  await deleteCache("admin:promoCodes:all");
+  
   res.status(200).json(successResponse(promo, "Promo code updated"));
 });
 
 const deletePromoCode = asyncHandler(async (req, res) => {
   const deleted = await PromoCode.findByIdAndDelete(req.params.id);
   if (!deleted) throw new ApiError(404, "Promo code not found");
+  
+  // Invalidate cache
+  await deleteCache("admin:promoCodes:all");
+  
   res.status(200).json(successResponse(null, "Promo code deleted"));
 });
 
 const getDashboardSummary = asyncHandler(async (_req, res) => {
+  const cacheKey = "admin:dashboard:summary";
+
+  // Try to get from cache
+  const cachedSummary = await getCache(cacheKey);
+  if (cachedSummary) {
+    return res.status(200).json(successResponse(cachedSummary));
+  }
+
   const [usersCount, productsCount, ordersCount, collectionsCount, pendingOrders, revenueAgg] = await Promise.all([
     User.countDocuments({}),
     Product.countDocuments({}),
@@ -74,22 +124,37 @@ const getDashboardSummary = asyncHandler(async (_req, res) => {
     Order.aggregate([{ $group: { _id: null, totalRevenue: { $sum: "$total" } } }]),
   ]);
 
-  res.status(200).json(
-    successResponse({
-      usersCount,
-      productsCount,
-      ordersCount,
-      collectionsCount,
-      pendingOrders,
-      totalRevenue: revenueAgg[0]?.totalRevenue || 0,
-    })
-  );
+  const summary = {
+    usersCount,
+    productsCount,
+    ordersCount,
+    collectionsCount,
+    pendingOrders,
+    totalRevenue: revenueAgg[0]?.totalRevenue || 0,
+  };
+
+  // Cache for 5 minutes (frequently updated stats)
+  await setCache(cacheKey, summary, 300);
+
+  res.status(200).json(successResponse(summary));
 });
 
 const listUsers = asyncHandler(async (_req, res) => {
+  const cacheKey = "admin:users:all";
+
+  // Try to get from cache
+  const cachedUsers = await getCache(cacheKey);
+  if (cachedUsers) {
+    return res.status(200).json(successResponse(cachedUsers));
+  }
+
   const users = await User.find({})
     .select("-password -emailVerificationToken")
     .sort({ createdAt: -1 });
+
+  // Cache for 15 minutes (users change infrequently in bulk)
+  await setCache(cacheKey, users, 900);
+
   res.status(200).json(successResponse(users));
 });
 
@@ -103,6 +168,11 @@ const updateUserRole = asyncHandler(async (req, res) => {
     "-password -emailVerificationToken"
   );
   if (!user) throw new ApiError(404, "User not found");
+  
+  // Invalidate cache
+  await deleteCache("admin:users:all");
+  await invalidatePattern("admin:dashboard:*");
+  
   res.status(200).json(successResponse(user, "User role updated"));
 });
 
@@ -112,11 +182,28 @@ const deleteUser = asyncHandler(async (req, res) => {
   }
   const deleted = await User.findByIdAndDelete(req.params.id);
   if (!deleted) throw new ApiError(404, "User not found");
+  
+  // Invalidate cache
+  await deleteCache("admin:users:all");
+  await invalidatePattern("admin:dashboard:*");
+  
   res.status(200).json(successResponse(null, "User deleted"));
 });
 
 const listCollections = asyncHandler(async (_req, res) => {
+  const cacheKey = "admin:collections:all";
+
+  // Try to get from cache
+  const cachedCollections = await getCache(cacheKey);
+  if (cachedCollections) {
+    return res.status(200).json(successResponse(cachedCollections));
+  }
+
   const collections = await Collection.find({}).sort({ createdAt: -1 });
+
+  // Cache for 30 minutes (collections change infrequently)
+  await setCache(cacheKey, collections, 1800);
+
   res.status(200).json(successResponse(collections));
 });
 
@@ -131,6 +218,11 @@ const createCollection = asyncHandler(async (req, res) => {
     sub_tagline: req.body?.sub_tagline,
     description: req.body?.description,
   });
+  
+  // Invalidate related caches
+  await deleteCache("admin:collections:all");
+  await invalidatePattern("collections:*");
+  
   res.status(201).json(successResponse(collection, "Collection created"));
 });
 
@@ -150,6 +242,11 @@ const updateCollection = asyncHandler(async (req, res) => {
     { new: true, runValidators: true }
   );
   if (!collection) throw new ApiError(404, "Collection not found");
+  
+  // Invalidate related caches
+  await deleteCache("admin:collections:all");
+  await invalidatePattern("collections:*");
+  
   res.status(200).json(successResponse(collection, "Collection updated"));
 });
 
@@ -161,6 +258,11 @@ const deleteCollection = asyncHandler(async (req, res) => {
 
   const deleted = await Collection.findByIdAndDelete(req.params.id);
   if (!deleted) throw new ApiError(404, "Collection not found");
+  
+  // Invalidate related caches
+  await deleteCache("admin:collections:all");
+  await invalidatePattern("collections:*");
+  
   res.status(200).json(successResponse(null, "Collection deleted"));
 });
 
