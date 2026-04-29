@@ -13,33 +13,50 @@ const { buildRobotsTxt, buildSitemapXml, safeBaseUrl } = require("./utils/seoDoc
 
 const app = express();
 
-function resolveSiteUrl(req) {
-  const configured = safeBaseUrl(env.siteBaseUrl);
-  if (configured) return configured;
-  return `${req.protocol}://${req.get("host")}`.toLowerCase();
+app.set("trust proxy", true);
+
+const productionCanonicalOrigin = "https://www.scnt-eg.me";
+const configuredSiteOrigin = safeBaseUrl(env.siteBaseUrl);
+const canonicalOrigin = env.nodeEnv === "production" ? productionCanonicalOrigin : configuredSiteOrigin;
+const canonicalHost = canonicalOrigin ? new URL(canonicalOrigin).host.toLowerCase() : "www.scnt-eg.me";
+const apexHost = canonicalHost.replace(/^www\./, "");
+
+function normalizeHost(value) {
+  if (!value) return "";
+  return String(value).trim().toLowerCase().replace(/:\d+$/, "").replace(/\.$/, "");
 }
 
-// Redirect non-www requests to the canonical www host to avoid duplicate canonical URLs
+function buildCanonicalUrl(req) {
+  if (!canonicalOrigin) return "";
+  return `${canonicalOrigin}${req.originalUrl}`;
+}
+
+function resolveSiteUrl(req) {
+  if (canonicalOrigin) return canonicalOrigin;
+
+  const host = normalizeHost(req.get("host"));
+  if (!host) return "";
+
+  const protocol = req.secure ? "https" : "http";
+  return `${protocol}://${host}`;
+}
+
+// Redirect the bare apex domain to the canonical www host.
+// Keep the target fixed so the same request cannot bounce between protocol variants.
 app.use((req, res, next) => {
-  try {
-    const configured = safeBaseUrl(env.siteBaseUrl);
-    if (configured) {
-      const configuredHost = new URL(configured).host;
-      if (req.get('host') && req.get('host').toLowerCase() !== configuredHost.toLowerCase()) {
-        const target = `${req.protocol}://${configuredHost}${req.originalUrl}`;
-        return res.redirect(301, target);
-      }
-    } else {
-      const host = req.get('host') || '';
-      if (host && !host.toLowerCase().startsWith('www.')) {
-        const target = `${req.protocol}://www.${host}${req.originalUrl}`;
-        return res.redirect(301, target);
-      }
-    }
-  } catch (err) {
-    // If something goes wrong, continue without redirecting
+  const host = normalizeHost(req.get("host"));
+
+  if (!host) {
     return next();
   }
+
+  if (host === apexHost) {
+    const target = buildCanonicalUrl(req);
+    if (target) {
+      return res.redirect(301, target);
+    }
+  }
+
   return next();
 });
 
