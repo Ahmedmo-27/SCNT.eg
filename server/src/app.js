@@ -19,6 +19,30 @@ function resolveSiteUrl(req) {
   return `${req.protocol}://${req.get("host")}`.toLowerCase();
 }
 
+// Redirect non-www requests to the canonical www host to avoid duplicate canonical URLs
+app.use((req, res, next) => {
+  try {
+    const configured = safeBaseUrl(env.siteBaseUrl);
+    if (configured) {
+      const configuredHost = new URL(configured).host;
+      if (req.get('host') && req.get('host').toLowerCase() !== configuredHost.toLowerCase()) {
+        const target = `${req.protocol}://${configuredHost}${req.originalUrl}`;
+        return res.redirect(301, target);
+      }
+    } else {
+      const host = req.get('host') || '';
+      if (host && !host.toLowerCase().startsWith('www.')) {
+        const target = `${req.protocol}://www.${host}${req.originalUrl}`;
+        return res.redirect(301, target);
+      }
+    }
+  } catch (err) {
+    // If something goes wrong, continue without redirecting
+    return next();
+  }
+  return next();
+});
+
 app.use(
   helmet({
     contentSecurityPolicy: false,
