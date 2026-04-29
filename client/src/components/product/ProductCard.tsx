@@ -131,7 +131,7 @@ export function ProductCard({ product, entrance = true, carousel = false, compac
       >
         <Link to={`/product/${product.id}`} className="block">
           <div
-            className={`relative w-full overflow-hidden ${compact ? 'aspect-[1182/900]' : 'aspect-scnt-product'} ${compact ? 'rounded-t-[1.5rem]' : productImageFrameTop}`}
+            className={`relative w-full overflow-hidden ${compact ? 'aspect-[1182/900] lg:aspect-[1182/900]' : 'aspect-[2/3] sm:aspect-[3/4] md:aspect-scnt-product'} ${compact ? 'rounded-t-[1.5rem]' : productImageFrameTop}`}
             style={{
               background: `linear-gradient(145deg, ${g0}, ${g1})`,
             }}
@@ -218,7 +218,7 @@ export function ProductCard({ product, entrance = true, carousel = false, compac
               </picture>
             </div>
             {carousel && imagesCount > 1 && (
-              <div className="absolute inset-x-0 top-1/2 z-[5] flex -translate-y-1/2 justify-between px-1 sm:px-2">
+              <div className="absolute inset-x-0 top-1/2 z-[5] hidden -translate-y-1/2 justify-between px-1 sm:flex sm:px-2">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -320,7 +320,7 @@ export function ProductCard({ product, entrance = true, carousel = false, compac
         <button
           type="button"
           onClick={handleToggleWishlist}
-          className={`absolute end-3 top-3 z-[7] inline-flex ${compact ? 'h-8 w-8' : 'h-10 w-10'} items-center justify-center rounded-full border border-scnt-border/70 backdrop-blur-sm transition-colors ${
+          className={`absolute end-4 top-4 z-[7] inline-flex ${compact ? 'h-8 w-8' : 'h-10 w-10'} items-center justify-center rounded-full border border-scnt-border/70 backdrop-blur-sm transition-colors sm:end-3 sm:top-3 ${
             isWishlisted
               ? 'bg-scnt-text text-scnt-bg'
               : 'bg-scnt-bg-elevated/85 text-scnt-text-muted hover:text-scnt-text'
