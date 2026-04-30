@@ -1,13 +1,9 @@
 let client = null;
 let isConnected = false;
 
-/**
- * Initialize in-memory cache (no Redis dependency)
- */
 const initializeCache = async () => {
   client = createInMemoryCache();
   isConnected = true;
-  console.log("Using in-memory cache (Redis removed)");
   return true;
 };
 
