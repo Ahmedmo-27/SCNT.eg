@@ -33,7 +33,7 @@ export type ApiProductTranslationsAr = {
   baseNotes?: string[]
 }
 
-/** Populated `Product.collection` from the API */
+/** Aligns with Mongo-backed `Product` documents from the API */
 export type ApiProduct = {
   _id: string
   name: string
@@ -52,7 +52,7 @@ export type ApiProduct = {
   description: string
   stock?: number
   rating?: number
-  review?: string
+  reviews?: Review[]
   translations?: { ar?: ApiProductTranslationsAr }
 }
 
@@ -101,6 +101,16 @@ export type ScentMood =
   | 'velvet-nocturne'
   | 'golden-heritage'
 
+export type Review = {
+  _id: string
+  productId: string
+  rating: number
+  review: string
+  guestName: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type ProductSummary = {
   apiId: string
   id: string
@@ -124,5 +134,5 @@ export type ProductSummary = {
   clearBackground_Image?: string
   scentMood: ScentMood
   rating?: number
-  review?: string
+  reviews?: Review[]
 }

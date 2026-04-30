@@ -266,8 +266,8 @@ export function ProductPage() {
                         <StarRating rating={product.rating} size="md" />
                         <span className="text-xs text-scnt-text-muted uppercase tracking-wider">{t('review.guest')}</span>
                       </div>
-                      {product.review && (
-                        <p className="mt-3 text-sm italic text-scnt-text/80">"{product.review}"</p>
+                      {product.reviews && product.reviews.length > 0 && (
+                        <p className="mt-3 text-sm italic text-scnt-text/80">"{product.reviews[0].review}"</p>
                       )}
                     </div>
                   )}

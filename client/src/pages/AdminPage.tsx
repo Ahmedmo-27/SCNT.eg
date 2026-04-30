@@ -670,26 +670,34 @@ export function AdminPage() {
             <div className="space-y-4">
               <div>
                 <h2 className="text-lg font-semibold mb-4">Product Reviews</h2>
-                {products.filter(p => p.rating && p.rating > 0).length === 0 ? (
+                {products.filter(p => p.reviews && p.reviews.length > 0).length === 0 ? (
                   <p className="text-sm text-scnt-text-muted">No reviews yet.</p>
                 ) : (
-                  <ul className="space-y-3">
-                    {products.filter(p => p.rating && p.rating > 0).map((product) => (
-                      <li key={product._id} className="rounded-lg border border-scnt-border/60 p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
+                  <ul className="space-y-4">
+                    {products.filter(p => p.reviews && p.reviews.length > 0).map((product) => (
+                      <li key={product._id} className="rounded-lg border border-scnt-border/60 p-4 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
                             <p className="font-semibold text-sm">{product.name}</p>
-                            <p className="text-xs text-scnt-text-muted mt-1">SKU: {product.slug}</p>
-                            <div className="mt-2 flex items-center gap-2">
-                              <span className="text-sm">{'★'.repeat(Math.floor(product.rating || 0))}{product.rating && product.rating % 1 !== 0 ? '✭' : ''}{'☆'.repeat(5 - Math.ceil(product.rating || 0))}</span>
-                              <span className="text-xs text-scnt-text-muted">{product.rating?.toFixed(1)}/5</span>
-                            </div>
-                            {product.review && (
-                              <p className="text-sm italic mt-2 text-scnt-text/80 break-words">"{product.review}"</p>
-                            )}
-                            <p className="text-xs text-scnt-text-muted mt-2">By: Guest</p>
+                            <p className="text-xs text-scnt-text-muted">SKU: {product.slug}</p>
                           </div>
                         </div>
+                        {product.reviews && product.reviews.length > 0 && (
+                          <div className="space-y-2 border-t border-scnt-border/30 pt-2 mt-2">
+                            {product.reviews.map((review) => (
+                              <div key={review._id} className="bg-scnt-bg-base/30 rounded p-3">
+                                <div className="flex items-start justify-between gap-2 mb-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs">{'★'.repeat(Math.floor(review.rating))}{review.rating % 1 !== 0 ? '✭' : ''}{'☆'.repeat(5 - Math.ceil(review.rating))}</span>
+                                    <span className="text-xs text-scnt-text-muted">{review.rating.toFixed(1)}/5</span>
+                                  </div>
+                                </div>
+                                <p className="text-sm italic text-scnt-text/80 break-words mb-1">"{review.review}"</p>
+                                <p className="text-xs text-scnt-text-muted">By: {review.guestName || 'Guest'}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </li>
                     ))}
                   </ul>

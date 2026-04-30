@@ -151,27 +151,53 @@ const deleteProduct = async (id) => {
 };
 
 const submitReview = async (id, payload) => {
-  const { rating, review } = payload;
+  const { rating, review, guestName } = payload;
 
   if (typeof rating !== "number" || rating < 0 || rating > 5) {
     throw new ApiError(400, "Rating must be a number between 0 and 5");
   }
 
-  if (typeof review !== "string") {
+  if (typeof review !== "string" || review.trim().length === 0) {
     throw new ApiError(400, "Review must be a string");
   }
 
-  const updated = await productRepository.updateProduct(id, {
+  if (typeof guestName !== "string" || guestName.trim().length === 0) {
+    throw new ApiError(400, "Guest name is required");
+  }
+
+  // Create new Review document
+  const Review = require("../models/Review");
+  const newReview = await Review.create({
+    productId: id,
     rating: Math.round(rating * 2) / 2,
     review: review.trim(),
+    guestName: guestName.trim(),
   });
+
+  // Get all reviews for this product to calculate average rating
+  const allReviews = await Review.find({ productId: id });
+  const avgRating =
+    allReviews.length > 0
+      ? allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length
+      : 0;
+
+  // Update Product to add review reference and update average rating
+  const Product = require("../models/Product");
+  const updated = await Product.findByIdAndUpdate(
+    id,
+    {
+      rating: avgRating,
+      $push: { reviews: newReview._id },
+    },
+    { new: true }
+  );
 
   if (!updated) throw new ApiError(404, "Product not found");
 
   // Invalidate product cache patterns
   await invalidatePattern("products:*");
 
-  return updated;
+  return { reviewId: newReview._id, updatedProduct: updated };
 };
 
 module.exports = {

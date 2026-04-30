@@ -188,7 +188,10 @@ export async function submitReview(productId: string, data: { rating: number; re
 }
 
 /** Submit a review as a guest (no authentication required) */
-export async function submitReviewAsGuest(productId: string, data: { rating: number; review: string }): Promise<unknown> {
+export async function submitReviewAsGuest(
+  productId: string,
+  data: { rating: number; review: string; guestName: string }
+): Promise<unknown> {
   const res = await fetch(`${API_BASE}/products/${productId}/review`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },

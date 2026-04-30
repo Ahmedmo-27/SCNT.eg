@@ -50,6 +50,16 @@ export type AdminPromo = {
   expiresAt?: string | null
 }
 
+export type AdminReview = {
+  _id: string
+  productId: string
+  rating: number
+  review: string
+  guestName: string
+  createdAt: string
+  updatedAt: string
+}
+
 export type AdminProduct = {
   _id: string
   name: string
@@ -63,7 +73,7 @@ export type AdminProduct = {
   coverImage?: string
   stock: number
   rating?: number
-  review?: string
+  reviews?: AdminReview[]
 }
 
 export type PromotionalMailPayload = {
