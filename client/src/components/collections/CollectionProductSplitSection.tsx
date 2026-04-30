@@ -168,7 +168,7 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
                 <img
                   src={bottleSrc}
                   alt=""
-                  className="relative z-30 h-[clamp(9rem,23svh,15rem)] sm:h-[clamp(12rem,30svh,16rem)] md:h-[clamp(14rem,32svh,19rem)] w-auto object-contain drop-shadow-2xl -translate-y-[clamp(0.5rem,1svh,1.5rem)] lg:translate-y-0 lg:h-auto lg:max-h-[80vh] lg:w-[min(31rem,100%)] lg:scale-[1.1] lg:translate-x-[25%]"
+                  className="relative z-30 h-[clamp(9rem,23svh,15rem)] sm:h-[clamp(12rem,30svh,16rem)] md:h-[clamp(14rem,32svh,19rem)] w-auto object-contain drop-shadow-2xl -translate-y-[clamp(0.5rem,1svh,1.5rem)] lg:translate-y-0 lg:h-auto lg:max-h-[80vh] lg:w-[min(31rem,100%)] lg:max-w-[31rem] lg:scale-[1.1] lg:translate-x-[25%]"
                   loading="lazy"
                   decoding="async"
                 />
