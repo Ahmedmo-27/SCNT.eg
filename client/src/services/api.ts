@@ -181,3 +181,25 @@ export async function apiDeleteDataAuthed<T>(path: string): Promise<T> {
   if (!envelope.success) throw new Error(envelope.message)
   return envelope.data
 }
+
+/** Submit a review for a product (guest or authenticated) */
+export async function submitReview(productId: string, data: { rating: number; review: string }): Promise<unknown> {
+  return apiPutDataAuthed(`/products/${productId}/review`, data)
+}
+
+/** Submit a review as a guest (no authentication required) */
+export async function submitReviewAsGuest(productId: string, data: { rating: number; review: string }): Promise<unknown> {
+  const res = await fetch(`${API_BASE}/products/${productId}/review`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  const parsed = await parseBody(res)
+  if (!res.ok) throw new Error(errorMessageFromBody(parsed, res.statusText))
+  const envelope = parsed as ApiEnvelope<unknown>
+  if (!envelope || typeof envelope !== 'object' || !('success' in envelope)) {
+    throw new Error('Invalid API response')
+  }
+  if (!envelope.success) throw new Error(envelope.message)
+  return envelope.data
+}

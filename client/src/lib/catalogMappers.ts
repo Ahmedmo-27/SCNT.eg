@@ -147,6 +147,8 @@ export function mapApiProductToSummary(p: ApiProduct, locale: Locale = 'en'): Pr
     inspiredBy,
     gender: p.gender === 'female' ? 'female' : 'male',
     price: p.price,
+    rating: p.rating ?? 0,
+    review: p.review ?? '',
     placeholderGradient: placeholderPairFromAccent(accent),
     topNotes,
     heartNotes,

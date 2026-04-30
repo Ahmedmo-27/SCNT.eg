@@ -43,6 +43,16 @@ const productSchema = new mongoose.Schema(
     translations: {
       ar: { type: arProductFields, default: () => ({}) },
     },
+    rating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5,
+    },
+    review: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true }
 );

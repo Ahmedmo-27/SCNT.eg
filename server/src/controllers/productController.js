@@ -27,10 +27,16 @@ const deleteProduct = asyncHandler(async (req, res) => {
   res.status(200).json(successResponse(null, "Product deleted"));
 });
 
+const submitReview = asyncHandler(async (req, res) => {
+  const result = await productService.submitReview(req.params.id, req.body);
+  res.status(200).json(successResponse(result, "Review submitted"));
+});
+
 module.exports = {
   getProducts,
   getProductBySlug,
   createProduct,
   updateProduct,
   deleteProduct,
+  submitReview,
 };

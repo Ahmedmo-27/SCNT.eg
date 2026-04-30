@@ -8,6 +8,7 @@ import { apiGetData } from '../services/api'
 import type { ApiProduct, ProductSummary } from '../types/catalog'
 import { Button } from '../components/ui/Button'
 import { EightPointStar } from '../components/ui/EightPointStar'
+import { StarRating } from '../components/ui/StarRating'
 import { ScentPyramid } from '../components/product/ScentPyramid'
 import { ProductImageCarousel } from '../components/product/ProductImageCarousel'
 import { ProductRecommendations } from '../components/product/ProductRecommendations'
@@ -259,6 +260,17 @@ export function ProductPage() {
                       {t('product.formatEdp')} · {product.volume}
                     </p>
                   </div>
+                  {product.rating && product.rating > 0 && (
+                    <div className="mt-4 border-b border-scnt-border/90 pb-4">
+                      <div className="flex items-center gap-2">
+                        <StarRating rating={product.rating} size="md" />
+                        <span className="text-xs text-scnt-text-muted uppercase tracking-wider">{t('review.guest')}</span>
+                      </div>
+                      {product.review && (
+                        <p className="mt-3 text-sm italic text-scnt-text/80">"{product.review}"</p>
+                      )}
+                    </div>
+                  )}
                   <p className="mt-3 text-xs tracking-wide text-scnt-text-muted">
                     {t('product.concHint')}
                   </p>
@@ -319,6 +331,27 @@ export function ProductPage() {
                       </svg>
                       {isWishlisted ? t('product.savedWishlist') : t('product.addWishlist')}
                     </button>
+                    <Link
+                      to="/review"
+                      className="inline-flex items-center gap-1.5 text-sm text-scnt-text-muted transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:text-scnt-text"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        aria-hidden
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"
+                        />
+                      </svg>
+                      {t('product.leaveReview')}
+                    </Link>
                   </div>
                 </div>
               </div>

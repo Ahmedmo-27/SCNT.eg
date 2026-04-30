@@ -62,6 +62,8 @@ export type AdminProduct = {
   description?: string
   coverImage?: string
   stock: number
+  rating?: number
+  review?: string
 }
 
 export type PromotionalMailPayload = {

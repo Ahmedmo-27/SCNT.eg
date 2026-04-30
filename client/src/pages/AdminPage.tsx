@@ -34,7 +34,7 @@ import {
   type PromotionalMailResult,
 } from '../services/adminApi'
 
-type TabKey = 'overview' | 'products' | 'collections' | 'orders' | 'promos' | 'users' | 'mailing'
+type TabKey = 'overview' | 'products' | 'collections' | 'orders' | 'promos' | 'reviews' | 'users' | 'mailing'
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
@@ -42,6 +42,7 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: 'collections', label: 'Collections' },
   { key: 'orders', label: 'Orders' },
   { key: 'promos', label: 'Promo codes' },
+  { key: 'reviews', label: 'Reviews' },
   { key: 'users', label: 'Users' },
   { key: 'mailing', label: 'Mailing' },
 ]
@@ -661,6 +662,40 @@ export function AdminPage() {
                 </li>
               ))}
             </ul>
+          </Card>
+        ) : null}
+
+        {activeTab === 'reviews' ? (
+          <Card asMotion={false} className="p-5">
+            <div className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold mb-4">Product Reviews</h2>
+                {products.filter(p => p.rating && p.rating > 0).length === 0 ? (
+                  <p className="text-sm text-scnt-text-muted">No reviews yet.</p>
+                ) : (
+                  <ul className="space-y-3">
+                    {products.filter(p => p.rating && p.rating > 0).map((product) => (
+                      <li key={product._id} className="rounded-lg border border-scnt-border/60 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm">{product.name}</p>
+                            <p className="text-xs text-scnt-text-muted mt-1">SKU: {product.slug}</p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <span className="text-sm">{'★'.repeat(Math.floor(product.rating || 0))}{product.rating && product.rating % 1 !== 0 ? '✭' : ''}{'☆'.repeat(5 - Math.ceil(product.rating || 0))}</span>
+                              <span className="text-xs text-scnt-text-muted">{product.rating?.toFixed(1)}/5</span>
+                            </div>
+                            {product.review && (
+                              <p className="text-sm italic mt-2 text-scnt-text/80 break-words">"{product.review}"</p>
+                            )}
+                            <p className="text-xs text-scnt-text-muted mt-2">By: Guest</p>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
           </Card>
         ) : null}
 

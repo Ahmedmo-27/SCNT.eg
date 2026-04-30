@@ -51,6 +51,8 @@ export type ApiProduct = {
   baseNotes: string[]
   description: string
   stock?: number
+  rating?: number
+  review?: string
   translations?: { ar?: ApiProductTranslationsAr }
 }
 
@@ -121,4 +123,6 @@ export type ProductSummary = {
   coverImage?: string
   clearBackground_Image?: string
   scentMood: ScentMood
+  rating?: number
+  review?: string
 }

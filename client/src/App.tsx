@@ -28,6 +28,7 @@ const VerifyEmailPage = lazy(
 )
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })))
+const ReviewPage = lazy(() => import('./pages/ReviewPage').then((m) => ({ default: m.ReviewPage })))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
 function RouteSeo() {
@@ -126,6 +127,11 @@ function RouteSeo() {
       description: { en: 'SCNT.eg administration panel.', ar: 'لوحة إدارة SCNT.eg.' },
       noindex: true,
     },
+    '/review': {
+      title: { en: 'Submit a Review', ar: 'أضف تقييماً' },
+      description: { en: 'Share your thoughts about SCNT.eg fragrances and rate the products you love.', ar: 'شارك آراءك حول عطور SCNT.eg والمنتجات التي تحبها.' },
+      noindex: true,
+    },
   }
 
   const page = defaults[pathname] ?? {
@@ -209,6 +215,7 @@ export default function App() {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/review" element={<ReviewPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

@@ -150,10 +150,35 @@ const deleteProduct = async (id) => {
   return deleted;
 };
 
+const submitReview = async (id, payload) => {
+  const { rating, review } = payload;
+
+  if (typeof rating !== "number" || rating < 0 || rating > 5) {
+    throw new ApiError(400, "Rating must be a number between 0 and 5");
+  }
+
+  if (typeof review !== "string") {
+    throw new ApiError(400, "Review must be a string");
+  }
+
+  const updated = await productRepository.updateProduct(id, {
+    rating: Math.round(rating * 2) / 2,
+    review: review.trim(),
+  });
+
+  if (!updated) throw new ApiError(404, "Product not found");
+
+  // Invalidate product cache patterns
+  await invalidatePattern("products:*");
+
+  return updated;
+};
+
 module.exports = {
   getProducts,
   getProductBySlug,
   createProduct,
   updateProduct,
   deleteProduct,
+  submitReview,
 };
