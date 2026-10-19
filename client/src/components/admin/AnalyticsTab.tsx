@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import {
@@ -31,6 +31,34 @@ function timeAgo(dateString: string): string {
   return `${Math.floor(hr / 24)}d ago`
 }
 
+function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1)
+  }
+
+  const pages: (number | string)[] = []
+
+  if (current <= 3) {
+    for (let i = 1; i <= 4; i++) pages.push(i)
+    pages.push('...')
+    pages.push(total)
+  } else if (current >= total - 2) {
+    pages.push(1)
+    pages.push('...')
+    for (let i = total - 3; i <= total; i++) pages.push(i)
+  } else {
+    pages.push(1)
+    pages.push('...')
+    pages.push(current - 1)
+    pages.push(current)
+    pages.push(current + 1)
+    pages.push('...')
+    pages.push(total)
+  }
+
+  return pages
+}
+
 export function AnalyticsTab() {
   const [range, setRange] = useState<'today' | '7d' | '30d' | '90d'>('7d')
   const [excludeAdmin, setExcludeAdmin] = useState(true)
@@ -43,9 +71,41 @@ export function AnalyticsTab() {
   const [referrers, setReferrers] = useState<TopReferrer[]>([])
   const [devices, setDevices] = useState<DeviceBreakdown | null>(null)
   const [realtime, setRealtime] = useState<RealtimeVisit[]>([])
+  const [realtimePage, setRealtimePage] = useState(1)
+  const [realtimeLimit, setRealtimeLimit] = useState(20)
+  const [realtimePagination, setRealtimePagination] = useState({
+    total: 0,
+    page: 1,
+    pages: 1,
+    limit: 20,
+  })
+  const [realtimeLoading, setRealtimeLoading] = useState(false)
   const [hoveredPoint, setHoveredPoint] = useState<TrendPoint | null>(null)
 
-  const loadAll = async () => {
+  const loadRealtimeVisitsOnly = async (page = realtimePage, limit = realtimeLimit) => {
+    try {
+      setRealtimeLoading(true)
+      const res = await fetchRealtimeVisits({ page, limit, excludeAdmin })
+      setRealtime(res.items)
+      setRealtimePagination(res.pagination)
+      setRealtimePage(page)
+    } catch {
+      // Keep existing data on error
+    } finally {
+      setRealtimeLoading(false)
+    }
+  }
+
+  const handleRealtimePageChange = (newPage: number) => {
+    loadRealtimeVisitsOnly(newPage, realtimeLimit)
+  }
+
+  const handleRealtimeLimitChange = (newLimit: number) => {
+    setRealtimeLimit(newLimit)
+    loadRealtimeVisitsOnly(1, newLimit)
+  }
+
+  const loadAll = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -55,7 +115,7 @@ export function AnalyticsTab() {
         fetchTopPages(range, excludeAdmin),
         fetchTopReferrers(range, excludeAdmin),
         fetchDeviceBreakdown(range, excludeAdmin),
-        fetchRealtimeVisits(excludeAdmin),
+        fetchRealtimeVisits({ page: 1, limit: realtimeLimit, excludeAdmin }),
       ])
 
       setOverview(ovData)
@@ -63,25 +123,34 @@ export function AnalyticsTab() {
       setTopPages(pagesData)
       setReferrers(refData)
       setDevices(devData)
-      setRealtime(rtData)
+      setRealtime(rtData.items)
+      setRealtimePagination(rtData.pagination)
+      setRealtimePage(1)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load analytics')
     } finally {
       setLoading(false)
     }
-  }
+  }, [range, excludeAdmin, realtimeLimit])
 
   useEffect(() => {
     loadAll()
-  }, [range, excludeAdmin])
+  }, [loadAll])
 
-  // Periodic polling for real-time visits
+  // Periodic polling for real-time visits (only active when viewing page 1)
   useEffect(() => {
+    if (realtimePage !== 1) return
+
     const interval = setInterval(() => {
-      fetchRealtimeVisits(excludeAdmin).then(setRealtime).catch(() => {})
+      fetchRealtimeVisits({ page: 1, limit: realtimeLimit, excludeAdmin })
+        .then((data) => {
+          setRealtime(data.items)
+          setRealtimePagination(data.pagination)
+        })
+        .catch(() => {})
     }, 15000)
     return () => clearInterval(interval)
-  }, [excludeAdmin])
+  }, [excludeAdmin, realtimePage, realtimeLimit])
 
   // Trend chart calculations
   const maxPageviews = Math.max(...trend.map((p) => p.pageviews), 10)
@@ -439,22 +508,68 @@ export function AnalyticsTab() {
 
       {/* Real-time Live Visitors Feed */}
       <Card asMotion={false} className="p-5">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-semibold uppercase tracking-wider">Real-Time Visits Feed</h3>
-              <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
-                Live (Updates every 15s)
-              </span>
+              {realtimePage === 1 ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[10px] font-medium text-emerald-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live (Updates every 15s)
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-medium text-amber-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                  Live Paused (Page {realtimePage})
+                </span>
+              )}
             </div>
-            <p className="text-xs text-scnt-text-muted">Latest 50 route transitions across the store</p>
+            <p className="text-xs text-scnt-text-muted">
+              {realtimePagination.total > 0
+                ? `Showing ${formatNumber(Math.min((realtimePage - 1) * realtimeLimit + 1, realtimePagination.total))}–${formatNumber(Math.min(realtimePage * realtimeLimit, realtimePagination.total))} of ${formatNumber(realtimePagination.total)} visits`
+                : 'Recent route transitions across the store'}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {realtimePage > 1 && (
+              <Button
+                variant="outline"
+                onClick={() => handleRealtimePageChange(1)}
+                className="h-8 px-3 text-xs text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
+              >
+                Jump to Live
+              </Button>
+            )}
+
+            <div className="flex items-center gap-1.5 text-xs text-scnt-text-muted">
+              <span>Per page:</span>
+              <select
+                value={realtimeLimit}
+                onChange={(e) => handleRealtimeLimitChange(Number(e.target.value))}
+                className="rounded-lg border border-scnt-border bg-scnt-bg px-2 py-1 text-xs text-scnt-text focus:outline-none"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={() => loadRealtimeVisitsOnly(realtimePage, realtimeLimit)}
+              disabled={realtimeLoading || loading}
+              className="h-8 px-3 text-xs"
+            >
+              {realtimeLoading ? 'Refreshing...' : 'Refresh'}
+            </Button>
           </div>
         </div>
 
         {realtime.length === 0 ? (
           <p className="py-8 text-center text-xs text-scnt-text-muted">No live visits recorded yet</p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className={`overflow-x-auto transition-opacity ${realtimeLoading ? 'opacity-50' : 'opacity-100'}`}>
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-scnt-border/60 text-scnt-text-muted">
@@ -491,6 +606,57 @@ export function AnalyticsTab() {
             </table>
           </div>
         )}
+
+        {/* Pagination controls */}
+        {realtimePagination.pages > 1 ? (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-scnt-border/60 pt-3 text-xs">
+            <Button
+              variant="outline"
+              disabled={realtimePage <= 1 || realtimeLoading}
+              onClick={() => handleRealtimePageChange(Math.max(1, realtimePage - 1))}
+              className="py-1 px-3 text-xs"
+            >
+              Previous
+            </Button>
+
+            <div className="flex items-center gap-1.5">
+              <span className="text-scnt-text-muted mr-1">
+                Page {realtimePage} of {realtimePagination.pages}
+              </span>
+              <div className="hidden sm:flex items-center gap-1">
+                {getPageNumbers(realtimePage, realtimePagination.pages).map((p, idx) =>
+                  typeof p === 'number' ? (
+                    <button
+                      key={idx}
+                      onClick={() => handleRealtimePageChange(p)}
+                      disabled={realtimeLoading}
+                      className={`h-7 min-w-7 rounded-lg px-2 text-xs font-medium transition-colors ${
+                        p === realtimePage
+                          ? 'bg-scnt-text text-scnt-bg'
+                          : 'text-scnt-text-muted hover:bg-scnt-bg-muted hover:text-scnt-text'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ) : (
+                    <span key={idx} className="px-1 text-xs text-scnt-text-muted">
+                      {p}
+                    </span>
+                  )
+                )}
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              disabled={realtimePage >= realtimePagination.pages || realtimeLoading}
+              onClick={() => handleRealtimePageChange(realtimePage + 1)}
+              className="py-1 px-3 text-xs"
+            >
+              Next
+            </Button>
+          </div>
+        ) : null}
       </Card>
     </div>
   )

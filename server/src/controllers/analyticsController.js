@@ -360,20 +360,38 @@ const getDeviceBreakdown = asyncHandler(async (req, res) => {
 });
 
 /**
- * Admin: Real-time latest visits stream
+ * Admin: Real-time latest visits stream with pagination
  */
 const getRealtimeVisits = asyncHandler(async (req, res) => {
   const excludeAdmin = req.query.excludeAdmin !== "false";
   const filter = {};
   if (excludeAdmin) filter.isAdmin = { $ne: true };
 
-  const visits = await Visit.find(filter)
-    .sort({ createdAt: -1 })
-    .limit(50)
-    .populate("userId", "full_name email")
-    .lean();
+  const page = Math.max(1, Number(req.query.page || 1));
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
+  const skip = (page - 1) * limit;
 
-  res.status(200).json(successResponse(visits));
+  const [items, total] = await Promise.all([
+    Visit.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("userId", "full_name email")
+      .lean(),
+    Visit.countDocuments(filter),
+  ]);
+
+  res.status(200).json(
+    successResponse({
+      items,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit) || 1,
+        limit,
+      },
+    })
+  );
 });
 
 module.exports = {

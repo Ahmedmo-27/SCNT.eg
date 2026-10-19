@@ -63,6 +63,22 @@ export type RealtimeVisit = {
   createdAt: string
 }
 
+export type RealtimeVisitsEnvelope = {
+  items: RealtimeVisit[]
+  pagination: {
+    total: number
+    page: number
+    pages: number
+    limit: number
+  }
+}
+
+export type RealtimeVisitsParams = {
+  page?: number
+  limit?: number
+  excludeAdmin?: boolean
+}
+
 export type LogLevel = 'error' | 'warn' | 'info' | 'http' | 'audit'
 
 export type LogEntry = {
@@ -183,12 +199,45 @@ export function fetchDeviceBreakdown(range = '7d', excludeAdmin = true): Promise
 }
 
 /**
- * Admin: Fetch real-time recent visits
+ * Admin: Fetch real-time recent visits with pagination
  */
-export function fetchRealtimeVisits(excludeAdmin = true): Promise<RealtimeVisit[]> {
-  return apiGetDataAuthed<RealtimeVisit[]>(
-    `/admin/analytics/realtime?excludeAdmin=${excludeAdmin}`
+export async function fetchRealtimeVisits(
+  paramsOrExcludeAdmin: boolean | RealtimeVisitsParams = true
+): Promise<RealtimeVisitsEnvelope> {
+  let page = 1
+  let limit = 20
+  let excludeAdmin = true
+
+  if (typeof paramsOrExcludeAdmin === 'boolean') {
+    excludeAdmin = paramsOrExcludeAdmin
+  } else if (paramsOrExcludeAdmin && typeof paramsOrExcludeAdmin === 'object') {
+    if (paramsOrExcludeAdmin.page !== undefined) page = paramsOrExcludeAdmin.page
+    if (paramsOrExcludeAdmin.limit !== undefined) limit = paramsOrExcludeAdmin.limit
+    if (paramsOrExcludeAdmin.excludeAdmin !== undefined) excludeAdmin = paramsOrExcludeAdmin.excludeAdmin
+  }
+
+  const query = new URLSearchParams()
+  query.set('page', String(page))
+  query.set('limit', String(limit))
+  query.set('excludeAdmin', String(excludeAdmin))
+
+  const raw = await apiGetDataAuthed<RealtimeVisitsEnvelope | RealtimeVisit[]>(
+    `/admin/analytics/realtime?${query.toString()}`
   )
+
+  if (Array.isArray(raw)) {
+    return {
+      items: raw,
+      pagination: {
+        total: raw.length,
+        page: 1,
+        pages: 1,
+        limit: raw.length,
+      },
+    }
+  }
+
+  return raw
 }
 
 /**
