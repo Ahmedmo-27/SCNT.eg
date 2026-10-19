@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
+import { EightPointStar } from '../components/ui/EightPointStar'
 import { useCatalog } from '../context/CatalogContext'
 import { FIND_YOUR_SCNT_BLUEPRINT } from '../data/findYourScntBlueprint'
 import { useI18n } from '../i18n/I18nContext'
@@ -211,8 +212,37 @@ export function FindYourScntPage() {
   const [selections, setSelections] = useState<Record<string, string>>({})
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([])
   const [quizGender, setQuizGender] = useState<ProductSummary['gender'] | null>(null)
+  const [isMatching, setIsMatching] = useState(false)
+  const [matchingStage, setMatchingStage] = useState(0)
+  const quizCardRef = useRef<HTMLDivElement | null>(null)
 
   const templateQuestions = useMemo(() => buildQuizQuestions(t), [t])
+
+  const matchingStages = useMemo(
+    () => [
+      {
+        title: t('fz.matching.searchingProfiles'),
+        sub: t('fz.matching.searchingProfilesSub'),
+        stepLabel: t('fz.matching.step1'),
+      },
+      {
+        title: t('fz.matching.matchingCollection'),
+        sub: t('fz.matching.matchingCollectionSub'),
+        stepLabel: t('fz.matching.step2'),
+      },
+      {
+        title: t('fz.matching.matchingFragrance'),
+        sub: t('fz.matching.matchingFragranceSub'),
+        stepLabel: t('fz.matching.step3'),
+      },
+      {
+        title: t('fz.matching.finalizing'),
+        sub: t('fz.matching.finalizingSub'),
+        stepLabel: t('fz.matching.step4'),
+      },
+    ],
+    [t],
+  )
 
   useEffect(() => {
     const restored = tryRestoreQuizSession(locale)
@@ -248,27 +278,51 @@ export function FindYourScntPage() {
   const total = quizQuestions.length
   const genderStepIndex = total
   const doneStepIndex = total + 1
-  const isGenderStep = total > 0 && step === genderStepIndex
-  const isResultStep = total > 0 && step >= doneStepIndex
+  const isGenderStep = !isMatching && total > 0 && step === genderStepIndex
+  const isResultStep = !isMatching && total > 0 && step >= doneStepIndex
   const fullSteps = total + 1
   const answeredCount = Object.keys(selections).length
-  const progressPhase = Math.max(
-    Math.min(step, doneStepIndex),
-    Math.min(answeredCount, total),
-    isGenderStep ? genderStepIndex : 0,
-    isResultStep ? doneStepIndex : 0,
-  )
-  const progress = fullSteps > 0 ? Math.round((Math.min(progressPhase, fullSteps) / fullSteps) * 100) : 0
+  const progressPhase = isResultStep
+    ? fullSteps
+    : Math.max(
+        Math.min(step, doneStepIndex),
+        Math.min(answeredCount, total),
+        isGenderStep ? genderStepIndex : 0,
+      )
+  const baseProgress = fullSteps > 0 ? Math.round((Math.min(progressPhase, fullSteps) / fullSteps) * 100) : 0
+  const progress = isMatching
+    ? Math.min(99, Math.round(86 + ((matchingStage + 1) / matchingStages.length) * 13))
+    : baseProgress
   const current = step < total ? quizQuestions[step] ?? null : null
 
   const result = useMemo(
     () =>
-      isResultStep && quizGender ? calculateResult(scores, collections, products, t, quizGender) : null,
-    [isResultStep, quizGender, scores, collections, products, t],
+      (isResultStep || isMatching) && quizGender ? calculateResult(scores, collections, products, t, quizGender) : null,
+    [isResultStep, isMatching, quizGender, scores, collections, products, t],
   )
 
+  useEffect(() => {
+    if (!isMatching) return
+
+    setMatchingStage(0)
+    const t1 = setTimeout(() => setMatchingStage(1), 1250)
+    const t2 = setTimeout(() => setMatchingStage(2), 2500)
+    const t3 = setTimeout(() => setMatchingStage(3), 3750)
+    const t4 = setTimeout(() => {
+      setIsMatching(false)
+      setStep(doneStepIndex)
+    }, 4900)
+
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+      clearTimeout(t3)
+      clearTimeout(t4)
+    }
+  }, [isMatching, doneStepIndex])
+
   function goToQuestion(targetStep: number) {
-    if (total === 0) return
+    if (total === 0 || isMatching) return
     if (targetStep < 0 || targetStep > genderStepIndex) return
     if (targetStep < total) {
       const q = quizQuestions[targetStep]
@@ -314,11 +368,15 @@ export function FindYourScntPage() {
 
   function pickGender(gender: ProductSummary['gender']) {
     setQuizGender(gender)
-    setStep(doneStepIndex)
+    setIsMatching(true)
+    setMatchingStage(0)
+    quizCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   function restart() {
     clearQuizSession()
+    setIsMatching(false)
+    setMatchingStage(0)
     setStep(0)
     setScores(initialScores)
     setSelections({})
@@ -354,16 +412,24 @@ export function FindYourScntPage() {
             </p>
           </div>
 
-          <div className="mx-auto mt-10 max-w-4.5xl rounded-3xl border border-scnt-border/90 bg-scnt-bg-elevated/70 p-5 shadow-[0_20px_80px_-52px_rgba(42,38,34,0.35)] sm:p-7">
+          <div ref={quizCardRef} className="mx-auto mt-10 max-w-4.5xl rounded-3xl border border-scnt-border/90 bg-scnt-bg-elevated/70 p-5 shadow-[0_20px_80px_-52px_rgba(42,38,34,0.35)] sm:p-7">
             <div className="mb-5 flex items-center justify-between gap-4">
               <p className="text-xs uppercase tracking-[0.24em] text-scnt-text-muted">
-                {isResultStep
-                  ? t('fz.resultReady')
-                  : isGenderStep
-                    ? t('fz.question', { cur: String(fullSteps), total: String(fullSteps) })
-                    : t('fz.question', { cur: String(Math.min(step + 1, fullSteps)), total: String(fullSteps) })}
+                {isMatching
+                  ? t('fz.matching.kicker')
+                  : isResultStep
+                    ? t('fz.resultReady')
+                    : isGenderStep
+                      ? t('fz.question', { cur: String(fullSteps), total: String(fullSteps) })
+                      : t('fz.question', { cur: String(Math.min(step + 1, fullSteps)), total: String(fullSteps) })}
               </p>
-              <p className="text-xs text-scnt-text-muted">{t('fz.answered', { n: String(answeredCount) })}</p>
+              <p className="text-xs text-scnt-text-muted">
+                {isMatching
+                  ? `${progress}%`
+                  : isResultStep
+                    ? t('fz.resultReady')
+                    : t('fz.answered', { n: String(answeredCount) })}
+              </p>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-scnt-border/60">
               <motion.div
@@ -373,7 +439,7 @@ export function FindYourScntPage() {
               />
             </div>
 
-            {!isResultStep && total > 0 ? (
+            {!isResultStep && !isMatching && total > 0 ? (
               <div className="mt-4 flex flex-wrap items-center justify-center gap-2" role="navigation" aria-label={t('fz.question')}>
                 {quizQuestions.map((q, i) => {
                   const answeredHere = Boolean(selections[q.id])
@@ -411,6 +477,215 @@ export function FindYourScntPage() {
                 >
                   {t('fz.loadingQuiz')}
                 </motion.p>
+              ) : isMatching ? (
+                <motion.div
+                  key="quiz-matching"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-4 py-4 sm:py-6"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {/* Central animated luxury motif */}
+                  <div className="relative mx-auto flex h-28 w-28 items-center justify-center sm:h-32 sm:w-32">
+                    <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(184,155,94,0.22),transparent_70%)] blur-xl" />
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 11, repeat: Infinity, ease: 'linear' }}
+                      className="absolute inset-0 rounded-full border border-dashed border-scnt-border"
+                    />
+                    <motion.div
+                      animate={{ scale: [0.94, 1.05, 0.94], opacity: [0.35, 0.7, 0.35] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                      className="absolute inset-2.5 rounded-full border border-scnt-border/80 bg-scnt-bg/50 shadow-[0_0_24px_rgba(184,155,94,0.12)]"
+                    />
+                    <div className="relative text-scnt-text">
+                      <motion.div
+                        animate={{ rotate: [0, 90, 180, 270, 360], scale: [1, 1.1, 1] }}
+                        transition={{
+                          rotate: { duration: 8, repeat: Infinity, ease: 'linear' },
+                          scale: { duration: 2.2, repeat: Infinity, ease: 'easeInOut' },
+                        }}
+                      >
+                        <EightPointStar size={34} />
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  {/* Progressive matching title and description */}
+                  <div className="mt-6 min-h-[90px] text-center sm:min-h-[96px]">
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={matchingStage}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                      >
+                        <h2 className="font-serif text-2xl font-medium tracking-tight text-scnt-text sm:text-3xl">
+                          {matchingStages[matchingStage]?.title}
+                        </h2>
+                        <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-scnt-text-muted">
+                          {matchingStages[matchingStage]?.sub}
+                        </p>
+                      </motion.div>
+                    </AnimatePresence>
+                  </div>
+
+                  {/* Micro-visualizer reflecting each analysis phase */}
+                  <div className="mt-4 flex min-h-[58px] items-center justify-center">
+                    <AnimatePresence mode="wait">
+                      {matchingStage === 0 ? (
+                        <motion.div
+                          key="stage-0"
+                          initial={{ opacity: 0, scale: 0.96 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.96 }}
+                          transition={{ duration: 0.3 }}
+                          className="flex flex-wrap items-center justify-center gap-2"
+                        >
+                          {(locale === 'ar'
+                            ? ['الطاقة والحضور', 'إيقاع اليوم', 'ملمس الأسلوب', 'الأجواء والغموض']
+                            : ['Aura & Energy', 'Lifestyle Rhythm', 'Style Texture', 'Atmosphere']
+                          ).map((trait, i) => (
+                            <span
+                              key={trait}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-scnt-border/80 bg-scnt-bg/60 px-3 py-1.5 text-xs text-scnt-text-muted"
+                            >
+                              <span
+                                className="h-1.5 w-1.5 rounded-full bg-scnt-text/60 animate-pulse"
+                                style={{ animationDelay: `${i * 200}ms` }}
+                              />
+                              {trait}
+                            </span>
+                          ))}
+                        </motion.div>
+                      ) : matchingStage === 1 ? (
+                        <motion.div
+                          key="stage-1"
+                          initial={{ opacity: 0, scale: 0.96 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.96 }}
+                          transition={{ duration: 0.3 }}
+                          className="grid w-full max-w-lg grid-cols-2 gap-2 sm:grid-cols-4"
+                        >
+                          {(['executive', 'explorer', 'charmer', 'icon'] as CollectionId[]).map((colId) => {
+                            const col = collections.find((c) => c.id === colId)
+                            const colName = col?.name ?? colId
+                            const scoreVal = scores[colId] || 0
+                            const maxScore = Math.max(1, ...Object.values(scores))
+                            const pct = Math.round((scoreVal / maxScore) * 100)
+                            return (
+                              <div key={colId} className="rounded-xl border border-scnt-border/70 bg-scnt-bg/50 p-2.5 text-center">
+                                <p className="truncate text-[0.68rem] font-medium uppercase tracking-wider text-scnt-text-muted">
+                                  {colName}
+                                </p>
+                                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-scnt-border/50">
+                                  <motion.div
+                                    className="h-full rounded-full bg-gradient-to-r from-[rgba(122,143,163,0.85)] to-[rgba(184,155,94,0.9)]"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${Math.max(25, pct)}%` }}
+                                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                                  />
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </motion.div>
+                      ) : matchingStage === 2 ? (
+                        <motion.div
+                          key="stage-2"
+                          initial={{ opacity: 0, scale: 0.96 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.96 }}
+                          transition={{ duration: 0.3 }}
+                          className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3"
+                        >
+                          {[
+                            {
+                              tier: locale === 'ar' ? 'النوتات الافتتاحية' : 'Top Notes',
+                              detail: result?.fragrance.topNotes.slice(0, 2).join(' · ') || (locale === 'ar' ? 'نفحات منعشة' : 'Fresh Accords'),
+                            },
+                            {
+                              tier: locale === 'ar' ? 'قلب العطر' : 'Heart Notes',
+                              detail: result?.fragrance.heartNotes?.slice(0, 2).join(' · ') || (locale === 'ar' ? 'عطري متوازن' : 'Harmonic Accords'),
+                            },
+                            {
+                              tier: locale === 'ar' ? 'القاعدة العطرية' : 'Base Notes',
+                              detail: result?.fragrance.baseNotes.slice(0, 2).join(' · ') || (locale === 'ar' ? 'أخشاب وعنبر' : 'Deep Woods & Amber'),
+                            },
+                          ].map((noteTier) => (
+                            <div
+                              key={noteTier.tier}
+                              className="min-w-[120px] max-w-[170px] rounded-xl border border-scnt-border/70 bg-scnt-bg/50 px-3.5 py-2 text-center"
+                            >
+                              <span className="text-[0.65rem] uppercase tracking-wider text-scnt-text-muted">{noteTier.tier}</span>
+                              <p className="mt-1 truncate text-xs font-medium text-scnt-text">{noteTier.detail}</p>
+                            </div>
+                          ))}
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="stage-3"
+                          initial={{ opacity: 0, scale: 0.96 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.96 }}
+                          transition={{ duration: 0.3 }}
+                          className="flex items-center justify-center"
+                        >
+                          <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(184,155,94,0.45)] bg-[rgba(184,155,94,0.1)] px-4 py-2 text-xs font-medium text-scnt-text">
+                            <span className="relative flex h-2 w-2">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[rgba(184,155,94,0.7)] opacity-75" />
+                              <span className="relative inline-flex h-2 w-2 rounded-full bg-[rgba(184,155,94,1)]" />
+                            </span>
+                            <span>{locale === 'ar' ? 'تم العثور على التطابق المثالي' : 'Perfect Fragrance Match Found'}</span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  {/* 4-step progress tracker */}
+                  <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {matchingStages.map((stg, idx) => {
+                      const isDone = matchingStage > idx
+                      const isCurrent = matchingStage === idx
+                      return (
+                        <div
+                          key={stg.stepLabel}
+                          className={`flex items-center gap-2.5 rounded-xl border p-3 text-xs transition-all duration-300 ${
+                            isCurrent
+                              ? 'border-scnt-text/70 bg-scnt-text/5 text-scnt-text shadow-sm'
+                              : isDone
+                                ? 'border-scnt-border/80 bg-scnt-bg/50 text-scnt-text-muted'
+                                : 'border-scnt-border/40 bg-scnt-bg/20 text-scnt-text-muted/60'
+                          }`}
+                        >
+                          <div
+                            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] ${
+                              isDone
+                                ? 'bg-scnt-text text-scnt-bg'
+                                : isCurrent
+                                  ? 'border border-scnt-text font-bold text-scnt-text'
+                                  : 'border border-scnt-border/60 text-scnt-text-muted/60'
+                            }`}
+                          >
+                            {isDone ? (
+                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <span>{idx + 1}</span>
+                            )}
+                          </div>
+                          <span className="truncate font-medium">{stg.stepLabel}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </motion.div>
               ) : isGenderStep ? (
                 <motion.div
                   key="fz-gender"
