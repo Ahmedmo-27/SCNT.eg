@@ -145,25 +145,50 @@ function leadLine(c: CollectionSummary): string {
   return (c.subTagline || c.tagline).trim()
 }
 
-function pickFragrance(
-  collectionId: CollectionId,
+function findBestFragranceForGender(
+  primaryCollectionId: CollectionId,
   scores: Record<CollectionId, number>,
   products: ProductSummary[],
   gender: ProductSummary['gender'],
-): ProductSummary {
-  let candidates = products.filter((p) => p.collection === collectionId && p.gender === gender)
-  if (candidates.length === 0) {
-    candidates = products.filter((p) => p.collection === collectionId)
-  }
-  const top = candidates[0] ?? products.find((p) => p.gender === gender) ?? products[0]
-  if (!top) {
-    throw new Error('No products found to match quiz result.')
-  }
-  if (candidates.length < 2) return top
+): { fragrance: ProductSummary; collectionId: CollectionId } {
+  // 1. Strictly filter products by the chosen gender
+  const genderMatchedProducts = products.filter((p) => p.gender === gender)
+  const pool = genderMatchedProducts.length > 0 ? genderMatchedProducts : products
 
+  // 2. Rank all collections by personality score descending
+  const rankedCollectionIds = (Object.keys(scores) as CollectionId[]).sort((a, b) => scores[b] - scores[a])
+
+  // 3. Prefer user's highest scored collection if it has products for this gender
+  let targetCollectionId = primaryCollectionId
+  let candidates = pool.filter((p) => p.collection === targetCollectionId && (genderMatchedProducts.length === 0 || p.gender === gender))
+
+  // 4. If primary collection has no candidates for this gender, pick the closest collection by score that DOES
+  if (candidates.length === 0) {
+    for (const id of rankedCollectionIds) {
+      const match = pool.filter((p) => p.collection === id && (genderMatchedProducts.length === 0 || p.gender === gender))
+      if (match.length > 0) {
+        targetCollectionId = id
+        candidates = match
+        break
+      }
+    }
+  }
+
+  // 5. Fallback safety
+  if (candidates.length === 0) {
+    candidates = pool
+    targetCollectionId = candidates[0].collection
+  }
+
+  if (candidates.length === 1) {
+    return { fragrance: candidates[0], collectionId: targetCollectionId }
+  }
+
+  // 6. Within the chosen collection, pick based on adventurous vs intimate tilt
   const adventurousTilt = scores.explorer + scores.icon
   const intimateTilt = scores.charmer + scores.executive
-  return adventurousTilt > intimateTilt ? candidates[1] : candidates[0]
+  const chosen = adventurousTilt > intimateTilt ? (candidates[1] ?? candidates[0]) : candidates[0]
+  return { fragrance: chosen, collectionId: targetCollectionId }
 }
 
 function calculateResult(
@@ -175,9 +200,20 @@ function calculateResult(
 ): QuizResult | null {
   if (collections.length === 0 || products.length === 0) return null
   const [primaryId, secondaryId] = strongestIds(scores)
-  const primary = collections.find((c) => c.id === primaryId) ?? collections[0]
-  const secondary = collections.find((c) => c.id === secondaryId) ?? collections[1]
-  const fragrance = pickFragrance(primary.id, scores, products, gender)
+
+  // Strictly enforce matching the chosen gender with the closest collection
+  const { fragrance, collectionId: matchedCollectionId } = findBestFragranceForGender(
+    primaryId,
+    scores,
+    products,
+    gender,
+  )
+
+  const primary = collections.find((c) => c.id === matchedCollectionId) ?? collections[0]
+  // If the matched collection differs from the raw top collection because of gender availability,
+  // we use the raw top collection as the secondary influence so the user's answers are fully honored.
+  const effectiveSecondaryId = matchedCollectionId !== primaryId ? primaryId : secondaryId
+  const secondary = collections.find((c) => c.id === effectiveSecondaryId) ?? collections[1] ?? primary
 
   const pLead = leadLine(primary).toLowerCase()
   const pMood = primary.mood.toLowerCase()
