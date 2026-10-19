@@ -1,4 +1,5 @@
 const Product = require("../models/Product");
+require("../models/Review");
 
 /** API bodies still use `collection`; BSON field is `SCNTcollection`. */
 function normalizeProductWritePayload(payload) {
@@ -12,13 +13,20 @@ function normalizeProductWritePayload(payload) {
 }
 
 const findProducts = ({ filters, skip, limit }) =>
-  Product.find(filters).populate("SCNTcollection").skip(skip).limit(limit).sort({ createdAt: -1 });
+  Product.find(filters)
+    .populate("SCNTcollection")
+    .populate("reviews")
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
 
 const countProducts = (filters) => Product.countDocuments(filters);
 
-const findBySlug = (slug) => Product.findOne({ slug }).populate("SCNTcollection");
+const findBySlug = (slug) =>
+  Product.findOne({ slug }).populate("SCNTcollection").populate("reviews");
 
-const findById = (id) => Product.findById(id).populate("SCNTcollection");
+const findById = (id) =>
+  Product.findById(id).populate("SCNTcollection").populate("reviews");
 
 const findByIds = (ids) => Product.find({ _id: { $in: ids } });
 

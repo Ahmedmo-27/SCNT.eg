@@ -98,6 +98,10 @@ export function ProductPage() {
   const productDescription = `${product.name} by SCNT.eg. Inspired by ${product.inspiredBy}. Top notes: ${product.topNotes.join(', ')}. Heart notes: ${product.heartNotes.join(', ')}. Base notes: ${product.baseNotes.join(', ')}.`
   const quickAnswers = [
     {
+      question: t('product.faq.inspiredQuestion', { name: product.name }),
+      answer: t('product.faq.inspiredAnswer', { name: product.name, fragrance: product.inspiredBy }),
+    },
+    {
       question: `Who is ${product.name} best for?`,
       answer: `${product.name} is designed for ${product.gender === 'female' ? 'women' : 'men'} who enjoy ${product.vibeSentence.toLowerCase()}`,
     },
@@ -237,12 +241,18 @@ export function ProductPage() {
                     {product.gender === 'female' ? t('product.forHer') : t('product.forHim')}
                   </span>
                 </div>
-                <p className="mt-3 text-sm text-scnt-text-muted">
-                  <span className="uppercase tracking-[0.2em] text-scnt-text/55">
-                    {t('product.inspiredBy')}{' '}
-                  </span>
-                  {product.inspiredBy}
-                </p>
+                {/* Prominently displayed fragrance inspiration */}
+                <div className="mt-4 flex flex-wrap items-center gap-2.5">
+                  <div className="inline-flex items-center gap-2.5 rounded-xl border border-scnt-accent/50 bg-scnt-accent/10 px-4 py-2 shadow-sm backdrop-blur-md">
+                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-scnt-accent">
+                      {t('product.inspiredBy')}
+                    </span>
+                    <span className="h-3.5 w-px bg-scnt-accent/40" aria-hidden />
+                    <span className="font-serif text-base sm:text-lg font-semibold text-scnt-text tracking-wide">
+                      {product.inspiredBy}
+                    </span>
+                  </div>
+                </div>
                 {col ? (
                   <p className="mt-4 font-serif text-xl italic text-scnt-text-muted sm:text-2xl">
                     {col.heroTagline}
@@ -264,7 +274,11 @@ export function ProductPage() {
                     <div className="mt-4 border-b border-scnt-border/90 pb-4">
                       <div className="flex items-center gap-2">
                         <StarRating rating={product.rating} size="md" />
-                        <span className="text-xs text-scnt-text-muted uppercase tracking-wider">{t('review.guest')}</span>
+                        <span className="text-xs text-scnt-text-muted uppercase tracking-wider">
+                          {product.reviews && product.reviews[0]?.guestName
+                            ? product.reviews[0].guestName
+                            : t('review.guest')}
+                        </span>
                       </div>
                       {product.reviews && product.reviews.length > 0 && (
                         <p className="mt-3 text-sm italic text-scnt-text/80">"{product.reviews[0].review}"</p>
@@ -332,7 +346,7 @@ export function ProductPage() {
                       {isWishlisted ? t('product.savedWishlist') : t('product.addWishlist')}
                     </button>
                     <Link
-                      to="/review"
+                      to={`/review?product=${product.id}`}
                       className="inline-flex items-center gap-1.5 text-sm text-scnt-text-muted transition-colors duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:text-scnt-text"
                     >
                       <svg
@@ -364,6 +378,14 @@ export function ProductPage() {
               <p className="mt-4 text-base leading-relaxed text-scnt-text sm:text-[1.05rem]">
                 {product.emotionalStory}
               </p>
+              <div className="mt-5 rounded-xl border border-scnt-accent/30 bg-scnt-accent/10 p-4">
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-scnt-accent">
+                  {t('product.olfactoryTribute')}
+                </span>
+                <p className="mt-1 font-serif text-sm sm:text-base font-medium text-scnt-text">
+                  {t('product.inspiredByNote', { fragrance: product.inspiredBy })}
+                </p>
+              </div>
               <p className="mt-5 text-sm leading-relaxed text-scnt-text-muted">
                 <span className="text-scnt-text/80">{t('product.livesLike')} </span>
                 {product.lifestyleLine}
