@@ -33,11 +33,31 @@ import {
   type AdminUser,
   type PromotionalMailResult,
 } from '../services/adminApi'
+import { AnalyticsTab } from '../components/admin/AnalyticsTab'
+import { LogsTab } from '../components/admin/LogsTab'
+import {
+  fetchAnalyticsOverview,
+  fetchAdminLogStats,
+  type AnalyticsOverview,
+  type LogStats,
+} from '../services/adminAnalyticsApi'
 
-type TabKey = 'overview' | 'products' | 'collections' | 'orders' | 'promos' | 'reviews' | 'users' | 'mailing'
+type TabKey =
+  | 'overview'
+  | 'analytics'
+  | 'logs'
+  | 'products'
+  | 'collections'
+  | 'orders'
+  | 'promos'
+  | 'reviews'
+  | 'users'
+  | 'mailing'
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
+  { key: 'analytics', label: 'Visits & Traffic' },
+  { key: 'logs', label: 'System Logs' },
   { key: 'products', label: 'Products' },
   { key: 'collections', label: 'Collections' },
   { key: 'orders', label: 'Orders' },
@@ -46,6 +66,7 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: 'users', label: 'Users' },
   { key: 'mailing', label: 'Mailing' },
 ]
+
 
 function toCsvList(input: string): string[] {
   return input
@@ -168,6 +189,8 @@ export function AdminPage() {
   const [promoForm, setPromoForm] = useState<PromoForm>(emptyPromoForm)
   const [promoMailForm, setPromoMailForm] = useState<PromoMailForm>(emptyPromoMailForm)
   const [promoMailResult, setPromoMailResult] = useState<PromotionalMailResult | null>(null)
+  const [analyticsOverview, setAnalyticsOverview] = useState<AnalyticsOverview | null>(null)
+  const [logStats, setLogStats] = useState<LogStats | null>(null)
 
   const loadAll = useCallback(async () => {
     setBusy(true)
@@ -187,12 +210,17 @@ export function AdminPage() {
       setOrders(o)
       setPromos(pr)
       setUsers(u)
+
+      // Parallel secondary metrics for overview
+      fetchAnalyticsOverview('today', true).then(setAnalyticsOverview).catch(() => {})
+      fetchAdminLogStats().then(setLogStats).catch(() => {})
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load admin data')
     } finally {
       setBusy(false)
     }
   }, [])
+
 
   useEffect(() => {
     if (!token) return
@@ -501,15 +529,66 @@ export function AdminPage() {
         {error ? <p className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm">{error}</p> : null}
 
         {activeTab === 'overview' ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Users</p><p className="mt-2 text-3xl">{dashboard?.usersCount ?? '—'}</p></Card>
-            <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Products</p><p className="mt-2 text-3xl">{dashboard?.productsCount ?? '—'}</p></Card>
-            <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Collections</p><p className="mt-2 text-3xl">{dashboard?.collectionsCount ?? '—'}</p></Card>
-            <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Orders</p><p className="mt-2 text-3xl">{dashboard?.ordersCount ?? '—'}</p></Card>
-            <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Pending orders</p><p className="mt-2 text-3xl">{dashboard?.pendingOrders ?? '—'}</p></Card>
-            <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Revenue</p><p className="mt-2 text-3xl">{dashboard ? formatMoney(dashboard.totalRevenue) : '—'}</p></Card>
+          <div className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Users</p><p className="mt-2 text-3xl">{dashboard?.usersCount ?? '—'}</p></Card>
+              <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Products</p><p className="mt-2 text-3xl">{dashboard?.productsCount ?? '—'}</p></Card>
+              <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Collections</p><p className="mt-2 text-3xl">{dashboard?.collectionsCount ?? '—'}</p></Card>
+              <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Orders</p><p className="mt-2 text-3xl">{dashboard?.ordersCount ?? '—'}</p></Card>
+              <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Pending orders</p><p className="mt-2 text-3xl">{dashboard?.pendingOrders ?? '—'}</p></Card>
+              <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Revenue</p><p className="mt-2 text-3xl">{dashboard ? formatMoney(dashboard.totalRevenue) : '—'}</p></Card>
+            </div>
+
+            <div>
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-scnt-text-muted">
+                Live Platform Telemetry
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Card
+                  asMotion={false}
+                  className="p-5 cursor-pointer hover:border-scnt-text/40 transition-colors"
+                  onClick={() => setActiveTab('analytics')}
+                >
+                  <p className="text-xs uppercase text-scnt-text-muted">Unique Visitors (Today)</p>
+                  <p className="mt-2 text-3xl">{analyticsOverview ? analyticsOverview.todayUniqueVisitors : '—'}</p>
+                  <span className="mt-1 inline-block text-[11px] text-scnt-text underline">View Traffic Analytics →</span>
+                </Card>
+
+                <Card
+                  asMotion={false}
+                  className="p-5 cursor-pointer hover:border-scnt-text/40 transition-colors"
+                  onClick={() => setActiveTab('analytics')}
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs uppercase text-scnt-text-muted">Active Browsing Now</p>
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                    </span>
+                  </div>
+                  <p className="mt-2 text-3xl">{analyticsOverview ? analyticsOverview.activeNow : '—'}</p>
+                  <span className="mt-1 inline-block text-[11px] text-emerald-700">Real-time (last 15m) →</span>
+                </Card>
+
+                <Card
+                  asMotion={false}
+                  className="p-5 cursor-pointer hover:border-scnt-text/40 transition-colors"
+                  onClick={() => setActiveTab('logs')}
+                >
+                  <p className="text-xs uppercase text-scnt-text-muted">System Errors Today</p>
+                  <p className={`mt-2 text-3xl font-light ${logStats && logStats.errorsToday > 0 ? 'text-red-600' : 'text-emerald-700'}`}>
+                    {logStats ? logStats.errorsToday : '—'}
+                  </p>
+                  <span className="mt-1 inline-block text-[11px] text-scnt-text underline">View System Logs →</span>
+                </Card>
+              </div>
+            </div>
           </div>
         ) : null}
+
+        {activeTab === 'analytics' ? <AnalyticsTab /> : null}
+        {activeTab === 'logs' ? <LogsTab /> : null}
+
 
         {activeTab === 'products' ? (
           <div className="space-y-4">

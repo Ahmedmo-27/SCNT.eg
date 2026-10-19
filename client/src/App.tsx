@@ -4,6 +4,8 @@ import { StarLoader } from './components/ui/StarLoader'
 import { Seo } from './components/seo/Seo'
 import { buildOrganizationSchema, buildWebsiteSchema } from './seo/schema'
 import { useI18n } from './i18n/I18nContext'
+import { VisitTracker } from './components/analytics/VisitTracker'
+
 
 const Home = lazy(() => import('./pages/Home').then((m) => ({ default: m.Home })))
 const ShopAllPage = lazy(() => import('./pages/ShopAllPage').then((m) => ({ default: m.ShopAllPage })))
@@ -194,8 +196,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <VisitTracker />
       <RouteScrollLock />
       <RouteSeo />
+
       <Suspense fallback={<StarLoader className="py-24" label="Loading page" />}>
         <Routes>
           <Route path="/" element={<Home />} />

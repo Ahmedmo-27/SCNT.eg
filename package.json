@@ -1,7 +1,10 @@
 {
   "name": "scnt-eg-website",
   "private": true,
-  "workspaces": ["client", "server"],
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
     "dev": "concurrently -k -n server,client -c cyan,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
     "start": "npm run start -w server",
@@ -9,6 +12,12 @@
     "heroku-postbuild": "npm run build -w client"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.5",
+    "@babel/preset-react": "^7.28.5",
+    "babel-jest": "^30.4.1",
+    "concurrently": "^9.1.2",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1"
   }
 }

@@ -10,6 +10,7 @@ const Order = require("../models/Order");
 const userRepository = require("../repositories/userRepository");
 const { sendPromotionalEmail } = require("../services/emailService");
 const { getCache, setCache, deleteCache, invalidatePattern } = require("../utils/cache");
+const { recordAuditAction } = require("../utils/auditLogger");
 
 const getAllOrders = asyncHandler(async (req, res) => {
   const cacheKey = "admin:orders:all";
@@ -34,6 +35,13 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   // Invalidate related caches
   await deleteCache("admin:orders:all");
   await invalidatePattern("admin:dashboard:*");
+
+  await recordAuditAction(req, {
+    action: "ORDER_STATUS_UPDATE",
+    targetType: "Order",
+    targetId: req.params.id,
+    details: { status: req.body?.status },
+  });
   
   res.status(200).json(successResponse(order, "Order status updated"));
 });
@@ -69,6 +77,13 @@ const createPromoCode = asyncHandler(async (req, res) => {
   
   // Invalidate cache
   await deleteCache("admin:promoCodes:all");
+
+  await recordAuditAction(req, {
+    action: "PROMO_CREATE",
+    targetType: "PromoCode",
+    targetId: promo._id?.toString(),
+    details: { code: promo.code, discountType: promo.discountType, discountValue: promo.discountValue },
+  });
   
   res.status(201).json(successResponse(promo, "Promo code created"));
 });
@@ -92,6 +107,13 @@ const updatePromoCode = asyncHandler(async (req, res) => {
   
   // Invalidate cache
   await deleteCache("admin:promoCodes:all");
+
+  await recordAuditAction(req, {
+    action: "PROMO_UPDATE",
+    targetType: "PromoCode",
+    targetId: promo._id?.toString(),
+    details: { code: promo.code },
+  });
   
   res.status(200).json(successResponse(promo, "Promo code updated"));
 });
@@ -102,9 +124,17 @@ const deletePromoCode = asyncHandler(async (req, res) => {
   
   // Invalidate cache
   await deleteCache("admin:promoCodes:all");
+
+  await recordAuditAction(req, {
+    action: "PROMO_DELETE",
+    targetType: "PromoCode",
+    targetId: req.params.id,
+    details: { code: deleted.code },
+  });
   
   res.status(200).json(successResponse(null, "Promo code deleted"));
 });
+
 
 const getDashboardSummary = asyncHandler(async (_req, res) => {
   const cacheKey = "admin:dashboard:summary";
@@ -172,6 +202,13 @@ const updateUserRole = asyncHandler(async (req, res) => {
   // Invalidate cache
   await deleteCache("admin:users:all");
   await invalidatePattern("admin:dashboard:*");
+
+  await recordAuditAction(req, {
+    action: "USER_ROLE_UPDATE",
+    targetType: "User",
+    targetId: req.params.id,
+    details: { role, targetEmail: user.email },
+  });
   
   res.status(200).json(successResponse(user, "User role updated"));
 });
@@ -186,6 +223,13 @@ const deleteUser = asyncHandler(async (req, res) => {
   // Invalidate cache
   await deleteCache("admin:users:all");
   await invalidatePattern("admin:dashboard:*");
+
+  await recordAuditAction(req, {
+    action: "USER_DELETE",
+    targetType: "User",
+    targetId: req.params.id,
+    details: { email: deleted.email },
+  });
   
   res.status(200).json(successResponse(null, "User deleted"));
 });
@@ -222,6 +266,13 @@ const createCollection = asyncHandler(async (req, res) => {
   // Invalidate related caches
   await deleteCache("admin:collections:all");
   await invalidatePattern("collections:*");
+
+  await recordAuditAction(req, {
+    action: "COLLECTION_CREATE",
+    targetType: "Collection",
+    targetId: collection._id?.toString(),
+    details: { name: collection.name, slug: collection.slug },
+  });
   
   res.status(201).json(successResponse(collection, "Collection created"));
 });
@@ -246,6 +297,13 @@ const updateCollection = asyncHandler(async (req, res) => {
   // Invalidate related caches
   await deleteCache("admin:collections:all");
   await invalidatePattern("collections:*");
+
+  await recordAuditAction(req, {
+    action: "COLLECTION_UPDATE",
+    targetType: "Collection",
+    targetId: collection._id?.toString(),
+    details: { name: collection.name },
+  });
   
   res.status(200).json(successResponse(collection, "Collection updated"));
 });
@@ -262,9 +320,17 @@ const deleteCollection = asyncHandler(async (req, res) => {
   // Invalidate related caches
   await deleteCache("admin:collections:all");
   await invalidatePattern("collections:*");
+
+  await recordAuditAction(req, {
+    action: "COLLECTION_DELETE",
+    targetType: "Collection",
+    targetId: req.params.id,
+    details: { name: deleted.name },
+  });
   
   res.status(200).json(successResponse(null, "Collection deleted"));
 });
+
 
 const sendPromotionalBroadcast = asyncHandler(async (req, res) => {
   const subject = String(req.body?.subject || "").trim();
@@ -345,6 +411,19 @@ const sendPromotionalBroadcast = asyncHandler(async (req, res) => {
   const processedCount = sentCount + failedCount + skippedCount;
   const processingMs = Date.now() - startedAt;
 
+  await recordAuditAction(req, {
+    action: "PROMOTIONAL_EMAIL_BROADCAST",
+    targetType: "EmailCampaign",
+    details: {
+      subject,
+      targetedRecipients: attemptedCount,
+      sentCount,
+      failedCount,
+      skippedCount,
+      onlyVerified,
+    },
+  });
+
   res.status(200).json(
     successResponse(
       {
@@ -370,6 +449,7 @@ const sendPromotionalBroadcast = asyncHandler(async (req, res) => {
     )
   );
 });
+
 
 module.exports = {
   getAllOrders,

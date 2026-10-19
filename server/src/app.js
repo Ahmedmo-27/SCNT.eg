@@ -9,6 +9,8 @@ const env = require("./config/env");
 const routes = require("./routes");
 const notFound = require("./middleware/notFound");
 const errorHandler = require("./middleware/errorHandler");
+const { requestLogger } = require("./middleware/requestLogger");
+const optionalAuthMiddleware = require("./middleware/optionalAuthMiddleware");
 const { buildRobotsTxt, buildSitemapXml, safeBaseUrl } = require("./utils/seoDocuments");
 
 const app = express();
@@ -76,7 +78,10 @@ app.use(cors());
 app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(optionalAuthMiddleware);
+app.use(requestLogger);
 app.use(morgan("dev"));
+
 
 app.get("/robots.txt", (req, res) => {
   const siteUrl = resolveSiteUrl(req);
