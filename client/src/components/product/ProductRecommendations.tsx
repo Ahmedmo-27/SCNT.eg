@@ -109,7 +109,7 @@ export function ProductRecommendations({
                   <p className="line-clamp-2 text-xs italic text-scnt-text-muted/95">
                     {p.vibeSentence}
                   </p>
-                  <p className="pt-1 text-sm text-scnt-text-muted">{formatEgp(p.price, locale)}</p>
+                  <p className="pt-1 text-sm text-scnt-text-muted">{t('product.fromPrice', { price: formatEgp(p.sizes?.[0]?.price ?? 500, locale) })}</p>
                 </div>
               </Link>
             </motion.li>

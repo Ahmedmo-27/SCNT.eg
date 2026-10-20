@@ -1,10 +1,13 @@
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const userRepository = require("../repositories/userRepository");
+const cartRepository = require("../repositories/cartRepository");
+const Visit = require("../models/Visit");
 const ApiError = require("../utils/ApiError");
 const { signToken } = require("../utils/jwt");
 const env = require("../config/env");
 const { sendVerificationEmail } = require("./emailService");
+const { deleteCache } = require("../utils/cache");
 
 const sanitizeUser = (user) => ({
   id: user._id,
@@ -50,7 +53,7 @@ const normalizeAddress = (addressInput, full_name) => {
   };
 };
 
-const register = async ({ full_name, email, password, address: addressInput }) => {
+const register = async ({ full_name, email, password, address: addressInput, visitorId }) => {
   if (!full_name || !email || !password) {
     throw new ApiError(400, "full_name, email and password are required");
   }
@@ -75,6 +78,16 @@ const register = async ({ full_name, email, password, address: addressInput }) =
 
   const user = await userRepository.createUser(payload);
 
+  if (visitorId) {
+    try {
+      await cartRepository.mergeGuestCartIntoUserCart(visitorId, user._id);
+      await deleteCache(`cart:user:${user._id}`);
+      Visit.updateMany({ visitorId, userId: null }, { $set: { userId: user._id } }).catch(() => {});
+    } catch {
+      // non-blocking merge failure
+    }
+  }
+
   sendVerificationEmail({
     to: user.email,
     fullName: user.full_name,
@@ -95,7 +108,7 @@ const register = async ({ full_name, email, password, address: addressInput }) =
   };
 };
 
-const login = async ({ email, password }) => {
+const login = async ({ email, password, visitorId }) => {
   if (!email || !password) {
     throw new ApiError(400, "email and password are required");
   }
@@ -108,6 +121,16 @@ const login = async ({ email, password }) => {
   const passwordMatches = await bcrypt.compare(password, user.password);
   if (!passwordMatches) {
     throw new ApiError(401, "Invalid credentials");
+  }
+
+  if (visitorId) {
+    try {
+      await cartRepository.mergeGuestCartIntoUserCart(visitorId, user._id);
+      await deleteCache(`cart:user:${user._id}`);
+      Visit.updateMany({ visitorId, userId: null }, { $set: { userId: user._id } }).catch(() => {});
+    } catch {
+      // non-blocking merge failure
+    }
   }
 
   const token = signToken({ userId: user._id, role: user.role });

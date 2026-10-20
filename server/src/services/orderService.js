@@ -3,11 +3,27 @@ const productRepository = require("../repositories/productRepository");
 const cartRepository = require("../repositories/cartRepository");
 const userRepository = require("../repositories/userRepository");
 const PromoCode = require("../models/PromoCode");
+const Visit = require("../models/Visit");
 const ApiError = require("../utils/ApiError");
 const { sendOrderConfirmationEmail } = require("./emailService");
+const { deleteCache } = require("../utils/cache");
 
 /** Flat COD shipping fee (EGP), aligned with checkout UI. */
 const SHIPPING_FEE_EGP = 80;
+
+const getProductPriceForSize = (product, size) => {
+  const normSize = String(size || "").toLowerCase().replace(/\s+/g, "");
+  if (normSize === "50ml") {
+    const opt = product?.sizes?.find(
+      (s) => String(s.size).toLowerCase().replace(/\s+/g, "") === "50ml"
+    );
+    return opt ? Number(opt.price) : 500;
+  }
+  const opt = product?.sizes?.find(
+    (s) => String(s.size).toLowerCase().replace(/\s+/g, "") === "100ml"
+  );
+  return opt ? Number(opt.price) : Number(product?.price || 750);
+};
 
 const requiredAddressFields = ["fullName", "phone", "city", "addressLine1", "postalCode"];
 
@@ -82,7 +98,8 @@ const createOrderFromCart = async (userId, address) => {
       throw new ApiError(400, `Insufficient stock for ${product.name}`);
     }
 
-    const unitPrice = Number(product.price);
+    const itemSize = item.size || "100ml";
+    const unitPrice = getProductPriceForSize(product, itemSize);
     const quantity = Number(item.quantity);
     if (!Number.isFinite(unitPrice) || unitPrice < 0) {
       throw new ApiError(400, `Invalid price for ${product.name}`);
@@ -93,11 +110,12 @@ const createOrderFromCart = async (userId, address) => {
 
     orderItems.push({
       product: product._id,
+      size: itemSize,
       quantity,
       price: unitPrice,
     });
     emailItems.push({
-      name: product.name,
+      name: `${product.name} (${itemSize})`,
       quantity,
       unitPrice,
       lineTotal: unitPrice * quantity,
@@ -124,6 +142,24 @@ const createOrderFromCart = async (userId, address) => {
     address,
   });
   await cartRepository.upsertByUserId(userId, [], "");
+  await deleteCache(`cart:user:${userId}`);
+
+  // Track order completion milestone for buying funnel analytics
+  Visit.create({
+    visitorId: cart.visitorId || `user_${userId}`,
+    sessionId: cart.sessionId || `session_${order._id}`,
+    path: `/order-confirmation/${order._id}`,
+    title: "Order Placed",
+    userId,
+    stage: "order_placed",
+    action: "order_placed",
+    metadata: {
+      orderId: order._id.toString(),
+      total: order.total,
+      promoCode: order.promoCode,
+      itemCount: order.items.length,
+    },
+  }).catch(() => {});
 
   sendOrderConfirmationEmail({
     to: user.email,

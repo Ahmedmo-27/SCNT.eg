@@ -6,6 +6,7 @@ import {
   type ApiProduct,
   type CollectionId,
   type CollectionSummary,
+  type ProductSizeOption,
   type ProductSummary,
   type ScentMood,
 } from '../types/catalog'
@@ -139,6 +140,32 @@ export function mapApiProductToSummary(p: ApiProduct, locale: Locale = 'en'): Pr
   const coverImage = p.coverImage?.trim() || collectionCoverImage
   const clearBackgroundImage = p.clearBackground_Image?.trim() || collectionClearBackgroundImage
 
+  const defaultSizes: ProductSizeOption[] = [
+    {
+      size: '50ml',
+      label: locale === 'ar' ? '50 مل' : '50ml',
+      price: 500,
+    },
+    {
+      size: '100ml',
+      label: locale === 'ar' ? '100 مل' : '100ml',
+      price: p.price || 750,
+    },
+  ]
+
+  const sizes: ProductSizeOption[] =
+    p.sizes && p.sizes.length > 0
+      ? p.sizes.map((s) => {
+          const norm = s.size.toLowerCase().replace(/\s+/g, '')
+          const is50 = norm.includes('50')
+          return {
+            size: is50 ? '50ml' : '100ml',
+            label: locale === 'ar' ? (is50 ? '50 مل' : '100 مل') : (is50 ? '50ml' : '100ml'),
+            price: s.price,
+          }
+        })
+      : defaultSizes
+
   return {
     apiId: p._id,
     id: p.slug,
@@ -158,6 +185,7 @@ export function mapApiProductToSummary(p: ApiProduct, locale: Locale = 'en'): Pr
     lifestyleLine,
     format: 'Eau de Parfum',
     volume,
+    sizes,
     concentrationHint: 'High concentration · Exceptional longevity',
     galleryImages: galleryTuple(p.images ?? []),
     coverImage: coverImage || undefined,

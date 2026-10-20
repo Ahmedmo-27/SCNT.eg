@@ -1,4 +1,4 @@
-import { apiGetDataAuthed, apiPostDataAuthed } from './api'
+import { apiGetCartData, apiPostCartData } from './api'
 
 export type CartPromo = {
   code: string
@@ -10,13 +10,16 @@ export type CartPromo = {
 }
 
 export type ServerCart = {
-  user: string
+  user?: string | null
+  visitorId?: string | null
   items: Array<{
     product: string | { _id: string }
+    size?: string
     quantity: number
   }>
   lines?: Array<{
     productId: string
+    size?: string
     quantity: number
     unitPrice: number
     lineTotal: number
@@ -34,30 +37,36 @@ export type ServerCart = {
 }
 
 export async function fetchServerCart(): Promise<ServerCart> {
-  return apiGetDataAuthed<ServerCart>('/cart')
+  return apiGetCartData<ServerCart>('/cart')
 }
 
 export async function clearServerCart(): Promise<void> {
-  await apiPostDataAuthed<unknown>('/cart/clear', {})
+  await apiPostCartData<unknown>('/cart/clear', {})
 }
 
-export async function addToServerCart(productId: string, quantity: number): Promise<void> {
-  await apiPostDataAuthed<unknown>('/cart/add', { productId, quantity })
+export async function addToServerCart(
+  productId: string,
+  quantity: number,
+  size = '100ml'
+): Promise<ServerCart> {
+  return apiPostCartData<ServerCart>('/cart/add', { productId, quantity, size })
 }
 
-export async function removeFromServerCart(productId: string): Promise<ServerCart> {
-  return apiPostDataAuthed<ServerCart>('/cart/remove', { productId })
+export async function removeFromServerCart(productId: string, size?: string): Promise<ServerCart> {
+  return apiPostCartData<ServerCart>('/cart/remove', { productId, size })
 }
 
-/** Replaces the authenticated user’s server cart to match local checkout lines (same order). */
-export async function replaceServerCart(lines: { productId: string; quantity: number }[]): Promise<ServerCart> {
-  return apiPostDataAuthed<ServerCart>('/cart/replace', { lines })
+/** Replaces the user's or guest's server cart to match checkout lines */
+export async function replaceServerCart(
+  lines: { productId: string; quantity: number; size?: string }[]
+): Promise<ServerCart> {
+  return apiPostCartData<ServerCart>('/cart/replace', { lines })
 }
 
 export async function applyPromoCode(code: string): Promise<ServerCart> {
-  return apiPostDataAuthed<ServerCart>('/cart/promo/apply', { code })
+  return apiPostCartData<ServerCart>('/cart/promo/apply', { code })
 }
 
 export async function removePromoCode(): Promise<ServerCart> {
-  return apiPostDataAuthed<ServerCart>('/cart/promo/remove', {})
+  return apiPostCartData<ServerCart>('/cart/promo/remove', {})
 }

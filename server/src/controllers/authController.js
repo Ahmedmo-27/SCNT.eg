@@ -3,12 +3,14 @@ const { successResponse } = require("../utils/apiResponse");
 const authService = require("../services/authService");
 
 const register = asyncHandler(async (req, res) => {
-  const result = await authService.register(req.body);
+  const visitorId = req.headers["x-visitor-id"] || req.body?.visitorId;
+  const result = await authService.register({ ...req.body, visitorId });
   res.status(201).json(successResponse(result, "User registered successfully"));
 });
 
 const login = asyncHandler(async (req, res) => {
-  const result = await authService.login(req.body);
+  const visitorId = req.headers["x-visitor-id"] || req.body?.visitorId;
+  const result = await authService.login({ ...req.body, visitorId });
   res.status(200).json(successResponse(result, "Login successful"));
 });
 

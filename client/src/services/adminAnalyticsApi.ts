@@ -127,6 +127,210 @@ export type TrackVisitPayload = {
   referrer?: string
   screenResolution?: string
   locale?: string
+  stage?: 'browse' | 'product_view' | 'cart_view' | 'checkout_start' | 'order_placed'
+  action?: string
+  metadata?: Record<string, unknown>
+}
+
+export type FunnelStage = {
+  id: string
+  name: string
+  count: number
+  percentageOfTotal: number
+  dropOffCount: number
+  dropOffRate: number
+}
+
+export type FunnelMetrics = {
+  stages: FunnelStage[]
+  conversionRate: number
+  totalVisitors: number
+  totalOrders: number
+  totalRevenue: number
+  range: string
+}
+
+export type CustomerJourneySession = {
+  sessionId: string
+  visitorId: string
+  isGuest: boolean
+  user: {
+    _id: string
+    fullName: string
+    email: string
+    phone?: string
+    city?: string
+  } | null
+  device: string
+  browser: string
+  os: string
+  ip?: string
+  highestStage: 'browse' | 'product_view' | 'cart_view' | 'checkout_start' | 'order_placed'
+  outcomeStatus: 'converted' | 'abandoned_checkout' | 'abandoned_cart' | 'product_interest' | 'browsing'
+  cart: {
+    hasItems: boolean
+    itemCount: number
+    promoCode: string
+  }
+  startedAt: string
+  lastActiveAt: string
+  durationSeconds: number
+  eventCount: number
+}
+
+export type CustomerJourneysResponse = {
+  items: CustomerJourneySession[]
+  pagination: {
+    total: number
+    page: number
+    pages: number
+    limit: number
+  }
+}
+
+export type CustomerJourneysParams = {
+  page?: number
+  limit?: number
+  range?: string
+  stage?: string
+  type?: string
+  search?: string
+  excludeAdmin?: boolean
+}
+
+export type TimelineStep = {
+  _id: string
+  timestamp: string
+  stage: string
+  action: string
+  actionLabel: string
+  path: string
+  title: string
+  metadata: Record<string, unknown>
+}
+
+export type SessionJourneyDetails = {
+  sessionId: string
+  visitorId: string
+  user?: { _id: string; full_name?: string; email?: string }
+  device: string
+  browser: string
+  os: string
+  ip?: string
+  startedAt: string
+  lastActiveAt: string
+  totalEvents: number
+  timeline: TimelineStep[]
+}
+
+export type AdminCartLine = {
+  productId: string
+  name: string
+  slug?: string
+  size?: string
+  unitPrice: number
+  quantity: number
+  lineTotal: number
+  image?: string
+  stock: number
+}
+
+export type AdminCartItem = {
+  _id: string
+  isGuest: boolean
+  user: {
+    _id: string
+    fullName: string
+    email: string
+    phone?: string
+    city?: string
+  } | null
+  visitorId?: string
+  visitorMeta?: {
+    device?: string
+    browser?: string
+    os?: string
+    ip?: string
+    referrerDomain?: string
+  }
+  items: AdminCartLine[]
+  itemCount: number
+  subtotal: number
+  promoCode: string
+  lastActiveAt: string
+  isAbandoned: boolean
+}
+
+export type ActiveCartsResponse = {
+  carts: AdminCartItem[]
+  pagination: {
+    total: number
+    page: number
+    pages: number
+    limit: number
+  }
+}
+
+export type ActiveCartsParams = {
+  status?: string
+  type?: string
+  search?: string
+  page?: number
+  limit?: number
+}
+
+export type CouponRedemption = {
+  orderId: string
+  orderRef: string
+  orderDate: string
+  orderTotal: number
+  discountAmount: number
+  orderStatus: string
+  customer: {
+    _id?: string
+    fullName: string
+    email: string
+    phone?: string
+  }
+}
+
+export type CouponHolder = {
+  cartId: string
+  isGuest: boolean
+  customerName: string
+  customerEmail: string
+  visitorId?: string
+  itemCount: number
+  lastActiveAt: string
+}
+
+export type CouponPerformance = {
+  _id: string
+  code: string
+  discountType: 'PERCENTAGE' | 'FIXED' | 'CUSTOM'
+  discountValue: number
+  minSubtotal: number
+  maxDiscount: number | null
+  isActive: boolean
+  startsAt?: string | null
+  expiresAt?: string | null
+  totalRedemptions: number
+  totalRevenueDriven: number
+  totalDiscountGiven: number
+  activeCartsCount: number
+  redemptions: CouponRedemption[]
+  activeCartHolders: CouponHolder[]
+}
+
+export type CouponAnalyticsResponse = {
+  summary: {
+    totalCoupons: number
+    totalRedemptions: number
+    totalRevenueDriven: number
+    totalDiscountGiven: number
+    totalActiveCartHolders: number
+  }
+  coupons: CouponPerformance[]
 }
 
 /**
@@ -300,5 +504,60 @@ export async function downloadAdminLogsExport(level?: string, context?: string):
  */
 export function clearOldLogs(olderThanDays: number): Promise<{ deletedCount: number }> {
   return apiDeleteDataAuthed<{ deletedCount: number }>(`/admin/logs/clear?olderThanDays=${olderThanDays}`)
+}
+
+/**
+ * Admin: Fetch Funnel Metrics & Conversion Rates
+ */
+export function fetchFunnelMetrics(range = '7d', excludeAdmin = true): Promise<FunnelMetrics> {
+  const query = new URLSearchParams({
+    range,
+    excludeAdmin: String(excludeAdmin),
+  })
+  return apiGetDataAuthed<FunnelMetrics>(`/admin/analytics/funnel?${query.toString()}`)
+}
+
+/**
+ * Admin: Fetch Customer & Guest Journeys with Stage Progress
+ */
+export function fetchCustomerJourneys(params: CustomerJourneysParams = {}): Promise<CustomerJourneysResponse> {
+  const query = new URLSearchParams()
+  if (params.page) query.set('page', String(params.page))
+  if (params.limit) query.set('limit', String(params.limit))
+  if (params.range) query.set('range', params.range)
+  if (params.stage && params.stage !== 'all') query.set('stage', params.stage)
+  if (params.type && params.type !== 'all') query.set('type', params.type)
+  if (params.search) query.set('search', params.search)
+  if (params.excludeAdmin !== undefined) query.set('excludeAdmin', String(params.excludeAdmin))
+
+  return apiGetDataAuthed<CustomerJourneysResponse>(`/admin/analytics/journeys?${query.toString()}`)
+}
+
+/**
+ * Admin: Fetch Chronological Timeline Breadcrumbs for a Session
+ */
+export function fetchSessionJourneyTimeline(sessionId: string): Promise<SessionJourneyDetails> {
+  return apiGetDataAuthed<SessionJourneyDetails>(`/admin/analytics/journeys/${encodeURIComponent(sessionId)}`)
+}
+
+/**
+ * Admin: Fetch All Active & Abandoned Carts with Products
+ */
+export function fetchActiveCarts(params: ActiveCartsParams = {}): Promise<ActiveCartsResponse> {
+  const query = new URLSearchParams()
+  if (params.status && params.status !== 'all') query.set('status', params.status)
+  if (params.type && params.type !== 'all') query.set('type', params.type)
+  if (params.search) query.set('search', params.search)
+  if (params.page) query.set('page', String(params.page))
+  if (params.limit) query.set('limit', String(params.limit))
+
+  return apiGetDataAuthed<ActiveCartsResponse>(`/admin/analytics/carts?${query.toString()}`)
+}
+
+/**
+ * Admin: Fetch Comprehensive Coupon Analytics, Revenue & Customer Redemptions
+ */
+export function fetchCouponAnalytics(): Promise<CouponAnalyticsResponse> {
+  return apiGetDataAuthed<CouponAnalyticsResponse>('/admin/analytics/coupons')
 }
 

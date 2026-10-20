@@ -48,6 +48,17 @@ export function ProductCard({ product, entrance = true, carousel = false, compac
   const currentCollectionId = product.collection as CollectionId
   const { accentDeep } = useCollectionVisual()
 
+  const sizeOptions =
+    product.sizes && product.sizes.length > 0
+      ? product.sizes
+      : [
+          { size: '50ml', label: locale === 'ar' ? '50 مل' : '50ml', price: 500 },
+          { size: '100ml', label: locale === 'ar' ? '100 مل' : '100ml', price: product.price || 750 },
+        ]
+  const [selectedSize, setSelectedSize] = useState<string>('50ml')
+  const currentOption = sizeOptions.find((s) => s.size === selectedSize) ?? sizeOptions[0]
+  const currentPrice = currentOption.price
+
   const isExecutive = currentCollectionId === 'executive'
   const isCharmer = currentCollectionId === 'charmer'
   const isExplorer = currentCollectionId === 'explorer'
@@ -78,7 +89,8 @@ export function ProductCard({ product, entrance = true, carousel = false, compac
     addItem({
       productId: product.apiId,
       name: product.name,
-      price: product.price,
+      size: currentOption.size,
+      price: currentPrice,
       quantity: 1,
       image: product.galleryImages[0],
     })
@@ -90,7 +102,7 @@ export function ProductCard({ product, entrance = true, carousel = false, compac
       productId: product.apiId,
       slug: product.id,
       name: product.name,
-      price: product.price,
+      price: currentPrice,
       image: product.galleryImages[0],
       inspiredBy: product.inspiredBy,
       collection: col?.name ?? product.collection,
@@ -314,7 +326,32 @@ export function ProductCard({ product, entrance = true, carousel = false, compac
             <p className={`line-clamp-1 italic leading-relaxed text-scnt-text-muted/95 ${compact ? 'text-[0.62rem]' : 'text-xs'}`}>
               {product.vibeSentence}
             </p>
-            <p className={`pt-0.5 text-scnt-text-muted ${compact ? 'text-[0.82rem]' : 'text-sm'}`}>{formatEgp(product.price, locale)}</p>
+            <div className="pt-2 flex items-center justify-center gap-1.5" onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
+              {sizeOptions.map((opt) => {
+                const isSelected = selectedSize === opt.size
+                return (
+                  <button
+                    key={opt.size}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setSelectedSize(opt.size)
+                    }}
+                    className={`rounded-lg px-2 py-0.5 text-[0.7rem] font-semibold transition-all ${
+                      isSelected
+                        ? 'border border-scnt-text bg-scnt-text text-scnt-bg shadow-sm'
+                        : 'border border-scnt-border/80 bg-scnt-bg/60 text-scnt-text/80 hover:border-scnt-text/40'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+            <p className={`pt-1 text-scnt-text-muted ${compact ? 'text-[0.82rem]' : 'text-sm'}`}>
+              <span className="font-semibold text-scnt-text">{formatEgp(currentPrice, locale)}</span>
+            </p>
           </div>
         </Link>
         <button

@@ -23,7 +23,15 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
   const accent = collection?.accent ?? '#2a2622'
   const bottleSrc = product.clearBackground_Image?.trim() || ''
   const coverSrc = collection?.coverImage?.trim() || ''
-  const [selectedSize, setSelectedSize] = useState(product.volume)
+  const sizeOptions =
+    product.sizes && product.sizes.length > 0
+      ? product.sizes
+      : [
+          { size: '50ml', label: locale === 'ar' ? '50 مل' : '50ml', price: 500 },
+          { size: '100ml', label: locale === 'ar' ? '100 مل' : '100ml', price: product.price || 750 },
+        ]
+  const [selectedSize, setSelectedSize] = useState<string>('50ml')
+  const activeOption = sizeOptions.find((s) => s.size === selectedSize) ?? sizeOptions[0]
   const [justAdded, setJustAdded] = useState(false)
   const addItem = useCartStore((s) => s.addItem)
   const toggleWishlist = useWishlistStore((s) => s.toggleItem)
@@ -33,7 +41,8 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
     addItem({
       productId: product.apiId,
       name: product.name,
-      price: product.price,
+      size: activeOption.size,
+      price: activeOption.price,
       quantity: 1,
       image: product.galleryImages[0],
     })
@@ -46,7 +55,7 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
       productId: product.apiId,
       slug: product.id,
       name: product.name,
-      price: product.price,
+      price: activeOption.price,
       image: product.galleryImages[0],
       inspiredBy: product.inspiredBy,
       collection: collection?.name ?? product.collection,
@@ -110,21 +119,25 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
                 ) : null}
 
                 <div className="rounded-2xl border border-scnt-border/70 bg-scnt-bg/68 p-4 md:rounded-none md:border-none md:bg-transparent md:p-0">
-                  <p className="font-serif text-[1.45rem] leading-none text-scnt-text">{formatEgp(product.price, locale)}</p>
+                  <p className="font-serif text-[1.45rem] leading-none text-scnt-text">{formatEgp(activeOption.price, locale)}</p>
 
                   <div className="mt-4">
-                    <label className="text-[0.7rem] uppercase tracking-[0.26em] text-scnt-text/70">Size</label>
+                    <label className="text-[0.7rem] uppercase tracking-[0.26em] text-scnt-text/70">{locale === 'ar' ? 'حجم الزجاجة' : 'Size'}</label>
                     <div className="mt-1.5 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedSize(product.volume)}
-                        className={`rounded-xl border px-4 py-2 text-[0.88rem] font-semibold transition-all ${selectedSize === product.volume
-                          ? 'border-scnt-text bg-scnt-text text-scnt-bg'
-                          : 'border-scnt-border/60 bg-scnt-bg text-scnt-text hover:border-scnt-text'
+                      {sizeOptions.map((opt) => (
+                        <button
+                          key={opt.size}
+                          type="button"
+                          onClick={() => setSelectedSize(opt.size)}
+                          className={`rounded-xl border px-4 py-2 text-[0.88rem] font-semibold transition-all ${
+                            selectedSize === opt.size
+                              ? 'border-scnt-text bg-scnt-text text-scnt-bg'
+                              : 'border-scnt-border/60 bg-scnt-bg text-scnt-text hover:border-scnt-text'
                           }`}
-                      >
-                        {product.volume}
-                      </button>
+                        >
+                          {opt.label} ({formatEgp(opt.price, locale)})
+                        </button>
+                      ))}
                     </div>
                   </div>
 

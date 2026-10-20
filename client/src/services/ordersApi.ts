@@ -12,6 +12,7 @@ export type OrderLineProduct = {
 export type OrderLine = {
   quantity: number
   price: number
+  size?: string
   product: OrderLineProduct | string | null
 }
 

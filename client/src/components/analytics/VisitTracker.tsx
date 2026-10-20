@@ -2,36 +2,49 @@ import { useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { trackClientVisit } from '../../services/adminAnalyticsApi'
 import { useI18n } from '../../i18n/I18nContext'
+import { getOrCreateVisitorId, getOrCreateSessionId } from '../../lib/visitorStorage'
 
-function getOrCreateVisitorId(): string {
-  try {
-    const key = 'scnt_vid'
-    let vid = localStorage.getItem(key)
-    if (!vid) {
-      vid = typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `vid_${Math.random().toString(36).slice(2)}_${Date.now()}`
-      localStorage.setItem(key, vid)
-    }
-    return vid
-  } catch {
-    return 'anonymous_visitor'
+export function inferFunnelStage(pathname: string): 'browse' | 'product_view' | 'cart_view' | 'checkout_start' | 'order_placed' {
+  if (pathname.startsWith('/order-confirmation') || pathname.startsWith('/checkout/success')) {
+    return 'order_placed'
   }
+  if (pathname.startsWith('/checkout')) {
+    return 'checkout_start'
+  }
+  if (pathname.startsWith('/cart')) {
+    return 'cart_view'
+  }
+  if (pathname.startsWith('/product/')) {
+    return 'product_view'
+  }
+  return 'browse'
 }
 
-function getOrCreateSessionId(): string {
+/**
+ * Fire-and-forget event tracking for buying funnel milestones.
+ */
+export function trackFunnelAction(
+  action: string,
+  stage?: 'browse' | 'product_view' | 'cart_view' | 'checkout_start' | 'order_placed',
+  metadata: Record<string, unknown> = {}
+) {
   try {
-    const key = 'scnt_sid'
-    let sid = sessionStorage.getItem(key)
-    if (!sid) {
-      sid = typeof crypto !== 'undefined' && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `sid_${Math.random().toString(36).slice(2)}_${Date.now()}`
-      sessionStorage.setItem(key, sid)
-    }
-    return sid
+    const visitorId = getOrCreateVisitorId()
+    const sessionId = getOrCreateSessionId()
+    const path = typeof window !== 'undefined' ? window.location.pathname : '/'
+    const determinedStage = stage || inferFunnelStage(path)
+
+    void trackClientVisit({
+      visitorId,
+      sessionId,
+      path,
+      title: typeof document !== 'undefined' ? document.title || 'SCNT.eg' : '',
+      action,
+      stage: determinedStage,
+      metadata,
+    }).catch(() => {})
   } catch {
-    return 'anonymous_session'
+    // Non-blocking
   }
 }
 
@@ -52,6 +65,7 @@ export function VisitTracker() {
     const timer = setTimeout(() => {
       const visitorId = getOrCreateVisitorId()
       const sessionId = getOrCreateSessionId()
+      const stage = inferFunnelStage(location.pathname)
 
       trackClientVisit({
         visitorId,
@@ -64,6 +78,8 @@ export function VisitTracker() {
             ? `${window.screen.width}x${window.screen.height}`
             : undefined,
         locale,
+        stage,
+        action: 'pageview',
       })
     }, 150)
 

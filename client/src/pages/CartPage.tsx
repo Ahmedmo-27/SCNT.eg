@@ -37,6 +37,7 @@ export function CartPage() {
           serverCart.lines?.map((line) => ({
             productId: line.productId,
             name: line.name,
+            size: line.size || '100ml',
             price: Number(line.unitPrice || 0),
             quantity: Number(line.quantity || 0),
             image: line.image || '',
@@ -158,7 +159,7 @@ export function CartPage() {
               <ul className="mt-5 space-y-4">
                 {items.map((i) => (
                   <li
-                    key={i.productId}
+                    key={`${i.productId}-${i.size || '100ml'}`}
                     className="rounded-xl border border-scnt-border/75 bg-scnt-bg/55 p-4 backdrop-blur-sm sm:p-5"
                   >
                     <div className="flex items-center justify-between gap-4">
@@ -175,6 +176,11 @@ export function CartPage() {
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium text-scnt-text sm:text-base">
                             {i.name}
+                          </p>
+                          <p className="mt-0.5 text-xs text-scnt-text-muted">
+                            {locale === 'ar'
+                              ? (i.size === '50ml' ? '50 مل' : '100 مل')
+                              : (i.size || '100ml')}
                           </p>
                           {discount > 0 ? (
                             <div className="mt-1 text-xs">
@@ -213,7 +219,7 @@ export function CartPage() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => void removeItem(i.productId)}
+                          onClick={() => void removeItem(i.productId, i.size)}
                           className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-scnt-border/80 text-scnt-text-muted transition hover:border-scnt-text/40 hover:text-scnt-text"
                           aria-label={t('pc.rmCart', { name: i.name })}
                           title={t('pc.rmItem')}

@@ -1,4 +1,14 @@
 const mongoose = require("mongoose");
+require("./Collection");
+
+const sizeOptionSchema = new mongoose.Schema(
+  {
+    size: { type: String, required: true },
+    price: { type: Number, required: true, min: 0 },
+    stock: { type: Number, default: 0, min: 0 },
+  },
+  { _id: false }
+);
 
 const arProductFields = new mongoose.Schema(
   {
@@ -33,6 +43,13 @@ const productSchema = new mongoose.Schema(
     },
     price: { type: Number, required: true, min: 0 },
     size: { type: String, default: "100ml" },
+    sizes: {
+      type: [sizeOptionSchema],
+      default: () => [
+        { size: "50ml", price: 500 },
+        { size: "100ml", price: 750 },
+      ],
+    },
     images: [{ type: String }],
     clearBackground_Image: { type: String, default: "" },
     topNotes: [{ type: String }],

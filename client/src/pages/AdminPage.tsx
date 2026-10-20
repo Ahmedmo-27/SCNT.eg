@@ -35,15 +35,22 @@ import {
 } from '../services/adminApi'
 import { AnalyticsTab } from '../components/admin/AnalyticsTab'
 import { LogsTab } from '../components/admin/LogsTab'
+import { JourneysTab } from '../components/admin/JourneysTab'
+import { ActiveCartsTab } from '../components/admin/ActiveCartsTab'
 import {
   fetchAnalyticsOverview,
   fetchAdminLogStats,
+  fetchCouponAnalytics,
   type AnalyticsOverview,
   type LogStats,
+  type CouponAnalyticsResponse,
+  type CouponPerformance,
 } from '../services/adminAnalyticsApi'
 
 type TabKey =
   | 'overview'
+  | 'journeys'
+  | 'carts'
   | 'analytics'
   | 'logs'
   | 'products'
@@ -56,12 +63,14 @@ type TabKey =
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
+  { key: 'journeys', label: 'Funnel & Journeys' },
+  { key: 'carts', label: 'Active Carts' },
   { key: 'analytics', label: 'Visits & Traffic' },
   { key: 'logs', label: 'System Logs' },
   { key: 'products', label: 'Products' },
   { key: 'collections', label: 'Collections' },
   { key: 'orders', label: 'Orders' },
-  { key: 'promos', label: 'Promo codes' },
+  { key: 'promos', label: 'Promo codes & Usage' },
   { key: 'reviews', label: 'Reviews' },
   { key: 'users', label: 'Users' },
   { key: 'mailing', label: 'Mailing' },
@@ -77,6 +86,17 @@ function toCsvList(input: string): string[] {
 
 function formatMoney(value: number): string {
   return new Intl.NumberFormat('en-EG', { style: 'currency', currency: 'EGP', maximumFractionDigits: 0 }).format(value || 0)
+}
+
+function timeAgo(dateString: string): string {
+  const diff = Date.now() - new Date(dateString).getTime()
+  const sec = Math.floor(diff / 1000)
+  if (sec < 60) return `${Math.max(1, sec)}s ago`
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min}m ago`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr}h ago`
+  return `${Math.floor(hr / 24)}d ago`
 }
 
 type ProductForm = {
@@ -191,6 +211,9 @@ export function AdminPage() {
   const [promoMailResult, setPromoMailResult] = useState<PromotionalMailResult | null>(null)
   const [analyticsOverview, setAnalyticsOverview] = useState<AnalyticsOverview | null>(null)
   const [logStats, setLogStats] = useState<LogStats | null>(null)
+  const [couponAnalytics, setCouponAnalytics] = useState<CouponAnalyticsResponse | null>(null)
+  const [selectedPromoUsage, setSelectedPromoUsage] = useState<CouponPerformance | null>(null)
+  const [loadingCoupons, setLoadingCoupons] = useState(false)
 
   const loadAll = useCallback(async () => {
     setBusy(true)
@@ -245,6 +268,16 @@ export function AdminPage() {
     }
   }, [token, loadAll])
 
+  useEffect(() => {
+    if (activeTab === 'promos') {
+      setLoadingCoupons(true)
+      fetchCouponAnalytics()
+        .then(setCouponAnalytics)
+        .catch(() => {})
+        .finally(() => setLoadingCoupons(false))
+    }
+  }, [activeTab])
+
   const collectionOptions = useMemo(() => collections.map((c) => ({ id: c._id, label: c.name })), [collections])
 
   if (!token) return <Navigate to="/login" replace />
@@ -289,6 +322,10 @@ export function AdminPage() {
         collection: productForm.collection,
         price: Number(productForm.price || 0),
         size: productForm.size.trim(),
+        sizes: [
+          { size: '50ml', price: 500 },
+          { size: '100ml', price: Number(productForm.price || 750) },
+        ],
         stock: Number(productForm.stock || 0),
         images: toCsvList(productForm.images),
         coverImage: productForm.coverImage.trim(),
@@ -586,6 +623,8 @@ export function AdminPage() {
           </div>
         ) : null}
 
+        {activeTab === 'journeys' ? <JourneysTab /> : null}
+        {activeTab === 'carts' ? <ActiveCartsTab /> : null}
         {activeTab === 'analytics' ? <AnalyticsTab /> : null}
         {activeTab === 'logs' ? <LogsTab /> : null}
 
@@ -692,36 +731,273 @@ export function AdminPage() {
         ) : null}
 
         {activeTab === 'promos' ? (
-          <div className="space-y-4">
+          <div className="space-y-6">
+            {/* Coupon Analytics KPI Summary */}
+            {couponAnalytics ? (
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <Card asMotion={false} className="p-4">
+                  <span className="text-xs font-medium text-scnt-text-muted">Total Redemptions</span>
+                  <p className="mt-1 font-mono text-2xl font-bold text-emerald-400">
+                    {couponAnalytics.summary.totalRedemptions} orders
+                  </p>
+                </Card>
+                <Card asMotion={false} className="p-4">
+                  <span className="text-xs font-medium text-scnt-text-muted">Total Customer Savings</span>
+                  <p className="mt-1 font-mono text-2xl font-bold text-scnt-text">
+                    {formatMoney(couponAnalytics.summary.totalDiscountGiven)}
+                  </p>
+                </Card>
+                <Card asMotion={false} className="p-4">
+                  <span className="text-xs font-medium text-scnt-text-muted">Revenue Generated</span>
+                  <p className="mt-1 font-mono text-2xl font-bold text-scnt-text">
+                    {formatMoney(couponAnalytics.summary.totalRevenueDriven)}
+                  </p>
+                </Card>
+                <Card asMotion={false} className="p-4">
+                  <span className="text-xs font-medium text-scnt-text-muted">Active Carts With Coupons</span>
+                  <p className="mt-1 font-mono text-2xl font-bold text-purple-400">
+                    {couponAnalytics.summary.totalActiveCartHolders} carts
+                  </p>
+                </Card>
+              </div>
+            ) : loadingCoupons ? (
+              <p className="text-xs text-scnt-text-muted animate-pulse">Loading coupon analytics...</p>
+            ) : null}
+
+            {/* Create / Edit Promo Form */}
             <Card asMotion={false} className="p-5">
+              <h3 className="mb-3 font-serif text-lg text-scnt-text">
+                {editingPromoId ? 'Edit Promo Code' : 'Create New Promo Code'}
+              </h3>
               <form className="grid gap-3 md:grid-cols-2" onSubmit={submitPromo}>
-                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" placeholder="Code" value={promoForm.code} onChange={(e) => setPromoForm((s) => ({ ...s, code: e.target.value }))} required />
-                <select className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" value={promoForm.discountType} onChange={(e) => setPromoForm((s) => ({ ...s, discountType: e.target.value as 'PERCENTAGE' | 'FIXED' }))}><option value="PERCENTAGE">PERCENTAGE</option><option value="FIXED">FIXED</option></select>
-                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" type="number" placeholder="Discount value" value={promoForm.discountValue} onChange={(e) => setPromoForm((s) => ({ ...s, discountValue: e.target.value }))} required />
-                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" type="number" placeholder="Min subtotal" value={promoForm.minSubtotal} onChange={(e) => setPromoForm((s) => ({ ...s, minSubtotal: e.target.value }))} />
-                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" type="number" placeholder="Max discount (optional)" value={promoForm.maxDiscount} onChange={(e) => setPromoForm((s) => ({ ...s, maxDiscount: e.target.value }))} />
+                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" placeholder="Code" value={promoForm.code} onChange={(e) => setPromoForm((s) => ({ ...s, code: e.target.value }))} required />
+                <select className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" value={promoForm.discountType} onChange={(e) => setPromoForm((s) => ({ ...s, discountType: e.target.value as 'PERCENTAGE' | 'FIXED' }))}>
+                  <option value="PERCENTAGE">PERCENTAGE (%)</option>
+                  <option value="FIXED">FIXED (EGP)</option>
+                </select>
+                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" type="number" placeholder="Discount value" value={promoForm.discountValue} onChange={(e) => setPromoForm((s) => ({ ...s, discountValue: e.target.value }))} required />
+                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" type="number" placeholder="Min subtotal (EGP)" value={promoForm.minSubtotal} onChange={(e) => setPromoForm((s) => ({ ...s, minSubtotal: e.target.value }))} />
+                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" type="number" placeholder="Max discount (optional)" value={promoForm.maxDiscount} onChange={(e) => setPromoForm((s) => ({ ...s, maxDiscount: e.target.value }))} />
                 <label className="flex items-center gap-2 rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm"><input type="checkbox" checked={promoForm.isActive} onChange={(e) => setPromoForm((s) => ({ ...s, isActive: e.target.checked }))} />Active</label>
-                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" type="datetime-local" value={promoForm.startsAt || ''} onChange={(e) => setPromoForm((s) => ({ ...s, startsAt: e.target.value }))} />
-                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2" type="datetime-local" value={promoForm.expiresAt || ''} onChange={(e) => setPromoForm((s) => ({ ...s, expiresAt: e.target.value }))} />
+                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" type="datetime-local" value={promoForm.startsAt || ''} onChange={(e) => setPromoForm((s) => ({ ...s, startsAt: e.target.value }))} />
+                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" type="datetime-local" value={promoForm.expiresAt || ''} onChange={(e) => setPromoForm((s) => ({ ...s, expiresAt: e.target.value }))} />
                 <div className="flex gap-2 md:col-span-2">
                   <Button type="submit" disabled={busy}>{editingPromoId ? 'Update promo' : 'Create promo'}</Button>
                   {editingPromoId ? <Button variant="outline" onClick={() => { setEditingPromoId(null); setPromoForm(emptyPromoForm) }}>Cancel edit</Button> : null}
                 </div>
               </form>
             </Card>
+
+            {/* Promo Codes List with Performance Insights */}
             <Card asMotion={false} className="p-5">
-              <ul className="space-y-2">
-                {promos.map((item) => (
-                  <li key={item._id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-scnt-border/60 px-3 py-2">
-                    <div><p className="text-sm">{item.code} · {item.discountType} {item.discountValue}</p><p className="text-xs text-scnt-text-muted">{item.isActive ? 'Active' : 'Inactive'}</p></div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => startEditPromo(item)} disabled={busy}>Edit</Button>
-                      <Button variant="outline" onClick={() => void removePromo(item._id)} disabled={busy}>Delete</Button>
-                    </div>
-                  </li>
-                ))}
+              <h3 className="mb-3 font-serif text-lg text-scnt-text">Existing Promo Codes & Usage</h3>
+              <ul className="space-y-3">
+                {promos.map((item) => {
+                  const perf = couponAnalytics?.coupons.find(
+                    (c) => c.code.toUpperCase() === item.code.toUpperCase()
+                  )
+                  const redemptionsCount = perf ? perf.totalRedemptions : 0
+                  const revenueDriven = perf ? perf.totalRevenueDriven : 0
+                  const discountGiven = perf ? perf.totalDiscountGiven : 0
+                  const liveCartsCount = perf ? perf.activeCartsCount : 0
+
+                  return (
+                    <li
+                      key={item._id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-scnt-border/60 bg-scnt-bg/50 p-4 transition-colors hover:border-scnt-border"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-base font-bold text-scnt-text">{item.code}</span>
+                          <span className="rounded bg-scnt-bg-elevated px-2 py-0.5 text-xs text-scnt-text-muted">
+                            {item.discountType === 'PERCENTAGE' ? `${item.discountValue}% OFF` : `EGP ${item.discountValue} OFF`}
+                          </span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              item.isActive
+                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                : 'bg-zinc-500/15 text-zinc-400 border border-zinc-500/30'
+                            }`}
+                          >
+                            {item.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+
+                        {/* Usage Metrics */}
+                        <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-scnt-text-muted">
+                          <span>
+                            Redemptions: <strong className="text-scnt-text">{redemptionsCount} orders</strong>
+                          </span>
+                          <span>·</span>
+                          <span>
+                            Revenue Driven: <strong className="text-emerald-400">{formatMoney(revenueDriven)}</strong>
+                          </span>
+                          <span>·</span>
+                          <span>
+                            Discount Given: <strong className="text-scnt-text">{formatMoney(discountGiven)}</strong>
+                          </span>
+                          {liveCartsCount > 0 ? (
+                            <>
+                              <span>·</span>
+                              <span className="rounded bg-purple-500/15 px-1.5 py-0.5 text-purple-300 border border-purple-500/30">
+                                In {liveCartsCount} live cart{liveCartsCount > 1 ? 's' : ''}
+                              </span>
+                            </>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {perf ? (
+                          <Button
+                            variant="outline"
+                            className="text-xs py-1 px-3"
+                            onClick={() => setSelectedPromoUsage(perf)}
+                          >
+                            View Redemptions ({redemptionsCount})
+                          </Button>
+                        ) : null}
+                        <Button variant="outline" className="text-xs py-1 px-2.5" onClick={() => startEditPromo(item)} disabled={busy}>
+                          Edit
+                        </Button>
+                        <Button variant="outline" className="text-xs py-1 px-2.5" onClick={() => void removePromo(item._id)} disabled={busy}>
+                          Delete
+                        </Button>
+                      </div>
+                    </li>
+                  )
+                })}
               </ul>
             </Card>
+
+            {/* Modal: Who used this coupon & which ones they've used */}
+            {selectedPromoUsage ? (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+                <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-scnt-border bg-scnt-bg p-6 shadow-2xl space-y-5">
+                  <div className="flex items-center justify-between border-b border-scnt-border/40 pb-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-serif text-2xl text-scnt-text font-bold">
+                          {selectedPromoUsage.code}
+                        </h3>
+                        <span className="rounded bg-scnt-bg-elevated px-2 py-0.5 text-xs text-scnt-text-muted">
+                          {selectedPromoUsage.discountType === 'PERCENTAGE'
+                            ? `${selectedPromoUsage.discountValue}% OFF`
+                            : `EGP ${selectedPromoUsage.discountValue} OFF`}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-scnt-text-muted">
+                        Total {selectedPromoUsage.totalRedemptions} orders · Revenue {formatMoney(selectedPromoUsage.totalRevenueDriven)} · Discount Given {formatMoney(selectedPromoUsage.totalDiscountGiven)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPromoUsage(null)}
+                      className="rounded-lg p-2 text-scnt-text-muted hover:bg-scnt-bg-elevated hover:text-scnt-text"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Active Cart Holders for this promo */}
+                  {selectedPromoUsage.activeCartHolders.length > 0 ? (
+                    <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-purple-300">
+                        Currently In Open Carts ({selectedPromoUsage.activeCartHolders.length})
+                      </span>
+                      <div className="mt-2.5 divide-y divide-purple-500/20">
+                        {selectedPromoUsage.activeCartHolders.map((holder, idx) => (
+                          <div key={idx} className="py-2 flex items-center justify-between text-xs text-scnt-text">
+                            <div>
+                              <span className="font-semibold">{holder.customerName}</span>
+                              {holder.customerEmail ? (
+                                <span className="text-scnt-text-muted ml-2">({holder.customerEmail})</span>
+                              ) : holder.visitorId ? (
+                                <span className="text-scnt-text-muted font-mono text-[10px] ml-2">
+                                  (Guest #{holder.visitorId.slice(0, 8)})
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="text-right text-scnt-text-muted text-[11px]">
+                              <span>{holder.itemCount} items in cart</span>
+                              <span className="ml-2">· {timeAgo(holder.lastActiveAt)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Redemptions List */}
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-scnt-text-muted mb-3">
+                      Completed Orders Using This Coupon ({selectedPromoUsage.redemptions.length})
+                    </h4>
+
+                    {selectedPromoUsage.redemptions.length === 0 ? (
+                      <div className="rounded-xl border border-scnt-border/40 p-6 text-center text-xs text-scnt-text-muted">
+                        No orders have redeemed this promo code yet.
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto rounded-xl border border-scnt-border/40">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-scnt-bg-elevated/40 text-scnt-text-muted border-b border-scnt-border/40">
+                            <tr>
+                              <th className="py-2.5 px-3 font-medium">Customer</th>
+                              <th className="py-2.5 px-3 font-medium">Order Ref</th>
+                              <th className="py-2.5 px-3 font-medium">Discount Saved</th>
+                              <th className="py-2.5 px-3 font-medium">Order Total</th>
+                              <th className="py-2.5 px-3 font-medium">Date</th>
+                              <th className="py-2.5 px-3 font-medium">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-scnt-border/30 text-scnt-text">
+                            {selectedPromoUsage.redemptions.map((red) => (
+                              <tr key={red.orderId} className="hover:bg-scnt-bg-elevated/20">
+                                <td className="py-2.5 px-3">
+                                  <p className="font-semibold">{red.customer.fullName}</p>
+                                  <p className="text-[11px] text-scnt-text-muted">{red.customer.email}</p>
+                                  {red.customer.phone ? (
+                                    <p className="text-[10px] text-scnt-text-muted/70">{red.customer.phone}</p>
+                                  ) : null}
+                                </td>
+                                <td className="py-2.5 px-3 font-mono font-medium text-scnt-text">
+                                  {red.orderRef}
+                                </td>
+                                <td className="py-2.5 px-3 text-emerald-400 font-mono font-semibold">
+                                  -{formatMoney(red.discountAmount)}
+                                </td>
+                                <td className="py-2.5 px-3 font-mono font-medium">
+                                  {formatMoney(red.orderTotal)}
+                                </td>
+                                <td className="py-2.5 px-3 text-scnt-text-muted whitespace-nowrap">
+                                  {new Date(red.orderDate).toLocaleDateString('en-EG', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  })}
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <span className="rounded bg-scnt-bg-elevated px-2 py-0.5 text-[10px] font-semibold text-scnt-text">
+                                    {red.orderStatus}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end pt-2 border-t border-scnt-border/40">
+                    <Button variant="outline" onClick={() => setSelectedPromoUsage(null)} className="text-xs">
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
 

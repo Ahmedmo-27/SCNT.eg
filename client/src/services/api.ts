@@ -4,6 +4,7 @@
  * - Production: set VITE_API_URL to the public API origin, e.g. https://api.example.com/api
  */
 import { clearStoredAuthToken, getStoredAuthToken } from '../lib/authStorage'
+import { getOrCreateVisitorId, getOrCreateSessionId } from '../lib/visitorStorage'
 
 export const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ??
@@ -105,6 +106,63 @@ export async function apiPostDataAuthed<T>(path: string, body: unknown): Promise
   })
   const parsed = await parseBody(res)
   if (res.status === 401) clearStoredAuthToken()
+  if (!res.ok) throw new Error(errorMessageFromBody(parsed, res.statusText))
+  const envelope = parsed as ApiEnvelope<T>
+  if (!envelope || typeof envelope !== 'object' || !('success' in envelope)) {
+    throw new Error('Invalid API response')
+  }
+  if (!envelope.success) throw new Error(envelope.message)
+  return envelope.data
+}
+
+/**
+ * GET for Cart endpoints: supports both authenticated user and anonymous guest visitorId.
+ */
+export async function apiGetCartData<T>(path: string): Promise<T> {
+  const token = getStoredAuthToken()
+  const visitorId = getOrCreateVisitorId()
+  const sessionId = getOrCreateSessionId()
+
+  const headers: Record<string, string> = {
+    'x-visitor-id': visitorId,
+    'x-session-id': sessionId,
+  }
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const res = await fetch(`${API_BASE}${path}`, { headers })
+  const parsed = await parseBody(res)
+  if (res.status === 401 && token) clearStoredAuthToken()
+  if (!res.ok) throw new Error(errorMessageFromBody(parsed, res.statusText))
+  const envelope = parsed as ApiEnvelope<T>
+  if (!envelope || typeof envelope !== 'object' || !('success' in envelope)) {
+    throw new Error('Invalid API response')
+  }
+  if (!envelope.success) throw new Error(envelope.message)
+  return envelope.data
+}
+
+/**
+ * POST for Cart endpoints: supports both authenticated user and anonymous guest visitorId.
+ */
+export async function apiPostCartData<T>(path: string, body: unknown): Promise<T> {
+  const token = getStoredAuthToken()
+  const visitorId = getOrCreateVisitorId()
+  const sessionId = getOrCreateSessionId()
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-visitor-id': visitorId,
+    'x-session-id': sessionId,
+  }
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  })
+  const parsed = await parseBody(res)
+  if (res.status === 401 && token) clearStoredAuthToken()
   if (!res.ok) throw new Error(errorMessageFromBody(parsed, res.statusText))
   const envelope = parsed as ApiEnvelope<T>
   if (!envelope || typeof envelope !== 'object' || !('success' in envelope)) {

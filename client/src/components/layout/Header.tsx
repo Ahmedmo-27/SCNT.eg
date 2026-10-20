@@ -708,7 +708,7 @@ export function Header() {
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm font-medium text-scnt-text">{localizedProductName(p, locale)}</p>
-                                <p className="text-xs text-scnt-text-muted">{formatEgp(p.price, locale)}</p>
+                                <p className="text-xs text-scnt-text-muted">{t('product.fromPrice', { price: formatEgp(p.sizes?.[0]?.price ?? 500, locale) })}</p>
                               </div>
                             </Link>
                           </li>

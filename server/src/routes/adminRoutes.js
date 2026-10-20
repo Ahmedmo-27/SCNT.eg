@@ -19,6 +19,11 @@ router.get("/analytics/top-pages", analyticsController.getTopPages);
 router.get("/analytics/referrers", analyticsController.getTopReferrers);
 router.get("/analytics/devices", analyticsController.getDeviceBreakdown);
 router.get("/analytics/realtime", analyticsController.getRealtimeVisits);
+router.get("/analytics/funnel", analyticsController.getFunnelMetrics);
+router.get("/analytics/journeys", analyticsController.getCustomerJourneys);
+router.get("/analytics/journeys/:sessionId", analyticsController.getSessionJourneyTimeline);
+router.get("/analytics/carts", analyticsController.getActiveCarts);
+router.get("/analytics/coupons", analyticsController.getCouponAnalytics);
 
 // System Logs & Audit
 router.get("/logs", adminLogController.listLogs);

@@ -37,6 +37,7 @@ export function ProductPage() {
   const { collections, products } = useCatalog()
   const [product, setProduct] = useState<ProductSummary | undefined>()
   const [pending, setPending] = useState(true)
+  const [selectedSize, setSelectedSize] = useState<string>('50ml')
   const addItem = useCartStore((s) => s.addItem)
   const toggleWishlist = useWishlistStore((s) => s.toggleItem)
   const isWishlisted = useWishlistStore((s) => (product ? s.hasItem(product.apiId) : false))
@@ -133,12 +134,24 @@ export function ProductPage() {
     path,
   })
 
+  const availableSizes =
+    product.sizes && product.sizes.length > 0
+      ? product.sizes
+      : [
+          { size: '50ml', label: locale === 'ar' ? '50 مل' : '50ml', price: 500 },
+          { size: '100ml', label: locale === 'ar' ? '100 مل' : '100ml', price: product.price || 750 },
+        ]
+  const currentOption = availableSizes.find((s) => s.size === selectedSize) ?? availableSizes[0]
+  const currentPrice = currentOption.price
+  const currentLabel = currentOption.label
+
   function handleAddToCart() {
     if (!product) return
     addItem({
       productId: product.apiId,
       name: product.name,
-      price: product.price,
+      size: currentOption.size,
+      price: currentPrice,
       quantity: 1,
       image: product.galleryImages[0],
     })
@@ -151,7 +164,7 @@ export function ProductPage() {
       productId: product.apiId,
       slug: product.id,
       name: product.name,
-      price: product.price,
+      price: currentPrice,
       image: product.galleryImages[0],
       inspiredBy: product.inspiredBy,
       collection: col?.name ?? product.collection,
@@ -264,11 +277,45 @@ export function ProductPage() {
 
                 <div className={`mt-8 ${cardShell}`}>
                   <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 border-b border-scnt-border/90 pb-5">
-                    <p className="font-serif text-2xl text-scnt-text">{formatEgp(product.price, locale)}</p>
+                    <p className="font-serif text-2xl text-scnt-text">{formatEgp(currentPrice, locale)}</p>
                     <span className="text-scnt-text/25">·</span>
                     <p className="text-sm text-scnt-text-muted">
-                      {t('product.formatEdp')} · {product.volume}
+                      {t('product.formatEdp')} · {currentLabel}
                     </p>
+                  </div>
+
+                  {/* Bottle Size Selector */}
+                  <div className="border-b border-scnt-border/90 py-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[0.72rem] font-semibold uppercase tracking-[0.24em] text-scnt-text/75">
+                        {t('product.size')}
+                      </label>
+                      <span className="text-xs font-medium text-scnt-text-muted">
+                        {currentLabel} · {formatEgp(currentPrice, locale)}
+                      </span>
+                    </div>
+                    <div className="mt-2.5 flex flex-wrap gap-2.5">
+                      {availableSizes.map((opt) => {
+                        const isSelected = selectedSize === opt.size
+                        return (
+                          <button
+                            key={opt.size}
+                            type="button"
+                            onClick={() => setSelectedSize(opt.size)}
+                            className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all ${
+                              isSelected
+                                ? 'border-scnt-text bg-scnt-text text-scnt-bg shadow-sm scale-[1.02]'
+                                : 'border-scnt-border/80 bg-scnt-bg/60 text-scnt-text hover:border-scnt-text/50 hover:bg-scnt-bg-elevated/80'
+                            }`}
+                          >
+                            <span>{opt.label}</span>
+                            <span className={`text-xs ${isSelected ? 'text-scnt-bg/85 font-normal' : 'text-scnt-text-muted font-normal'}`}>
+                              ({formatEgp(opt.price, locale)})
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                   {product.rating && product.rating > 0 && (
                     <div className="mt-4 border-b border-scnt-border/90 pb-4">

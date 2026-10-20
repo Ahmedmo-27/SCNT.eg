@@ -69,6 +69,7 @@ export type AdminProduct = {
   collection: string | { _id: string; name?: string; slug?: string }
   price: number
   size?: string
+  sizes?: { size: string; price: number; stock?: number }[]
   description?: string
   coverImage?: string
   stock: number

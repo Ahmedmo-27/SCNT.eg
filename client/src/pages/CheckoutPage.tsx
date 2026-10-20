@@ -206,7 +206,9 @@ export function CheckoutPage() {
     setSubmitting(true)
 
     try {
-      await replaceServerCart(items.map((i) => ({ productId: i.productId, quantity: i.quantity })))
+      await replaceServerCart(
+        items.map((i) => ({ productId: i.productId, quantity: i.quantity, size: i.size || '100ml' })),
+      )
 
       const addressLine1 = form.notes.trim()
         ? `${form.address.trim()}\n\nNote: ${form.notes.trim()}`
@@ -446,7 +448,7 @@ export function CheckoutPage() {
               <h2 className="font-serif text-2xl text-scnt-text">{t('checkout.summary')}</h2>
               <ul className="mt-6 space-y-4 border-b border-scnt-border pb-6">
                 {items.map((i) => (
-                  <li key={i.productId} className="flex items-center gap-3">
+                  <li key={`${i.productId}-${i.size || '100ml'}`} className="flex items-center gap-3">
                     <picture>
                       <source srcSet={i.image} type="image/png" />
                       <img
@@ -459,7 +461,7 @@ export function CheckoutPage() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm text-scnt-text">{i.name}</p>
                       <p className="text-xs text-scnt-text-muted">
-                        {i.quantity} × {formatEgp(i.price, locale)}
+                        {locale === 'ar' ? (i.size === '50ml' ? '50 مل' : '100 مل') : (i.size || '100ml')} · {i.quantity} × {formatEgp(i.price, locale)}
                       </p>
                     </div>
                     <p className="text-sm text-scnt-text">{formatEgp(i.quantity * i.price, locale)}</p>

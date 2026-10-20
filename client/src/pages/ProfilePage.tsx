@@ -60,8 +60,8 @@ function orderRef(id: string): string {
 
 function lineProductName(line: OrderLine, itemFallback: string): string {
   const p = line.product
-  if (p && typeof p === 'object' && 'name' in p && typeof p.name === 'string') return p.name
-  return itemFallback
+  const baseName = p && typeof p === 'object' && 'name' in p && typeof p.name === 'string' ? p.name : itemFallback
+  return line.size ? `${baseName} (${line.size})` : baseName
 }
 
 function lineProductImage(line: OrderLine): string | null {

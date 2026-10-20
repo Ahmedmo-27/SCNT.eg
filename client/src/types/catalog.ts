@@ -33,6 +33,12 @@ export type ApiProductTranslationsAr = {
   baseNotes?: string[]
 }
 
+export type ApiProductSize = {
+  size: string
+  price: number
+  stock?: number
+}
+
 /** Aligns with Mongo-backed `Product` documents from the API */
 export type ApiProduct = {
   _id: string
@@ -43,6 +49,7 @@ export type ApiProduct = {
   collection: ApiCollection
   price: number
   size: string
+  sizes?: ApiProductSize[]
   images: string[]
   coverImage?: string
   clearBackground_Image?: string
@@ -111,6 +118,12 @@ export type Review = {
   updatedAt: string
 }
 
+export type ProductSizeOption = {
+  size: string
+  label: string
+  price: number
+}
+
 export type ProductSummary = {
   apiId: string
   id: string
@@ -128,6 +141,7 @@ export type ProductSummary = {
   lifestyleLine: string
   format: string
   volume: string
+  sizes: ProductSizeOption[]
   concentrationHint: string
   galleryImages: readonly string[]
   coverImage?: string

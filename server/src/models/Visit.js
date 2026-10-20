@@ -88,6 +88,22 @@ const visitSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    stage: {
+      type: String,
+      enum: ["browse", "product_view", "cart_view", "checkout_start", "order_placed"],
+      default: "browse",
+      index: true,
+    },
+    action: {
+      type: String,
+      default: "pageview",
+      index: true,
+      trim: true,
+    },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
   },
   {
     timestamps: true,
@@ -99,5 +115,7 @@ const visitRetentionSeconds = Number(process.env.VISIT_RETENTION_DAYS || 90) * 2
 visitSchema.index({ createdAt: 1 }, { expireAfterSeconds: visitRetentionSeconds });
 visitSchema.index({ createdAt: -1, isAdmin: 1, isBot: 1 });
 visitSchema.index({ path: 1, createdAt: -1 });
+visitSchema.index({ sessionId: 1, createdAt: 1 });
+visitSchema.index({ stage: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Visit", visitSchema);
