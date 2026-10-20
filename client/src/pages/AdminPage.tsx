@@ -278,6 +278,20 @@ export function AdminPage() {
     }
   }, [activeTab])
 
+  useEffect(() => {
+    if (!selectedPromoUsage) return
+    const orig = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedPromoUsage(null)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = orig
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [selectedPromoUsage])
+
   const collectionOptions = useMemo(() => collections.map((c) => ({ id: c._id, label: c.name })), [collections])
 
   if (!token) return <Navigate to="/login" replace />
@@ -872,12 +886,18 @@ export function AdminPage() {
 
             {/* Modal: Who used this coupon & which ones they've used */}
             {selectedPromoUsage ? (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-                <div className="relative max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-scnt-border bg-scnt-bg p-6 shadow-2xl space-y-5">
-                  <div className="flex items-center justify-between border-b border-scnt-border/40 pb-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-serif text-2xl text-scnt-text font-bold">
+              <div
+                className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-3 sm:p-4 md:p-6 backdrop-blur-sm animate-in fade-in duration-200"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) setSelectedPromoUsage(null)
+                }}
+              >
+                <div className="relative flex flex-col max-h-[90dvh] w-full max-w-3xl overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg shadow-2xl">
+                  {/* Fixed Header */}
+                  <div className="flex-shrink-0 flex items-center justify-between border-b border-scnt-border/40 p-4 sm:p-5 bg-scnt-bg">
+                    <div className="min-w-0 pr-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-serif text-xl sm:text-2xl text-scnt-text font-bold">
                           {selectedPromoUsage.code}
                         </h3>
                         <span className="rounded bg-scnt-bg-elevated px-2 py-0.5 text-xs text-scnt-text-muted">
@@ -886,112 +906,117 @@ export function AdminPage() {
                             : `EGP ${selectedPromoUsage.discountValue} OFF`}
                         </span>
                       </div>
-                      <p className="mt-1 text-xs text-scnt-text-muted">
+                      <p className="mt-1 text-xs text-scnt-text-muted truncate">
                         Total {selectedPromoUsage.totalRedemptions} orders · Revenue {formatMoney(selectedPromoUsage.totalRevenueDriven)} · Discount Given {formatMoney(selectedPromoUsage.totalDiscountGiven)}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setSelectedPromoUsage(null)}
-                      className="rounded-lg p-2 text-scnt-text-muted hover:bg-scnt-bg-elevated hover:text-scnt-text"
+                      className="flex-shrink-0 rounded-lg p-2 text-scnt-text-muted hover:bg-scnt-bg-elevated hover:text-scnt-text transition-colors"
+                      aria-label="Close coupon usage modal"
                     >
                       ✕
                     </button>
                   </div>
 
-                  {/* Active Cart Holders for this promo */}
-                  {selectedPromoUsage.activeCartHolders.length > 0 ? (
-                    <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-purple-300">
-                        Currently In Open Carts ({selectedPromoUsage.activeCartHolders.length})
-                      </span>
-                      <div className="mt-2.5 divide-y divide-purple-500/20">
-                        {selectedPromoUsage.activeCartHolders.map((holder, idx) => (
-                          <div key={idx} className="py-2 flex items-center justify-between text-xs text-scnt-text">
-                            <div>
-                              <span className="font-semibold">{holder.customerName}</span>
-                              {holder.customerEmail ? (
-                                <span className="text-scnt-text-muted ml-2">({holder.customerEmail})</span>
-                              ) : holder.visitorId ? (
-                                <span className="text-scnt-text-muted font-mono text-[10px] ml-2">
-                                  (Guest #{holder.visitorId.slice(0, 8)})
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className="text-right text-scnt-text-muted text-[11px]">
-                              <span>{holder.itemCount} items in cart</span>
-                              <span className="ml-2">· {timeAgo(holder.lastActiveAt)}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* Redemptions List */}
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-scnt-text-muted mb-3">
-                      Completed Orders Using This Coupon ({selectedPromoUsage.redemptions.length})
-                    </h4>
-
-                    {selectedPromoUsage.redemptions.length === 0 ? (
-                      <div className="rounded-xl border border-scnt-border/40 p-6 text-center text-xs text-scnt-text-muted">
-                        No orders have redeemed this promo code yet.
-                      </div>
-                    ) : (
-                      <div className="overflow-x-auto rounded-xl border border-scnt-border/40">
-                        <table className="w-full text-left text-xs">
-                          <thead className="bg-scnt-bg-elevated/40 text-scnt-text-muted border-b border-scnt-border/40">
-                            <tr>
-                              <th className="py-2.5 px-3 font-medium">Customer</th>
-                              <th className="py-2.5 px-3 font-medium">Order Ref</th>
-                              <th className="py-2.5 px-3 font-medium">Discount Saved</th>
-                              <th className="py-2.5 px-3 font-medium">Order Total</th>
-                              <th className="py-2.5 px-3 font-medium">Date</th>
-                              <th className="py-2.5 px-3 font-medium">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-scnt-border/30 text-scnt-text">
-                            {selectedPromoUsage.redemptions.map((red) => (
-                              <tr key={red.orderId} className="hover:bg-scnt-bg-elevated/20">
-                                <td className="py-2.5 px-3">
-                                  <p className="font-semibold">{red.customer.fullName}</p>
-                                  <p className="text-[11px] text-scnt-text-muted">{red.customer.email}</p>
-                                  {red.customer.phone ? (
-                                    <p className="text-[10px] text-scnt-text-muted/70">{red.customer.phone}</p>
-                                  ) : null}
-                                </td>
-                                <td className="py-2.5 px-3 font-mono font-medium text-scnt-text">
-                                  {red.orderRef}
-                                </td>
-                                <td className="py-2.5 px-3 text-emerald-400 font-mono font-semibold">
-                                  -{formatMoney(red.discountAmount)}
-                                </td>
-                                <td className="py-2.5 px-3 font-mono font-medium">
-                                  {formatMoney(red.orderTotal)}
-                                </td>
-                                <td className="py-2.5 px-3 text-scnt-text-muted whitespace-nowrap">
-                                  {new Date(red.orderDate).toLocaleDateString('en-EG', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: 'numeric',
-                                  })}
-                                </td>
-                                <td className="py-2.5 px-3">
-                                  <span className="rounded bg-scnt-bg-elevated px-2 py-0.5 text-[10px] font-semibold text-scnt-text">
-                                    {red.orderStatus}
+                  {/* Scrollable Body */}
+                  <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 space-y-5">
+                    {/* Active Cart Holders for this promo */}
+                    {selectedPromoUsage.activeCartHolders.length > 0 ? (
+                      <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-purple-300">
+                          Currently In Open Carts ({selectedPromoUsage.activeCartHolders.length})
+                        </span>
+                        <div className="mt-2.5 divide-y divide-purple-500/20">
+                          {selectedPromoUsage.activeCartHolders.map((holder, idx) => (
+                            <div key={idx} className="py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs text-scnt-text">
+                              <div className="min-w-0">
+                                <span className="font-semibold">{holder.customerName}</span>
+                                {holder.customerEmail ? (
+                                  <span className="text-scnt-text-muted ml-2 break-all">({holder.customerEmail})</span>
+                                ) : holder.visitorId ? (
+                                  <span className="text-scnt-text-muted font-mono text-[10px] ml-2">
+                                    (Guest #{holder.visitorId.slice(0, 8)})
                                   </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                                ) : null}
+                              </div>
+                              <div className="text-left sm:text-right text-scnt-text-muted text-[11px] shrink-0">
+                                <span>{holder.itemCount} items in cart</span>
+                                <span className="ml-2">· {timeAgo(holder.lastActiveAt)}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    )}
+                    ) : null}
+
+                    {/* Redemptions List */}
+                    <div>
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-scnt-text-muted mb-3">
+                        Completed Orders Using This Coupon ({selectedPromoUsage.redemptions.length})
+                      </h4>
+
+                      {selectedPromoUsage.redemptions.length === 0 ? (
+                        <div className="rounded-xl border border-scnt-border/40 p-6 text-center text-xs text-scnt-text-muted">
+                          No orders have redeemed this promo code yet.
+                        </div>
+                      ) : (
+                        <div className="overflow-x-auto rounded-xl border border-scnt-border/40">
+                          <table className="w-full text-left text-xs min-w-[520px]">
+                            <thead className="bg-scnt-bg-elevated/40 text-scnt-text-muted border-b border-scnt-border/40">
+                              <tr>
+                                <th className="py-2.5 px-3 font-medium">Customer</th>
+                                <th className="py-2.5 px-3 font-medium">Order Ref</th>
+                                <th className="py-2.5 px-3 font-medium">Discount Saved</th>
+                                <th className="py-2.5 px-3 font-medium">Order Total</th>
+                                <th className="py-2.5 px-3 font-medium">Date</th>
+                                <th className="py-2.5 px-3 font-medium">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-scnt-border/30 text-scnt-text">
+                              {selectedPromoUsage.redemptions.map((red) => (
+                                <tr key={red.orderId} className="hover:bg-scnt-bg-elevated/20">
+                                  <td className="py-2.5 px-3">
+                                    <p className="font-semibold">{red.customer.fullName}</p>
+                                    <p className="text-[11px] text-scnt-text-muted break-all">{red.customer.email}</p>
+                                    {red.customer.phone ? (
+                                      <p className="text-[10px] text-scnt-text-muted/70">{red.customer.phone}</p>
+                                    ) : null}
+                                  </td>
+                                  <td className="py-2.5 px-3 font-mono font-medium text-scnt-text">
+                                    {red.orderRef}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-emerald-400 font-mono font-semibold">
+                                    -{formatMoney(red.discountAmount)}
+                                  </td>
+                                  <td className="py-2.5 px-3 font-mono font-medium">
+                                    {formatMoney(red.orderTotal)}
+                                  </td>
+                                  <td className="py-2.5 px-3 text-scnt-text-muted whitespace-nowrap">
+                                    {new Date(red.orderDate).toLocaleDateString('en-EG', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                    })}
+                                  </td>
+                                  <td className="py-2.5 px-3">
+                                    <span className="rounded bg-scnt-bg-elevated px-2 py-0.5 text-[10px] font-semibold text-scnt-text">
+                                      {red.orderStatus}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex justify-end pt-2 border-t border-scnt-border/40">
-                    <Button variant="outline" onClick={() => setSelectedPromoUsage(null)} className="text-xs">
+                  {/* Fixed Footer */}
+                  <div className="flex-shrink-0 flex items-center justify-end border-t border-scnt-border/40 p-3 sm:p-4 bg-scnt-bg">
+                    <Button variant="outline" onClick={() => setSelectedPromoUsage(null)} className="text-xs py-1.5 px-4">
                       Close
                     </Button>
                   </div>

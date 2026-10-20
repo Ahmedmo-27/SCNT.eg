@@ -38,6 +38,16 @@ function formatEgp(val: number): string {
   }).format(val || 0)
 }
 
+function formatPath(rawPath: string): { pathname: string; search: string } {
+  if (!rawPath) return { pathname: '/', search: '' }
+  const qIdx = rawPath.indexOf('?')
+  if (qIdx === -1) return { pathname: rawPath, search: '' }
+  return {
+    pathname: rawPath.slice(0, qIdx) || '/',
+    search: rawPath.slice(qIdx),
+  }
+}
+
 const STAGE_LABELS: Record<string, { label: string; badgeClass: string }> = {
   converted: {
     label: 'Order Placed',
@@ -139,6 +149,24 @@ export function JourneysTab() {
     setSelectedSessionId(null)
     setTimelineDetails(null)
   }
+
+  // Handle Escape key and body scroll lock when modal is open
+  useEffect(() => {
+    if (selectedSessionId) {
+      const originalOverflow = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') closeTimeline()
+      }
+      window.addEventListener('keydown', onKeyDown)
+
+      return () => {
+        document.body.style.overflow = originalOverflow
+        window.removeEventListener('keydown', onKeyDown)
+      }
+    }
+  }, [selectedSessionId])
 
   return (
     <div className="space-y-6">
@@ -486,116 +514,142 @@ export function JourneysTab() {
 
       {/* Modal: Interactive Session Journey Timeline */}
       {selectedSessionId ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-scnt-border bg-scnt-bg p-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-scnt-border/40 pb-4">
-              <div>
-                <h3 className="font-serif text-xl text-scnt-text">Customer Journey Timeline</h3>
-                <p className="mt-0.5 text-xs text-scnt-text-muted">
-                  Session ID: <span className="font-mono">{selectedSessionId}</span>
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 p-3 sm:p-5 md:p-6 backdrop-blur-sm overflow-hidden"
+          onClick={closeTimeline}
+        >
+          <div
+            className="relative flex flex-col max-h-[90dvh] w-full max-w-2xl sm:max-w-3xl overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header: Fixed at top of modal */}
+            <div className="flex-shrink-0 flex items-center justify-between border-b border-scnt-border/40 p-4 sm:p-5 bg-scnt-bg z-10">
+              <div className="min-w-0 pr-3">
+                <h3 className="font-serif text-lg sm:text-xl text-scnt-text truncate">
+                  Customer Journey Timeline
+                </h3>
+                <p className="mt-0.5 text-xs text-scnt-text-muted truncate">
+                  Session ID: <span className="font-mono font-medium">{selectedSessionId}</span>
                 </p>
               </div>
               <button
                 type="button"
                 onClick={closeTimeline}
-                className="rounded-lg p-2 text-scnt-text-muted hover:bg-scnt-bg-elevated hover:text-scnt-text"
+                className="flex-shrink-0 rounded-lg p-2 text-scnt-text-muted hover:bg-scnt-bg-elevated hover:text-scnt-text transition-colors"
+                aria-label="Close timeline"
               >
                 ✕
               </button>
             </div>
 
-            {timelineLoading || !timelineDetails ? (
-              <div className="py-12 text-center text-sm text-scnt-text-muted">
-                Loading session timeline...
-              </div>
-            ) : (
-              <div className="mt-5 space-y-5">
-                {/* Session Meta Card */}
-                <div className="grid grid-cols-2 gap-3 rounded-xl border border-scnt-border/50 bg-scnt-bg-elevated/30 p-3.5 text-xs sm:grid-cols-4">
-                  <div>
-                    <span className="text-scnt-text-muted">Identity:</span>
-                    <p className="font-semibold text-scnt-text">
-                      {timelineDetails.user?.full_name || `Guest (${timelineDetails.visitorId.slice(0, 8)})`}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-scnt-text-muted">Device:</span>
-                    <p className="font-semibold text-scnt-text capitalize">
-                      {timelineDetails.device} · {timelineDetails.browser}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-scnt-text-muted">IP Address:</span>
-                    <p className="font-mono text-scnt-text">{timelineDetails.ip || 'Unknown'}</p>
-                  </div>
-                  <div>
-                    <span className="text-scnt-text-muted">Events:</span>
-                    <p className="font-semibold text-scnt-text">{timelineDetails.totalEvents} actions</p>
-                  </div>
+            {/* Body: Scrollable with brand-matching scrollbar */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 space-y-5">
+              {timelineLoading || !timelineDetails ? (
+                <div className="py-16 text-center text-sm text-scnt-text-muted animate-pulse">
+                  Loading session timeline...
                 </div>
+              ) : (
+                <>
+                  {/* Session Meta Card */}
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 rounded-xl border border-scnt-border/50 bg-scnt-bg-elevated/40 p-3 sm:p-4 text-xs">
+                    <div className="min-w-0">
+                      <span className="text-scnt-text-muted text-[11px] block">Identity:</span>
+                      <p className="font-semibold text-scnt-text truncate">
+                        {timelineDetails.user?.full_name || `Guest (${timelineDetails.visitorId.slice(0, 8)})`}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-scnt-text-muted text-[11px] block">Device:</span>
+                      <p className="font-semibold text-scnt-text capitalize truncate">
+                        {timelineDetails.device} · {timelineDetails.browser}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-scnt-text-muted text-[11px] block">IP Address:</span>
+                      <p className="font-mono text-scnt-text truncate">{timelineDetails.ip || 'Unknown'}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-scnt-text-muted text-[11px] block">Total Events:</span>
+                      <p className="font-semibold text-scnt-text">{timelineDetails.totalEvents} actions</p>
+                    </div>
+                  </div>
 
-                {/* Timeline list */}
-                <div className="relative border-l border-scnt-border/60 pl-6 space-y-6">
-                  {timelineDetails.timeline.map((step, idx) => {
-                    let dotColor = 'bg-zinc-500'
-                    if (step.action === 'order_placed' || step.stage === 'order_placed')
-                      dotColor = 'bg-emerald-400 ring-4 ring-emerald-500/20'
-                    else if (step.action === 'checkout_start' || step.stage === 'checkout_start')
-                      dotColor = 'bg-amber-400 ring-4 ring-amber-500/20'
-                    else if (step.action === 'add_to_cart' || step.stage === 'cart_view')
-                      dotColor = 'bg-sky-400 ring-4 ring-sky-500/20'
-                    else if (step.stage === 'product_view')
-                      dotColor = 'bg-purple-400 ring-4 ring-purple-500/20'
+                  {/* Timeline list */}
+                  <div className="relative border-l-2 border-scnt-border/60 pl-5 sm:pl-6 space-y-6">
+                    {timelineDetails.timeline.map((step, idx) => {
+                      let dotColor = 'bg-zinc-400 border-zinc-500'
+                      if (step.action === 'order_placed' || step.stage === 'order_placed')
+                        dotColor = 'bg-emerald-400 border-emerald-500 ring-4 ring-emerald-500/20'
+                      else if (step.action === 'checkout_start' || step.stage === 'checkout_start')
+                        dotColor = 'bg-amber-400 border-amber-500 ring-4 ring-amber-500/20'
+                      else if (step.action === 'add_to_cart' || step.stage === 'cart_view')
+                        dotColor = 'bg-sky-400 border-sky-500 ring-4 ring-sky-500/20'
+                      else if (step.stage === 'product_view')
+                        dotColor = 'bg-purple-400 border-purple-500 ring-4 ring-purple-500/20'
 
-                    return (
-                      <div key={step._id || idx} className="relative">
-                        {/* Dot */}
-                        <div
-                          className={`absolute -left-[31px] top-1.5 h-3 w-3 rounded-full ${dotColor}`}
-                        />
+                      const { pathname, search: queryString } = formatPath(step.path)
 
-                        <div className="flex flex-wrap items-baseline justify-between gap-2">
-                          <span className="text-xs font-semibold text-scnt-text">
-                            {step.actionLabel}
-                          </span>
-                          <span className="text-[11px] text-scnt-text-muted">
-                            {new Date(step.timestamp).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              second: '2-digit',
-                            })}
-                          </span>
-                        </div>
+                      return (
+                        <div key={step._id || idx} className="relative">
+                          {/* Dot */}
+                          <div
+                            className={`absolute -left-[27px] sm:-left-[31px] top-1 h-3 w-3 rounded-full border ${dotColor}`}
+                          />
 
-                        <p className="mt-0.5 text-xs text-scnt-text-muted">
-                          {step.title && step.title !== step.path ? (
-                            <span>{step.title} · </span>
-                          ) : null}
-                          <span className="font-mono text-[11px] text-scnt-text-muted/80">
-                            {step.path}
-                          </span>
-                        </p>
-
-                        {/* Metadata if present */}
-                        {step.metadata && Object.keys(step.metadata).length > 0 ? (
-                          <div className="mt-2 rounded-lg border border-scnt-border/40 bg-scnt-bg-elevated/20 p-2 text-[11px] font-mono text-scnt-text-muted">
-                            {Object.entries(step.metadata).map(([k, v]) => (
-                              <div key={k} className="flex gap-2">
-                                <span className="text-scnt-text-muted/70">{k}:</span>
-                                <span className="text-scnt-text font-medium">{String(v)}</span>
-                              </div>
-                            ))}
+                          <div className="flex flex-wrap items-baseline justify-between gap-2">
+                            <span className="text-xs font-semibold text-scnt-text">
+                              {step.actionLabel}
+                            </span>
+                            <span className="text-[11px] text-scnt-text-muted">
+                              {new Date(step.timestamp).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              })}
+                            </span>
                           </div>
-                        ) : null}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
 
-            <div className="mt-6 flex justify-end border-t border-scnt-border/40 pt-4">
-              <Button variant="outline" onClick={closeTimeline} className="text-xs">
+                          <div className="mt-0.5 text-xs text-scnt-text-muted break-words">
+                            {step.title && step.title !== step.path ? (
+                              <span className="font-medium text-scnt-text">{step.title} · </span>
+                            ) : null}
+                            <span className="font-mono text-[11px] text-scnt-text-muted/90 font-medium break-all">
+                              {pathname}
+                            </span>
+                            {queryString ? (
+                              <p className="mt-1 font-mono text-[10px] text-scnt-text-muted/70 break-all rounded bg-scnt-bg-elevated/40 px-2 py-1 border border-scnt-border/30">
+                                {queryString}
+                              </p>
+                            ) : null}
+                          </div>
+
+                          {/* Metadata if present */}
+                          {step.metadata && Object.keys(step.metadata).length > 0 ? (
+                            <div className="mt-2 rounded-lg border border-scnt-border/40 bg-scnt-bg-elevated/30 p-2 text-[11px] font-mono text-scnt-text-muted">
+                              {Object.entries(step.metadata).map(([k, v]) => (
+                                <div key={k} className="flex gap-2">
+                                  <span className="text-scnt-text-muted/70">{k}:</span>
+                                  <span className="text-scnt-text font-medium break-all">
+                                    {String(v)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer: Fixed at bottom of modal */}
+            <div className="flex-shrink-0 flex items-center justify-between border-t border-scnt-border/40 p-3 sm:p-4 bg-scnt-bg">
+              <span className="text-[11px] text-scnt-text-muted">
+                {timelineDetails ? `${timelineDetails.totalEvents} timeline events` : ''}
+              </span>
+              <Button variant="outline" onClick={closeTimeline} className="text-xs py-1.5 px-4">
                 Close
               </Button>
             </div>

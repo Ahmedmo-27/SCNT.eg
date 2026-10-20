@@ -24,6 +24,44 @@
 }
 
 @layer base {
+  /* Brand-themed sleek scrollbars across all modern browsers */
+  *, *::before, *::after {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(42, 38, 34, 0.22) transparent;
+  }
+
+  /* WebKit & Chromium browsers (Chrome, Edge, Safari, Opera) */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(42, 38, 34, 0.22);
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(42, 38, 34, 0.42);
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background: rgba(42, 38, 34, 0.60);
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   html {
     @apply antialiased overflow-x-hidden;
     color-scheme: light;
@@ -124,5 +162,14 @@
 
   .animate-scnt-mega {
     animation: scnt-mega-in 0.55s ease forwards;
+  }
+
+  /* Utility to hide scrollbars while preserving scroll functionality */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

@@ -100,6 +100,20 @@ export function ReviewPage() {
     }
   }
 
+  useEffect(() => {
+    if (!showThankYou) return
+    const orig = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowThankYou(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = orig
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [showThankYou])
+
   const cardShell =
     'rounded-2xl bg-scnt-bg-elevated/65 p-6 ring-1 ring-scnt-border/90 backdrop-blur-md'
 
@@ -364,26 +378,39 @@ export function ReviewPage() {
 
         {/* Thank You Modal */}
         {showThankYou && (
-          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-            <div className={`${cardShell} max-w-md mx-auto text-center`}>
-              <h2 className="text-3xl font-bold mb-4 text-scnt-accent">
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowThankYou(false)
+            }}
+          >
+            <div className="relative flex flex-col max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-scnt-border/80 bg-scnt-bg p-6 sm:p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200">
+              <button
+                type="button"
+                onClick={() => setShowThankYou(false)}
+                className="absolute right-4 top-4 rounded-lg p-1.5 text-scnt-text-muted hover:bg-scnt-bg-elevated hover:text-scnt-text transition-colors"
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+              <h2 className="text-2xl sm:text-3xl font-serif font-bold mb-3 text-scnt-text">
                 {t('review.thankYouTitle')}
               </h2>
-              <p className="text-scnt-text/80 mb-6">
+              <p className="text-scnt-text/80 text-sm mb-5 leading-relaxed">
                 {t('review.thankYouMessage')}
               </p>
-              <div className="bg-scnt-accent/10 border border-scnt-accent/30 rounded-xl p-6 mb-6">
-                <div className="text-sm text-scnt-text/60 mb-2">
+              <div className="bg-scnt-bg-elevated border border-scnt-border/60 rounded-xl p-5 mb-5 shadow-inner">
+                <div className="text-xs uppercase tracking-wider text-scnt-text-muted mb-1.5 font-medium">
                   {t('review.promoCodeLabel')}
                 </div>
-                <div className="text-3xl font-bold text-scnt-accent font-mono mb-2">
+                <div className="text-2xl sm:text-3xl font-bold text-scnt-text font-mono tracking-widest mb-1.5">
                   REVIEW20
                 </div>
-                <div className="text-sm text-scnt-text/70">
+                <div className="text-xs text-scnt-text-muted">
                   {t('review.promoCodeDesc')}
                 </div>
               </div>
-              <p className="text-sm text-scnt-text/60 mb-6">
+              <p className="text-xs text-scnt-text-muted mb-5">
                 Redirecting to shop in a moment...
               </p>
               <Button
@@ -391,7 +418,7 @@ export function ReviewPage() {
                   setShowThankYou(false)
                   window.location.href = '/shop'
                 }}
-                className="w-full"
+                className="w-full text-sm py-2.5"
               >
                 {t('review.closeModal')}
               </Button>
