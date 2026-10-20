@@ -1,4 +1,4 @@
-import { apiGetDataAuthed, apiPatchDataAuthed, apiPostData } from './api'
+import { apiGetDataAuthed, apiPatchDataAuthed, apiPostData, apiPostVisitorData } from './api'
 
 export type AuthUser = {
   id: string
@@ -71,11 +71,11 @@ export function verifyEmailWithToken(token: string): Promise<AuthUser> {
 }
 
 export function registerAccount(payload: RegisterPayload): Promise<AuthSuccess> {
-  return apiPostData<AuthSuccess>('/auth/register', payload)
+  return apiPostVisitorData<AuthSuccess>('/auth/register', payload)
 }
 
 export function login(payload: LoginPayload): Promise<AuthSuccess> {
-  return apiPostData<AuthSuccess>('/auth/login', payload)
+  return apiPostVisitorData<AuthSuccess>('/auth/login', payload)
 }
 
 export function fetchProfile(): Promise<AuthUser> {

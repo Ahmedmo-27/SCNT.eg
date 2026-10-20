@@ -16,7 +16,80 @@ const buildOwnerQuery = (owner = {}) => {
   return null;
 };
 
+/**
+ * Merge guest cart into user cart upon login, registration, or authenticated cart access.
+ */
+const mergeGuestCartIntoUserCart = async (visitorId, userId) => {
+  if (!visitorId || !userId) return null;
+
+  const cleanVisitorId = String(visitorId).trim();
+  const guestCart = await Cart.findOne({
+    visitorId: cleanVisitorId,
+    $or: [{ user: null }, { user: { $exists: false } }],
+  });
+  if (!guestCart) return null;
+
+  // If the guest cart had no items, remove it so visitorId unique index is freed
+  if (!guestCart.items || guestCart.items.length === 0) {
+    await Cart.deleteOne({ _id: guestCart._id });
+    return null;
+  }
+
+  let userCart = await Cart.findOne({ user: userId });
+  if (!userCart) {
+    // Directly convert guest cart to user cart and unset visitorId
+    await Cart.updateOne(
+      { _id: guestCart._id },
+      {
+        $set: { user: userId, lastActiveAt: new Date() },
+        $unset: { visitorId: 1 },
+      }
+    );
+    return Cart.findById(guestCart._id);
+  }
+
+  const userItems = [...(userCart.items || [])];
+
+  for (const guestItem of guestCart.items) {
+    const guestSize = guestItem.size || "100ml";
+    const existingIndex = userItems.findIndex(
+      (i) =>
+        i.product.toString() === guestItem.product.toString() &&
+        (i.size || "100ml") === guestSize
+    );
+    if (existingIndex >= 0) {
+      userItems[existingIndex].quantity += guestItem.quantity;
+    } else {
+      userItems.push({
+        product: guestItem.product,
+        size: guestSize,
+        quantity: guestItem.quantity,
+      });
+    }
+  }
+
+  userCart.items = userItems;
+  if (!userCart.promoCode && guestCart.promoCode) {
+    userCart.promoCode = guestCart.promoCode;
+  }
+  userCart.lastActiveAt = new Date();
+  await userCart.save();
+
+  // Clear or remove guest cart to avoid double-counting and release visitorId
+  await Cart.deleteOne({ _id: guestCart._id });
+
+  return userCart;
+};
+
 const ensureCartDocument = async (owner = {}) => {
+  if (owner.userId && owner.visitorId) {
+    try {
+      await mergeGuestCartIntoUserCart(owner.visitorId, owner.userId);
+    } catch {
+      // non-blocking
+    }
+  }
+
   const query = buildOwnerQuery(owner);
   if (!query) return null;
 
@@ -24,8 +97,12 @@ const ensureCartDocument = async (owner = {}) => {
     items: [],
     promoCode: "",
   };
-  if (owner.userId) setOnInsert.user = owner.userId;
-  if (owner.visitorId) setOnInsert.visitorId = String(owner.visitorId).trim();
+  if (owner.userId) {
+    setOnInsert.user = owner.userId;
+    // Do NOT set visitorId on user cart to avoid unique index conflict
+  } else if (owner.visitorId) {
+    setOnInsert.visitorId = String(owner.visitorId).trim();
+  }
   if (owner.sessionId) setOnInsert.sessionId = String(owner.sessionId).trim();
 
   return Cart.findOneAndUpdate(
@@ -53,6 +130,14 @@ const findByOwner = async (owner = {}) => {
 };
 
 const findRawByOwner = async (owner = {}) => {
+  if (owner?.userId && owner?.visitorId) {
+    try {
+      await mergeGuestCartIntoUserCart(owner.visitorId, owner.userId);
+    } catch {
+      // non-blocking
+    }
+  }
+
   const query = buildOwnerQuery(owner);
   if (!query) return null;
   const cart = await Cart.findOne(query);
@@ -69,6 +154,14 @@ const findRawByOwner = async (owner = {}) => {
 };
 
 const upsertByOwner = async (owner = {}, items, promoCode) => {
+  if (owner?.userId && owner?.visitorId) {
+    try {
+      await mergeGuestCartIntoUserCart(owner.visitorId, owner.userId);
+    } catch {
+      // non-blocking
+    }
+  }
+
   const query = buildOwnerQuery(owner);
   if (!query) return null;
 
@@ -84,8 +177,12 @@ const upsertByOwner = async (owner = {}, items, promoCode) => {
   }
 
   const setOnInsert = {};
-  if (owner.userId) setOnInsert.user = owner.userId;
-  if (owner.visitorId) setOnInsert.visitorId = String(owner.visitorId).trim();
+  if (owner.userId) {
+    setOnInsert.user = owner.userId;
+    // Do NOT set visitorId on user cart to avoid unique index conflict
+  } else if (owner.visitorId) {
+    setOnInsert.visitorId = String(owner.visitorId).trim();
+  }
 
   const updated = await Cart.findOneAndUpdate(
     query,
@@ -113,59 +210,6 @@ const findByUserId = async (userId) => findByOwner({ userId });
 const findRawByUserId = async (userId) => findRawByOwner({ userId });
 const upsertByUserId = async (userId, items, promoCode) =>
   upsertByOwner({ userId }, items, promoCode);
-
-/**
- * Merge guest cart into user cart upon login or registration.
- */
-const mergeGuestCartIntoUserCart = async (visitorId, userId) => {
-  if (!visitorId || !userId) return null;
-
-  const guestCart = await Cart.findOne({
-    visitorId: String(visitorId).trim(),
-    $or: [{ user: null }, { user: { $exists: false } }],
-  });
-  if (!guestCart || !guestCart.items || guestCart.items.length === 0) {
-    return null;
-  }
-
-  const userCart =
-    (await Cart.findOne({ user: userId })) ||
-    (await Cart.create({
-      user: userId,
-      items: [],
-      promoCode: "",
-      lastActiveAt: new Date(),
-    }));
-
-  const userItems = [...(userCart.items || [])];
-
-  for (const guestItem of guestCart.items) {
-    const existingIndex = userItems.findIndex(
-      (i) => i.product.toString() === guestItem.product.toString()
-    );
-    if (existingIndex >= 0) {
-      userItems[existingIndex].quantity += guestItem.quantity;
-    } else {
-      userItems.push({
-        product: guestItem.product,
-        size: guestItem.size || "100ml",
-        quantity: guestItem.quantity,
-      });
-    }
-  }
-
-  userCart.items = userItems;
-  if (!userCart.promoCode && guestCart.promoCode) {
-    userCart.promoCode = guestCart.promoCode;
-  }
-  userCart.lastActiveAt = new Date();
-  await userCart.save();
-
-  // Clear or remove guest cart to avoid double-counting
-  await Cart.deleteOne({ _id: guestCart._id });
-
-  return userCart;
-};
 
 /**
  * Admin: Query all carts with products in them.

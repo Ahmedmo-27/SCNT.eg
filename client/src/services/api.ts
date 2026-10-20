@@ -116,6 +116,35 @@ export async function apiPostDataAuthed<T>(path: string, body: unknown): Promise
 }
 
 /**
+ * POST with guest visitor headers (x-visitor-id, x-session-id).
+ * Used for authentication (register, login) to seamlessly link & merge guest carts into user accounts.
+ */
+export async function apiPostVisitorData<T>(path: string, body: unknown): Promise<T> {
+  const visitorId = getOrCreateVisitorId()
+  const sessionId = getOrCreateSessionId()
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'x-visitor-id': visitorId,
+    'x-session-id': sessionId,
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+  })
+  const parsed = await parseBody(res)
+  if (!res.ok) throw new Error(errorMessageFromBody(parsed, res.statusText))
+  const envelope = parsed as ApiEnvelope<T>
+  if (!envelope || typeof envelope !== 'object' || !('success' in envelope)) {
+    throw new Error('Invalid API response')
+  }
+  if (!envelope.success) throw new Error(envelope.message)
+  return envelope.data
+}
+
+/**
  * GET for Cart endpoints: supports both authenticated user and anonymous guest visitorId.
  */
 export async function apiGetCartData<T>(path: string): Promise<T> {
