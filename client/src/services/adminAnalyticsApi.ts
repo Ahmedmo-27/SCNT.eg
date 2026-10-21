@@ -1,4 +1,4 @@
-import { apiDeleteDataAuthed, apiGetDataAuthed, API_BASE } from './api'
+import { apiDeleteDataAuthed, apiGetDataAuthed, apiPostDataAuthed, API_BASE } from './api'
 import { getStoredAuthToken } from '../lib/authStorage'
 
 
@@ -239,10 +239,19 @@ export type AdminCartItem = {
   _id: string
   isGuest: boolean
   user: {
-    _id: string
+    _id?: string | null
     fullName: string
     email: string
     phone?: string
+    city?: string
+    isRegistered?: boolean
+    isCapturedLead?: boolean
+  } | null
+  contact?: {
+    fullName?: string
+    phone?: string
+    email?: string
+    governorate?: string
     city?: string
   } | null
   visitorId?: string
@@ -257,6 +266,8 @@ export type AdminCartItem = {
   itemCount: number
   subtotal: number
   promoCode: string
+  recoverySentAt?: string | null
+  recoveryCount?: number
   lastActiveAt: string
   isAbandoned: boolean
 }
@@ -552,6 +563,16 @@ export function fetchActiveCarts(params: ActiveCartsParams = {}): Promise<Active
   if (params.limit) query.set('limit', String(params.limit))
 
   return apiGetDataAuthed<ActiveCartsResponse>(`/admin/analytics/carts?${query.toString()}`)
+}
+
+/**
+ * Admin: Trigger luxury abandoned cart recovery email to customer
+ */
+export function sendCartRecoveryEmail(cartId: string): Promise<{ success: boolean; email: string }> {
+  return apiPostDataAuthed<{ success: boolean; email: string }>(
+    `/admin/analytics/carts/${encodeURIComponent(cartId)}/recovery-email`,
+    {}
+  )
 }
 
 /**

@@ -1,4 +1,4 @@
-import { apiGetDataAuthed, apiPostDataAuthed } from './api'
+import { apiGetDataAuthed, apiPostOrderData } from './api'
 
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PAID' | 'SHIPPED'
 
@@ -45,7 +45,7 @@ export function fetchMyOrders(): Promise<UserOrder[]> {
   return apiGetDataAuthed<UserOrder[]>('/orders/my-orders')
 }
 
-/** Creates an order from the current server cart (cart cleared after success). */
-export function createOrder(address: CreateOrderAddress): Promise<UserOrder> {
-  return apiPostDataAuthed<UserOrder>('/orders', { address })
+/** Creates an order from the current server cart (supports both authenticated users and guests). */
+export function createOrder(address: CreateOrderAddress, customerEmail?: string): Promise<UserOrder> {
+  return apiPostOrderData<UserOrder>('/orders', { address, customerEmail })
 }

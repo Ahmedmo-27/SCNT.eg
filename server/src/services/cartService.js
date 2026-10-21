@@ -352,12 +352,107 @@ const removePromoCode = async (ownerArg) => {
   return getCart(owner);
 };
 
+const CartModel = require("../models/Cart");
+const emailService = require("./emailService");
+const env = require("../config/env");
+
 const clearCart = async (ownerArg) => {
   const owner = normalizeOwner(ownerArg);
   await cartRepository.upsertByOwner(owner, [], "");
 
   const cacheKey = getCacheKey(owner);
   if (cacheKey) await deleteCache(cacheKey);
+};
+
+const updateContact = async (ownerArg, contactData) => {
+  const owner = normalizeOwner(ownerArg);
+  const cart = await cartRepository.findRawByOwner(owner);
+  if (!cart) return null;
+
+  const update = {};
+  if (contactData.fullName !== undefined) update["contact.fullName"] = String(contactData.fullName).trim();
+  if (contactData.phone !== undefined) update["contact.phone"] = String(contactData.phone).trim();
+  if (contactData.email !== undefined) update["contact.email"] = String(contactData.email).trim().toLowerCase();
+  if (contactData.governorate !== undefined) update["contact.governorate"] = String(contactData.governorate).trim();
+  if (contactData.city !== undefined) update["contact.city"] = String(contactData.city).trim();
+
+  await CartModel.updateOne({ _id: cart._id }, { $set: update });
+  return getCart(owner);
+};
+
+const restoreCart = async (ownerArg, sourceCartId) => {
+  const owner = normalizeOwner(ownerArg);
+  if (!mongoose.isValidObjectId(sourceCartId)) {
+    throw new ApiError(400, "Invalid cart id");
+  }
+
+  const sourceCart = await CartModel.findById(sourceCartId).lean();
+  if (!sourceCart || !Array.isArray(sourceCart.items) || sourceCart.items.length === 0) {
+    throw new ApiError(404, "Source cart not found or has no items");
+  }
+
+  await cartRepository.upsertByOwner(owner, sourceCart.items, sourceCart.promoCode || "");
+  const cacheKey = getCacheKey(owner);
+  if (cacheKey) await deleteCache(cacheKey);
+
+  return getCart(owner);
+};
+
+const sendCartRecoveryEmail = async (cartId) => {
+  if (!mongoose.isValidObjectId(cartId)) {
+    throw new ApiError(400, "Invalid cart id");
+  }
+
+  const cart = await CartModel.findById(cartId)
+    .populate("user", "email full_name")
+    .populate("items.product", "name price images")
+    .lean();
+
+  if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) {
+    throw new ApiError(404, "Cart not found or empty");
+  }
+
+  const recipientEmail = cart.user?.email || cart.contact?.email;
+  if (!recipientEmail) {
+    throw new ApiError(400, "No email address found for this cart");
+  }
+
+  const customerName = cart.user?.full_name || cart.contact?.fullName || "there";
+  const items = (cart.items || []).map((i) => {
+    const prod = i.product || {};
+    const price = getProductPriceForSize(prod, i.size);
+    const qty = Number(i.quantity || 1);
+    return {
+      name: `${prod.name || "SCNT Fragrance"} (${i.size || "100ml"})`,
+      quantity: qty,
+      unitPrice: price,
+      lineTotal: price * qty,
+    };
+  });
+
+  const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
+  const total = subtotal + SHIPPING_FEE_EGP;
+
+  const clientBase = (env.clientBaseUrl || "https://scnt.eg").replace(/\/+$/, "");
+  const recoveryUrl = `${clientBase}/cart?restore=${cart._id}`;
+
+  const emailResult = await emailService.sendAbandonedCartRecoveryEmail({
+    to: recipientEmail,
+    customerName,
+    items,
+    total,
+    recoveryUrl,
+  });
+
+  await CartModel.updateOne(
+    { _id: cart._id },
+    {
+      $set: { recoverySentAt: new Date() },
+      $inc: { recoveryCount: 1 },
+    }
+  );
+
+  return { success: true, email: recipientEmail, emailResult };
 };
 
 module.exports = {
@@ -369,4 +464,7 @@ module.exports = {
   applyPromoCode,
   removePromoCode,
   clearCart,
+  updateContact,
+  restoreCart,
+  sendCartRecoveryEmail,
 };

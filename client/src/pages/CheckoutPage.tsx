@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button'
 import { EGYPT_GOVERNORATES, getCitiesForGovernorate } from '../data/egyptLocations'
 import { getStoredAuthToken } from '../lib/authStorage'
 import { fetchProfile, type AuthUser } from '../services/authApi'
-import { fetchServerCart, replaceServerCart } from '../services/cartApi'
+import { fetchServerCart, replaceServerCart, updateCartContact } from '../services/cartApi'
 import { createOrder } from '../services/ordersApi'
 import { useCartStore } from '../store/cartStore'
 import { useI18n } from '../i18n/I18nContext'
@@ -15,6 +15,7 @@ import { formatEgp } from '../lib/formatEgp'
 type CheckoutFormState = {
   fullName: string
   phone: string
+  email: string
   postalCode: string
   governorate: string
   city: string
@@ -37,6 +38,7 @@ function formFromProfile(p: AuthUser): CheckoutFormState {
   return {
     fullName: (p.address?.fullName?.trim() || p.full_name || '').trim(),
     phone: p.address?.phone?.trim() ?? '',
+    email: (p.email || '').trim(),
     postalCode: p.address?.postalCode?.trim() ?? '',
     governorate,
     city,
@@ -49,6 +51,7 @@ function isInitialCheckoutForm(f: CheckoutFormState): boolean {
   return (
     f.fullName === '' &&
     f.phone === '' &&
+    f.email === '' &&
     f.postalCode === '' &&
     f.governorate === '' &&
     f.city === '' &&
@@ -60,6 +63,7 @@ function isInitialCheckoutForm(f: CheckoutFormState): boolean {
 const initialForm: CheckoutFormState = {
   fullName: '',
   phone: '',
+  email: '',
   postalCode: '',
   governorate: '',
   city: '',
@@ -92,7 +96,7 @@ export function CheckoutPage() {
   const authed = Boolean(getStoredAuthToken())
 
   useEffect(() => {
-    if (!authed || placedOrder) return
+    if (placedOrder) return
 
     let cancelled = false
     ;(async () => {
@@ -120,7 +124,7 @@ export function CheckoutPage() {
     return () => {
       cancelled = true
     }
-  }, [authed, hydrateFromServer, placedOrder])
+  }, [hydrateFromServer, placedOrder])
 
   useEffect(() => {
     if (!authed || items.length === 0 || placedOrder) return
@@ -132,7 +136,7 @@ export function CheckoutPage() {
         if (cancelled) return
         setForm((prev) => (isInitialCheckoutForm(prev) ? formFromProfile(profile) : prev))
       } catch {
-        /* keep empty form; submit still validates token */
+        /* keep empty form; submit handles guest */
       }
     })()
 
@@ -140,6 +144,31 @@ export function CheckoutPage() {
       cancelled = true
     }
   }, [authed, items.length, placedOrder])
+
+  // Early contact capture: Debounce sync to server cart so open/abandoned carts store lead info
+  useEffect(() => {
+    if (placedOrder) return
+    const hasAnyContact =
+      form.fullName.trim() ||
+      form.phone.trim() ||
+      form.email.trim() ||
+      form.governorate.trim() ||
+      form.city.trim()
+
+    if (!hasAnyContact) return
+
+    const timer = setTimeout(() => {
+      void updateCartContact({
+        fullName: form.fullName.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        governorate: form.governorate.trim(),
+        city: form.city.trim(),
+      }).catch(() => {})
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [form.fullName, form.phone, form.email, form.governorate, form.city, placedOrder])
 
   const cityOptions = useMemo(
     () => getCitiesForGovernorate(form.governorate),
@@ -185,11 +214,6 @@ export function CheckoutPage() {
       return
     }
 
-    if (!getStoredAuthToken()) {
-      setError(t('checkout.errLogin'))
-      return
-    }
-
     if (
       !form.fullName.trim() ||
       !form.phone.trim() ||
@@ -214,14 +238,17 @@ export function CheckoutPage() {
         ? `${form.address.trim()}\n\nNote: ${form.notes.trim()}`
         : form.address.trim()
 
-      const order = await createOrder({
-        fullName: form.fullName.trim(),
-        phone: form.phone.trim(),
-        city: form.city.trim(),
-        addressLine1,
-        addressLine2: form.governorate.trim(),
-        postalCode: form.postalCode.trim(),
-      })
+      const order = await createOrder(
+        {
+          fullName: form.fullName.trim(),
+          phone: form.phone.trim(),
+          city: form.city.trim(),
+          addressLine1,
+          addressLine2: form.governorate.trim(),
+          postalCode: form.postalCode.trim(),
+        },
+        form.email.trim() || undefined
+      )
 
       clear()
       setPlacedOrder({
@@ -255,12 +282,32 @@ export function CheckoutPage() {
               <span className="text-scnt-text-muted"> {t('checkout.incShip')}</span>
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button to="/profile">{t('checkout.viewOrders')}</Button>
+              {authed ? (
+                <Button to="/profile">{t('checkout.viewOrders')}</Button>
+              ) : null}
               <Button to="/shop">{t('checkout.continue')}</Button>
               <Button to="/" variant="ghost">
                 {t('checkout.backHome')}
               </Button>
             </div>
+
+            {!authed ? (
+              <div className="mt-8 border-t border-scnt-border/60 pt-6">
+                <p className="text-sm font-medium text-scnt-text">
+                  {locale === 'ar' ? 'هل تود حفظ بياناتك وتتبع طلباتك بسهولة؟' : 'Want to save your details and track your orders?'}
+                </p>
+                <p className="mt-1 text-xs text-scnt-text-muted">
+                  {locale === 'ar'
+                    ? 'أنشئ حساباً الآن لحفظ عنوان التوصيل وتسريع عملية الشراء القادمة.'
+                    : 'Create an account to save your delivery address and enjoy faster checkouts.'}
+                </p>
+                <div className="mt-4">
+                  <Button to="/register" variant="outline" className="text-xs">
+                    {locale === 'ar' ? 'إنشاء حساب جديد' : 'Create Account'}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : items.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-scnt-border bg-scnt-bg-elevated/50 p-8">
@@ -272,28 +319,29 @@ export function CheckoutPage() {
               </Button>
             </div>
           </div>
-        ) : !authed ? (
-          <div className="mt-10 rounded-2xl border border-scnt-border bg-scnt-bg-elevated/50 p-8 sm:p-10">
-            <h2 className="font-serif text-2xl text-scnt-text">{t('checkout.needAccount')}</h2>
-            <p className="mt-3 max-w-xl text-sm text-scnt-text-muted">{t('checkout.needAccountSub')}</p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button to="/login" linkState={{ from: '/checkout' }}>
-                {t('checkout.login')}
-              </Button>
-              <Button to="/register" variant="outline">
-                {t('checkout.create')}
-              </Button>
-              <Button to="/cart" variant="ghost">
-                {t('checkout.backCart')}
-              </Button>
-            </div>
-          </div>
         ) : (
           <div className="mt-10 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
             <form
               onSubmit={onSubmit}
               className="rounded-2xl border border-scnt-border bg-scnt-bg-elevated/50 p-6 sm:p-8"
             >
+              {!authed ? (
+                <div className="mb-6 rounded-xl border border-scnt-border/70 bg-scnt-bg/60 p-4 text-xs text-scnt-text-muted flex flex-wrap items-center justify-between gap-3">
+                  <span>
+                    {locale === 'ar'
+                      ? 'هل تملك حساباً في SCNT؟ سجّل الدخول لإكمال الطلب بعناوينك المحفوظة.'
+                      : 'Have an account with SCNT? Sign in to use saved addresses, or continue as guest.'}
+                  </span>
+                  <Link
+                    to="/login"
+                    state={{ from: '/checkout' }}
+                    className="font-medium text-scnt-text underline underline-offset-4 hover:opacity-80"
+                  >
+                    {t('checkout.login')}
+                  </Link>
+                </div>
+              ) : null}
+
               <h2 className="font-serif text-2xl text-scnt-text">{t('checkout.delivery')}</h2>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -325,6 +373,21 @@ export function CheckoutPage() {
                   />
                 </label>
                 <label className="space-y-2">
+                  <span className="text-sm text-scnt-text">
+                    {locale === 'ar' ? 'البريد الإلكتروني (اختياري)' : 'Email address (optional)'}
+                  </span>
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, email: e.target.value }))
+                    }
+                    autoComplete="email"
+                    className="w-full rounded-xl border border-scnt-border bg-scnt-bg px-4 py-3 text-sm text-scnt-text outline-none ring-0 transition-colors placeholder:text-scnt-text-muted/65 focus:border-scnt-text/30"
+                    placeholder="name@example.com"
+                  />
+                </label>
+                <label className="space-y-2 sm:col-span-2">
                   <span className="text-sm text-scnt-text">{t('checkout.postal')}</span>
                   <input
                     type="text"

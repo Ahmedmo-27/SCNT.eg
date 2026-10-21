@@ -9,6 +9,17 @@ const cartItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const guestContactSchema = new mongoose.Schema(
+  {
+    fullName: { type: String, default: "", trim: true },
+    phone: { type: String, default: "", trim: true },
+    email: { type: String, default: "", trim: true, lowercase: true },
+    governorate: { type: String, default: "", trim: true },
+    city: { type: String, default: "", trim: true },
+  },
+  { _id: false }
+);
+
 const cartSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: undefined },
@@ -16,6 +27,9 @@ const cartSchema = new mongoose.Schema(
     sessionId: { type: String, default: undefined, trim: true },
     items: { type: [cartItemSchema], default: [] },
     promoCode: { type: String, default: "", uppercase: true, trim: true },
+    contact: { type: guestContactSchema, default: () => ({}) },
+    recoverySentAt: { type: Date, default: null },
+    recoveryCount: { type: Number, default: 0 },
     lastActiveAt: { type: Date, default: Date.now },
   },
   { timestamps: true }

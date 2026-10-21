@@ -201,6 +201,13 @@ export async function apiPostCartData<T>(path: string, body: unknown): Promise<T
   return envelope.data
 }
 
+/**
+ * POST for Order endpoints: supports both authenticated user and anonymous guest visitorId.
+ */
+export async function apiPostOrderData<T>(path: string, body: unknown): Promise<T> {
+  return apiPostCartData<T>(path, body)
+}
+
 /** PATCH with Bearer token; clears stored token on 401. */
 export async function apiPatchDataAuthed<T>(path: string, body: unknown): Promise<T> {
   const token = getStoredAuthToken()

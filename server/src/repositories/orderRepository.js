@@ -15,7 +15,9 @@ const ensureUserOrdersLinked = async (user) => {
 
 const createOrder = async (payload) => {
   const order = await Order.create(payload);
-  await User.findByIdAndUpdate(payload.user, { $addToSet: { orders: order._id } });
+  if (payload.user) {
+    await User.findByIdAndUpdate(payload.user, { $addToSet: { orders: order._id } });
+  }
   return order;
 };
 

@@ -408,10 +408,97 @@ const sendOrderConfirmationEmail = async ({
   return sendEmail({ to, subject: `SCNT.eg order confirmation ${safeOrderNumber}`, text, html });
 };
 
+const sendAbandonedCartRecoveryEmail = async ({
+  to,
+  customerName,
+  items,
+  total,
+  recoveryUrl,
+}) => {
+  const safeCustomerName = String(customerName || "there").trim() || "there";
+  const itemRows = Array.isArray(items)
+    ? items.map((item) => ({
+        name: item.name,
+        quantity: Number(item.quantity || 1),
+        unitPrice: item.unitPrice,
+        lineTotal: Number(item.lineTotal || (item.unitPrice ? item.unitPrice * item.quantity : 0)),
+      }))
+    : [];
+
+  const safeTotal = Number(total || 0);
+  const safeRecoveryUrl = String(recoveryUrl || "").trim() || (env.clientBaseUrl ? `${env.clientBaseUrl}/cart` : "https://scnt.eg/cart");
+
+  const text = [
+    `Hi ${safeCustomerName},`,
+    "",
+    "We noticed you left something exceptional in your cart at SCNT.eg.",
+    "Your curated selection is reserved for a short time so you won't miss your preferred fragrance.",
+    "",
+    "Items in your cart:",
+    ...itemRows.map((item) => `- ${item.name} x${item.quantity} (${formatCurrency(item.lineTotal)})`),
+    "",
+    `Estimated Total: ${formatCurrency(safeTotal)}`,
+    "",
+    `Complete your order here: ${safeRecoveryUrl}`,
+    "",
+    "Not just a scent. An identity.",
+    "SCNT.eg",
+  ].join("\n");
+
+  const bodyHtml = `
+    <p style="margin:0 0 14px 0;font-size:15px;line-height:1.7;color:${BRAND.ink};">Hi ${escapeHtml(
+      safeCustomerName
+    )},</p>
+    <p style="margin:0 0 14px 0;font-size:15px;line-height:1.7;color:${BRAND.ink};">We noticed you left your selection behind in your SCNT.eg bag.</p>
+    <p style="margin:0 0 18px 0;font-size:15px;line-height:1.7;color:${BRAND.muted};">Each SCNT.eg fragrance is composed in limited artisanal batches. We’ve saved your bag so you can easily resume whenever you're ready.</p>
+    <div style="margin:0 0 18px 0;">
+      <p style="margin:0 0 10px 0;font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:${BRAND.muted};">Items In Your Bag</p>
+      ${buildOrderItemsHtml(itemRows)}
+    </div>
+    <div style="margin:0 0 20px 0;padding:14px 16px;border:1px solid ${BRAND.border};border-radius:12px;background:${BRAND.bg};">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+          <td style="font-size:14px;color:${BRAND.muted};">Cart Total</td>
+          <td style="font-size:16px;font-weight:700;color:${BRAND.ink};text-align:right;">${escapeHtml(
+            formatCurrency(safeTotal)
+          )}</td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  const ctaHtml = `
+    <p style="margin:24px 0 0 0;text-align:center;">
+      <a href="${safeRecoveryUrl}" style="display:inline-block;background:${BRAND.accent};color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:10px;font-size:14px;font-weight:700;letter-spacing:0.04em;">
+        Complete Your Order
+      </a>
+    </p>
+  `;
+
+  const footerNote = "Need assistance or have questions about notes? Simply reply to this email.";
+
+  const html = wrapEmailLayout({
+    eyebrow: "Saved selection",
+    title: "Your fragrance is waiting for you",
+    intro: "Your selection remains in your cart. Return anytime to complete delivery.",
+    bodyHtml,
+    ctaHtml,
+    footerNote,
+  });
+
+  return sendEmail({
+    to,
+    subject: `Complete your SCNT.eg selection - Your cart is waiting`,
+    text,
+    html,
+  });
+};
+
 module.exports = {
   isMailerConfigured,
   sendEmail,
   sendVerificationEmail,
   sendPromotionalEmail,
   sendOrderConfirmationEmail,
+  sendAbandonedCartRecoveryEmail,
 };

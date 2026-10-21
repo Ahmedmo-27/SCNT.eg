@@ -70,15 +70,43 @@ const calculateDiscount = (promo, subtotal) => {
   return Math.min(Math.max(0, discount), subtotal);
 };
 
-const createOrderFromCart = async (userId, address) => {
+const normalizeOrderOwner = (ownerArg) => {
+  if (typeof ownerArg === "string") {
+    return { userId: ownerArg, visitorId: null, sessionId: null };
+  }
+  if (ownerArg && typeof ownerArg === "object") {
+    return {
+      userId: ownerArg.userId || null,
+      visitorId: ownerArg.visitorId ? String(ownerArg.visitorId).trim() : null,
+      sessionId: ownerArg.sessionId ? String(ownerArg.sessionId).trim() : null,
+    };
+  }
+  throw new ApiError(400, "Missing user or visitor identifier for order");
+};
+
+const createOrderFromCart = async (ownerArg, address, customerEmail = "") => {
   validateAddress(address);
 
-  const user = await userRepository.findById(userId).select("email full_name");
-  if (!user) {
-    throw new ApiError(404, "User not found");
+  const owner = normalizeOrderOwner(ownerArg);
+  let user = null;
+  let customerName = address.fullName;
+  let recipientEmail = String(customerEmail || address.email || "").trim();
+
+  let cart = null;
+  if (owner.userId) {
+    user = await userRepository.findById(owner.userId).select("email full_name");
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+    customerName = user.full_name || address.fullName;
+    recipientEmail = user.email || recipientEmail;
+    cart = await cartRepository.findRawByUserId(owner.userId);
+  } else if (owner.visitorId) {
+    cart = await cartRepository.findRawByOwner({ visitorId: owner.visitorId });
+  } else {
+    throw new ApiError(400, "Authentication or visitor session required to place order");
   }
 
-  const cart = await cartRepository.findRawByUserId(userId);
   if (!cart || cart.items.length === 0) {
     throw new ApiError(400, "Cart is empty");
   }
@@ -131,8 +159,12 @@ const createOrderFromCart = async (userId, address) => {
   const discount = calculateDiscount(promo, subtotal);
   const total = Math.max(0, subtotal + SHIPPING_FEE_EGP - discount);
 
-  const order = await orderRepository.createOrder({
-    user: userId,
+  const orderPayload = {
+    user: owner.userId || null,
+    isGuest: !owner.userId,
+    visitorId: owner.visitorId || null,
+    customerEmail: recipientEmail,
+    customerPhone: address.phone,
     items: orderItems,
     subtotal,
     shipping: SHIPPING_FEE_EGP,
@@ -140,17 +172,25 @@ const createOrderFromCart = async (userId, address) => {
     promoCode: promo?.code || "",
     total,
     address,
-  });
-  await cartRepository.upsertByUserId(userId, [], "");
-  await deleteCache(`cart:user:${userId}`);
+  };
+
+  const order = await orderRepository.createOrder(orderPayload);
+
+  if (owner.userId) {
+    await cartRepository.upsertByUserId(owner.userId, [], "");
+    await deleteCache(`cart:user:${owner.userId}`);
+  } else if (owner.visitorId) {
+    await cartRepository.upsertByOwner({ visitorId: owner.visitorId }, [], "");
+    await deleteCache(`cart:guest:${owner.visitorId}`);
+  }
 
   // Track order completion milestone for buying funnel analytics
   Visit.create({
-    visitorId: cart.visitorId || `user_${userId}`,
-    sessionId: cart.sessionId || `session_${order._id}`,
+    visitorId: owner.visitorId || cart.visitorId || (owner.userId ? `user_${owner.userId}` : "guest"),
+    sessionId: owner.sessionId || cart.sessionId || `session_${order._id}`,
     path: `/order-confirmation/${order._id}`,
     title: "Order Placed",
-    userId,
+    userId: owner.userId || null,
     stage: "order_placed",
     action: "order_placed",
     metadata: {
@@ -158,38 +198,49 @@ const createOrderFromCart = async (userId, address) => {
       total: order.total,
       promoCode: order.promoCode,
       itemCount: order.items.length,
+      isGuest: !owner.userId,
     },
   }).catch(() => {});
 
-  sendOrderConfirmationEmail({
-    to: user.email,
-    customerName: user.full_name,
-    orderNumber: order._id,
-    orderDate: order.createdAt || new Date(),
-    items: emailItems,
-    subtotal: order.subtotal,
-    shipping: order.shipping,
-    discount: order.discount,
-    total: order.total,
-    shippingAddress: order.address,
-  }).catch((error) => {
-    console.error("Failed to send order confirmation email:", error.message);
-  });
+  if (recipientEmail) {
+    sendOrderConfirmationEmail({
+      to: recipientEmail,
+      customerName,
+      orderNumber: order._id,
+      orderDate: order.createdAt || new Date(),
+      items: emailItems,
+      subtotal: order.subtotal,
+      shipping: order.shipping,
+      discount: order.discount,
+      total: order.total,
+      shippingAddress: order.address,
+    }).catch((error) => {
+      console.error("Failed to send order confirmation email:", error.message);
+    });
+  }
 
   return order;
 };
 
 const getMyOrders = (userId) => orderRepository.findByUserId(userId);
 
-const getOrderById = async (id, currentUser) => {
+const getOrderById = async (id, currentUser, visitorId = null) => {
   const order = await orderRepository.findById(id);
   if (!order) throw new ApiError(404, "Order not found");
 
-  const isAdmin = currentUser.role === "admin";
-  const isOwner = isAdmin ? true : await orderRepository.userHasOrder(currentUser.userId, order._id);
-  if (!isOwner && !isAdmin) throw new ApiError(403, "Not authorized");
+  const isAdmin = currentUser?.role === "admin";
+  if (isAdmin) return order;
 
-  return order;
+  if (currentUser?.userId) {
+    const isOwner = await orderRepository.userHasOrder(currentUser.userId, order._id);
+    if (isOwner) return order;
+  }
+
+  if (order.isGuest && visitorId && order.visitorId === String(visitorId).trim()) {
+    return order;
+  }
+
+  throw new ApiError(403, "Not authorized");
 };
 
 const getAllOrders = () => orderRepository.findAll();

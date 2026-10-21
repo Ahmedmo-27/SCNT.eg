@@ -80,6 +80,26 @@ const clearCart = asyncHandler(async (req, res) => {
   res.status(200).json(successResponse(cart, "Cart cleared"));
 });
 
+const updateCartContact = asyncHandler(async (req, res) => {
+  const owner = resolveOwner(req);
+  const { fullName, phone, email, governorate, city } = req.body || {};
+  const cart = await cartService.updateContact(owner, { fullName, phone, email, governorate, city });
+  res.status(200).json(successResponse(cart, "Contact updated"));
+});
+
+const restoreCart = asyncHandler(async (req, res) => {
+  const owner = resolveOwner(req);
+  const { cartId } = req.params;
+  const cart = await cartService.restoreCart(owner, cartId);
+  res.status(200).json(successResponse(cart, "Cart restored"));
+});
+
+const sendCartRecoveryEmail = asyncHandler(async (req, res) => {
+  const { cartId } = req.params;
+  const result = await cartService.sendCartRecoveryEmail(cartId);
+  res.status(200).json(successResponse(result, "Recovery email sent"));
+});
+
 module.exports = {
   getCart,
   addToCart,
@@ -89,4 +109,7 @@ module.exports = {
   applyPromoCode,
   removePromoCode,
   clearCart,
+  updateCartContact,
+  restoreCart,
+  sendCartRecoveryEmail,
 };

@@ -6,6 +6,8 @@
     "server"
   ],
   "scripts": {
+    "test": "node server/tests/runner.js",
+    "test:jest": "jest --config server/jest.config.js --runInBand",
     "dev": "concurrently -k -n server,client -c cyan,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
     "start": "npm run start -w server",
     "build": "npm run build -w client",

@@ -3,6 +3,7 @@ import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import {
   fetchActiveCarts,
+  sendCartRecoveryEmail,
   type AdminCartItem,
 } from '../../services/adminAnalyticsApi'
 
@@ -35,6 +36,54 @@ export function ActiveCartsTab() {
   const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1, limit: 20 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [actionFeedback, setActionFeedback] = useState<Record<string, string>>({})
+  const [sendingEmailCartId, setSendingEmailCartId] = useState<string | null>(null)
+
+  const handleCopyRecoveryLink = async (cartId: string) => {
+    try {
+      const url = `${window.location.origin}/cart?restore=${cartId}`
+      await navigator.clipboard.writeText(url)
+      setActionFeedback((prev) => ({ ...prev, [cartId]: 'Link Copied!' }))
+      setTimeout(() => {
+        setActionFeedback((prev) => {
+          const next = { ...prev }
+          delete next[cartId]
+          return next
+        })
+      }, 2500)
+    } catch {
+      setActionFeedback((prev) => ({ ...prev, [cartId]: 'Copy failed' }))
+    }
+  }
+
+  const handleSendRecoveryEmail = async (cartId: string) => {
+    try {
+      setSendingEmailCartId(cartId)
+      const res = await sendCartRecoveryEmail(cartId)
+      setActionFeedback((prev) => ({ ...prev, [cartId]: `Email sent to ${res.email}` }))
+      setCarts((prev) =>
+        prev.map((c) =>
+          c._id === cartId
+            ? { ...c, recoverySentAt: new Date().toISOString(), recoveryCount: (c.recoveryCount || 0) + 1 }
+            : c
+        )
+      )
+      setTimeout(() => {
+        setActionFeedback((prev) => {
+          const next = { ...prev }
+          delete next[cartId]
+          return next
+        })
+      }, 4000)
+    } catch (err) {
+      setActionFeedback((prev) => ({
+        ...prev,
+        [cartId]: err instanceof Error ? err.message : 'Failed to send email',
+      }))
+    } finally {
+      setSendingEmailCartId(null)
+    }
+  }
 
   const loadCarts = useCallback(
     async (currentPage = page) => {
@@ -222,8 +271,8 @@ export function ActiveCartsTab() {
                 {/* Header: Identity, Status, Total */}
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      {cart.user ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {cart.user?.isRegistered ? (
                         <>
                           <span className="font-semibold text-sm text-scnt-text">
                             {cart.user.fullName}
@@ -232,13 +281,22 @@ export function ActiveCartsTab() {
                             Registered Customer
                           </span>
                         </>
+                      ) : cart.user?.isCapturedLead ? (
+                        <>
+                          <span className="font-semibold text-sm text-scnt-text">
+                            {cart.user.fullName}
+                          </span>
+                          <span className="rounded bg-sky-500/15 px-2 py-0.5 text-[10px] font-medium text-sky-300 border border-sky-500/30">
+                            Captured Lead
+                          </span>
+                        </>
                       ) : (
                         <>
                           <span className="font-mono text-sm font-semibold text-scnt-text">
                             Guest #{cart.visitorId?.slice(0, 8) || 'Unknown'}
                           </span>
                           <span className="rounded bg-zinc-500/10 px-2 py-0.5 text-[10px] font-medium text-zinc-400 border border-zinc-500/20">
-                            Guest Visitor
+                            Anonymous Guest
                           </span>
                         </>
                       )}
@@ -258,6 +316,13 @@ export function ActiveCartsTab() {
                       {cart.promoCode ? (
                         <span className="rounded bg-purple-500/15 px-2 py-0.5 font-mono text-[10px] font-bold text-purple-300 border border-purple-500/30">
                           Coupon: {cart.promoCode}
+                        </span>
+                      ) : null}
+
+                      {/* Recovery status */}
+                      {cart.recoverySentAt ? (
+                        <span className="rounded bg-indigo-500/15 px-2 py-0.5 text-[10px] font-medium text-indigo-300 border border-indigo-500/30">
+                          Recovery sent: {timeAgo(cart.recoverySentAt)} ({cart.recoveryCount || 1}x)
                         </span>
                       ) : null}
                     </div>
@@ -322,6 +387,36 @@ export function ActiveCartsTab() {
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* Recovery Actions Toolbar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-scnt-border/30 pt-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="outline"
+                      className="text-[11px] py-1 px-3"
+                      onClick={() => void handleCopyRecoveryLink(cart._id)}
+                    >
+                      🔗 {actionFeedback[cart._id] === 'Link Copied!' ? 'Link Copied!' : 'Copy Cart Link'}
+                    </Button>
+
+                    {cart.user?.email || cart.contact?.email ? (
+                      <Button
+                        variant="outline"
+                        className="text-[11px] py-1 px-3"
+                        disabled={sendingEmailCartId === cart._id}
+                        onClick={() => void handleSendRecoveryEmail(cart._id)}
+                      >
+                        ✉️ {sendingEmailCartId === cart._id ? 'Sending...' : 'Send Recovery Email'}
+                      </Button>
+                    ) : null}
+                  </div>
+
+                  {actionFeedback[cart._id] ? (
+                    <span className="text-xs text-emerald-400 font-medium animate-in fade-in">
+                      {actionFeedback[cart._id]}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             ))}

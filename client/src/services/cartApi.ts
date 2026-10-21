@@ -70,3 +70,17 @@ export async function applyPromoCode(code: string): Promise<ServerCart> {
 export async function removePromoCode(): Promise<ServerCart> {
   return apiPostCartData<ServerCart>('/cart/promo/remove', {})
 }
+
+export async function updateCartContact(contact: {
+  fullName?: string
+  phone?: string
+  email?: string
+  governorate?: string
+  city?: string
+}): Promise<ServerCart> {
+  return apiPostCartData<ServerCart>('/cart/contact', contact)
+}
+
+export async function restoreServerCart(cartId: string): Promise<ServerCart> {
+  return apiPostCartData<ServerCart>(`/cart/restore/${encodeURIComponent(cartId)}`, {})
+}

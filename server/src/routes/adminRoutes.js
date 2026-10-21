@@ -2,6 +2,7 @@ const express = require("express");
 const adminController = require("../controllers/adminController");
 const analyticsController = require("../controllers/analyticsController");
 const adminLogController = require("../controllers/adminLogController");
+const cartController = require("../controllers/cartController");
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
@@ -23,6 +24,7 @@ router.get("/analytics/funnel", analyticsController.getFunnelMetrics);
 router.get("/analytics/journeys", analyticsController.getCustomerJourneys);
 router.get("/analytics/journeys/:sessionId", analyticsController.getSessionJourneyTimeline);
 router.get("/analytics/carts", analyticsController.getActiveCarts);
+router.post("/analytics/carts/:cartId/recovery-email", cartController.sendCartRecoveryEmail);
 router.get("/analytics/coupons", analyticsController.getCouponAnalytics);
 
 // System Logs & Audit

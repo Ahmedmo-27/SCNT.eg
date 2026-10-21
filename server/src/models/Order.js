@@ -24,7 +24,11 @@ const addressSchema = new mongoose.Schema(
 
 const orderSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null, index: true },
+    isGuest: { type: Boolean, default: false, index: true },
+    visitorId: { type: String, default: null, index: true },
+    customerEmail: { type: String, default: "", trim: true },
+    customerPhone: { type: String, default: "", trim: true },
     items: { type: [orderItemSchema], required: true },
     subtotal: { type: Number, required: true, min: 0, default: 0 },
     shipping: { type: Number, required: true, min: 0, default: 0 },

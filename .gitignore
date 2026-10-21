@@ -4,3 +4,7 @@
 logs/
 server/logs/
 *.xlsx
+.agents/
+server/tests/test_report.json
+server/tests/TEST_REPORT.md
+server/tests/edge_case_inventory.md

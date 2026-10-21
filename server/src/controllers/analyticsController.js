@@ -866,8 +866,22 @@ const getActiveCarts = asyncHandler(async (req, res) => {
               email: cart.user.email || "",
               phone: cart.user.phone || cart.user.address?.phone || "",
               city: cart.user.address?.city || "",
+              isRegistered: true,
+            }
+          : cart.contact && (cart.contact.fullName || cart.contact.phone || cart.contact.email)
+          ? {
+              _id: null,
+              fullName: cart.contact.fullName || "Guest Customer",
+              email: cart.contact.email || "",
+              phone: cart.contact.phone || "",
+              city: cart.contact.city || cart.contact.governorate || "",
+              isRegistered: false,
+              isCapturedLead: true,
             }
           : null,
+        contact: cart.contact || null,
+        recoverySentAt: cart.recoverySentAt || null,
+        recoveryCount: cart.recoveryCount || 0,
         visitorId: cart.visitorId,
         visitorMeta: visitorMeta
           ? {

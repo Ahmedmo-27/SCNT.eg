@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
 import { StarDivider } from '../components/ui/StarDivider'
+import { ExitIntentModal } from '../components/cart/ExitIntentModal'
 import { useI18n } from '../i18n/I18nContext'
 import { formatEgp } from '../lib/formatEgp'
-import { getStoredAuthToken } from '../lib/authStorage'
-import { fetchServerCart } from '../services/cartApi'
+import { fetchServerCart, restoreServerCart } from '../services/cartApi'
 import { useCartStore } from '../store/cartStore'
 
 export function CartPage() {
   const { t, locale } = useI18n()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const restoreId = searchParams.get('restore')
+
   const items = useCartStore((s) => s.items)
   const promo = useCartStore((s) => s.promo)
   const summary = useCartStore((s) => s.summary)
@@ -25,11 +28,41 @@ export function CartPage() {
   const [promoLoading, setPromoLoading] = useState(false)
 
   useEffect(() => {
-    if (!getStoredAuthToken()) return
-
     let cancelled = false
     ;(async () => {
       try {
+        if (restoreId) {
+          const restored = await restoreServerCart(restoreId)
+          if (cancelled) return
+          const mapped =
+            restored.lines?.map((line) => ({
+              productId: line.productId,
+              name: line.name,
+              size: line.size || '100ml',
+              price: Number(line.unitPrice || 0),
+              quantity: Number(line.quantity || 1),
+              image: line.image || '',
+            })) ?? []
+
+          hydrateFromServer({
+            items: mapped,
+            promo: restored.appliedPromo,
+            summary: restored.summary ?? null,
+          })
+          setPromoMessage(
+            locale === 'ar' ? 'تم استرجاع عناصر سلتك بنجاح' : 'Your cart selection has been restored'
+          )
+          setSearchParams(
+            (prev) => {
+              const next = new URLSearchParams(prev)
+              next.delete('restore')
+              return next
+            },
+            { replace: true }
+          )
+          return
+        }
+
         const serverCart = await fetchServerCart()
         if (cancelled) return
 
@@ -56,7 +89,7 @@ export function CartPage() {
     return () => {
       cancelled = true
     }
-  }, [hydrateFromServer])
+  }, [hydrateFromServer, restoreId, locale, setSearchParams])
 
   const subtotal = items.reduce((acc, i) => acc + i.price * i.quantity, 0)
   const discount = useMemo(() => {
@@ -90,10 +123,6 @@ export function CartPage() {
   const onApplyPromo = async () => {
     setPromoError(null)
     setPromoMessage(null)
-    if (!getStoredAuthToken()) {
-      setPromoError(t('cart.promoLogin'))
-      return
-    }
 
     const code = promoInput.trim()
     if (!code) {
@@ -336,6 +365,7 @@ export function CartPage() {
           </div>
         )}
       </div>
+      <ExitIntentModal />
     </Layout>
   )
 }
