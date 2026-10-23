@@ -46,16 +46,22 @@ export interface ExpenseItem {
   assignedProduct?: { _id: string; name: string; slug?: string } | string | null
   promotionDetails?: {
     campaignName?: string
+    promoType?: 'DECANTS' | 'BOTTLES_100ML' | 'BOTTLES_50ML' | 'MIXED'
+    bottles100mlGiven?: number
+    bottles50mlGiven?: number
     decantUnitsGiven?: number
+    totalUnitsGiven?: number
     decantUnitCostApplied?: number
     recipient?: string
     fragranceAllocations?: {
       product?: string | { _id: string; name: string } | null
       productName?: string
+      format?: '100ml' | '50ml' | 'decant3ml'
       quantity: number
       unitCost: number
       totalCost: number
     }[]
+    unassignedFormat?: '100ml' | '50ml' | 'decant3ml'
     unassignedQuantity?: number
     unassignedUnitCost?: number
   }
@@ -70,6 +76,9 @@ export interface ExpenseSummary {
     lastMonthSpent: number
     totalPromoSCS: number
     totalDecantsGiven: number
+    totalBottlesGiven?: number
+    total100mlGiven?: number
+    total50mlGiven?: number
     totalEntries: number
   }
   categoryBreakdown: {
@@ -285,6 +294,7 @@ export async function createExpense(
 
 export async function logDecantGiveaway(payload: {
   count: number
+  format?: '100ml' | '50ml' | 'decant3ml' | 'mixed'
   campaignName?: string
   recipient?: string
   notes?: string
@@ -292,13 +302,15 @@ export async function logDecantGiveaway(payload: {
   fragranceAllocations?: {
     product?: string | null
     productName: string
+    format?: '100ml' | '50ml' | 'decant3ml'
     quantity: number
     unitCost: number
     totalCost: number
   }[]
+  unassignedFormat?: '100ml' | '50ml' | 'decant3ml'
   unassignedQuantity?: number
   unassignedUnitCost?: number
-}): Promise<{ expense: ExpenseItem; decantUnitCost: number; totalLogged: number }> {
+}): Promise<{ expense: ExpenseItem; unitCost?: number; decantUnitCost?: number; totalLogged: number }> {
   return apiPostDataAuthed('/admin/expenses/log-decant-giveaway', payload)
 }
 

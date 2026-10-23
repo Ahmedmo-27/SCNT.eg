@@ -222,6 +222,16 @@ const getExpenseSummary = asyncHandler(async (_req, res) => {
           _id: null,
           totalPromoSCS: { $sum: "$amount" },
           totalDecantsGiven: { $sum: "$promotionDetails.decantUnitsGiven" },
+          totalBottlesGiven: {
+            $sum: {
+              $add: [
+                { $ifNull: ["$promotionDetails.bottles100mlGiven", 0] },
+                { $ifNull: ["$promotionDetails.bottles50mlGiven", 0] },
+              ],
+            },
+          },
+          total100mlGiven: { $sum: "$promotionDetails.bottles100mlGiven" },
+          total50mlGiven: { $sum: "$promotionDetails.bottles50mlGiven" },
           count: { $sum: 1 },
         },
       },
@@ -247,6 +257,9 @@ const getExpenseSummary = asyncHandler(async (_req, res) => {
   const lastMonthSpent = lastMonthAgg[0]?.totalSpent || 0;
   const totalPromoSCS = promoAgg[0]?.totalPromoSCS || 0;
   const totalDecantsGiven = promoAgg[0]?.totalDecantsGiven || 0;
+  const totalBottlesGiven = promoAgg[0]?.totalBottlesGiven || 0;
+  const total100mlGiven = promoAgg[0]?.total100mlGiven || 0;
+  const total50mlGiven = promoAgg[0]?.total50mlGiven || 0;
 
   res.status(200).json(
     successResponse({
@@ -256,6 +269,9 @@ const getExpenseSummary = asyncHandler(async (_req, res) => {
         lastMonthSpent,
         totalPromoSCS,
         totalDecantsGiven,
+        totalBottlesGiven,
+        total100mlGiven,
+        total50mlGiven,
         totalEntries: allTimeAgg[0]?.count || 0,
       },
       categoryBreakdown: categoryAgg.map((c) => ({
@@ -314,18 +330,24 @@ const createExpense = asyncHandler(async (req, res) => {
     notes: notes.trim(),
     promotionDetails: {
       campaignName: promotionDetails?.campaignName || "",
+      promoType: promotionDetails?.promoType || "MIXED",
+      bottles100mlGiven: Number(promotionDetails?.bottles100mlGiven || 0),
+      bottles50mlGiven: Number(promotionDetails?.bottles50mlGiven || 0),
       decantUnitsGiven: Number(promotionDetails?.decantUnitsGiven || 0),
+      totalUnitsGiven: Number(promotionDetails?.totalUnitsGiven || parsedQty),
       decantUnitCostApplied: Number(promotionDetails?.decantUnitCostApplied || 0),
       recipient: promotionDetails?.recipient || "",
       fragranceAllocations: Array.isArray(promotionDetails?.fragranceAllocations)
         ? promotionDetails.fragranceAllocations.map((a) => ({
             product: a.product || null,
             productName: a.productName || "",
+            format: a.format || "100ml",
             quantity: Number(a.quantity || 0),
             unitCost: Number(a.unitCost || 0),
-            totalCost: Number(a.totalCost || 0),
+            totalCost: Number(a.totalCost || (Number(a.quantity || 0) * Number(a.unitCost || 0)).toFixed(2)),
           }))
         : [],
+      unassignedFormat: promotionDetails?.unassignedFormat || "100ml",
       unassignedQuantity: Number(promotionDetails?.unassignedQuantity || 0),
       unassignedUnitCost: Number(promotionDetails?.unassignedUnitCost || 0),
     },
@@ -377,17 +399,19 @@ const createExpense = asyncHandler(async (req, res) => {
 
 /**
  * POST /api/admin/expenses/log-decant-giveaway
- * Quick-action: log X gave-away 3ml decants with their decant cards as a promotional expense,
- * with optional multi-fragrance allocation breakdown
+ * Quick-action: log promotional giveaways (full 100ml/50ml boxed bottles or 3ml decants)
+ * with optional multi-fragrance and multi-format allocation breakdown
  */
 const logDecantGiveaway = asyncHandler(async (req, res) => {
   const {
     count = 1,
+    format = "decant3ml", // '100ml', '50ml', 'decant3ml', 'mixed'
     campaignName = "Sample Giveaway",
     recipient = "",
     notes = "",
     fragranceId = null,
     fragranceAllocations = [],
+    unassignedFormat = "decant3ml",
     unassignedQuantity = 0,
     unassignedUnitCost = 0,
   } = req.body;
@@ -396,8 +420,17 @@ const logDecantGiveaway = asyncHandler(async (req, res) => {
   const config = await getOrCreateCostConfig();
 
   let totalAmount = 0;
-  let decantUnitCost = 0;
+  let unitCost = 0;
   let titleDetail = "";
+  let baseFormatTitle =
+    format === "100ml"
+      ? "100ml Boxed Fragrance Giveaway"
+      : format === "50ml"
+      ? "50ml Boxed Fragrance Giveaway"
+      : format === "mixed"
+      ? "Promotional Fragrance & Decant Giveaway"
+      : "3ml Decant Giveaway";
+
   const cleanedAllocations = [];
 
   if (Array.isArray(fragranceAllocations) && fragranceAllocations.length > 0) {
@@ -406,10 +439,12 @@ const logDecantGiveaway = asyncHandler(async (req, res) => {
       const qty = Number(alloc.quantity) || 0;
       const uCost = Number(alloc.unitCost) || 0;
       const tCost = Number((qty * uCost).toFixed(2));
+      const allocFormat = alloc.format || format || "100ml";
       allocatedSum += tCost;
       cleanedAllocations.push({
         product: alloc.product || null,
         productName: alloc.productName || "Fragrance",
+        format: allocFormat,
         quantity: qty,
         unitCost: uCost,
         totalCost: tCost,
@@ -421,8 +456,8 @@ const logDecantGiveaway = asyncHandler(async (req, res) => {
     const unassignedTotal = Number((unassignedQty * unassignedCost).toFixed(2));
 
     totalAmount = Number((allocatedSum + unassignedTotal).toFixed(2));
-    decantUnitCost = parsedCount > 0 ? Number((totalAmount / parsedCount).toFixed(4)) : 0;
-    const allocSummary = cleanedAllocations.map((a) => `${a.quantity}x ${a.productName}`).join(", ");
+    unitCost = parsedCount > 0 ? Number((totalAmount / parsedCount).toFixed(4)) : 0;
+    const allocSummary = cleanedAllocations.map((a) => `${a.quantity}x ${a.productName} (${a.format})`).join(", ");
     titleDetail = ` (${allocSummary}${unassignedQty > 0 ? `, ${unassignedQty}x Unassigned` : ""})`;
   } else {
     let oilPerMl = 0;
@@ -435,29 +470,57 @@ const logDecantGiveaway = asyncHandler(async (req, res) => {
       }
     }
     const { breakdowns } = computeStandardCogs(config, oilPerMl);
-    decantUnitCost = breakdowns.decant3ml.totalCogs;
-    totalAmount = Number((parsedCount * decantUnitCost).toFixed(2));
+    if (format === "100ml") {
+      unitCost = breakdowns.size100ml.totalCogs;
+    } else if (format === "50ml") {
+      unitCost = breakdowns.size50ml.totalCogs;
+    } else {
+      unitCost = breakdowns.decant3ml.totalCogs;
+    }
+    totalAmount = Number((parsedCount * unitCost).toFixed(2));
     titleDetail = fragranceName ? ` - ${fragranceName}` : "";
   }
 
+  const bottles100ml =
+    cleanedAllocations.filter((a) => a.format === "100ml").reduce((s, a) => s + a.quantity, 0) +
+    (format === "100ml" && cleanedAllocations.length === 0 ? parsedCount : 0);
+  const bottles50ml =
+    cleanedAllocations.filter((a) => a.format === "50ml").reduce((s, a) => s + a.quantity, 0) +
+    (format === "50ml" && cleanedAllocations.length === 0 ? parsedCount : 0);
+  const decants =
+    cleanedAllocations.filter((a) => a.format === "decant3ml").reduce((s, a) => s + a.quantity, 0) +
+    (format === "decant3ml" && cleanedAllocations.length === 0 ? parsedCount : 0);
+
   const expense = await Expense.create({
-    title: `3ml Decant Giveaway (${parsedCount} units${titleDetail} - ${campaignName || "Promotion"})`,
+    title: `${baseFormatTitle} (${parsedCount} units${titleDetail} - ${campaignName || "Promotion"})`,
     category: "MARKETING_GIVEAWAYS",
     amount: totalAmount,
     quantity: parsedCount,
     unit: "pcs",
-    unitCost: decantUnitCost,
+    unitCost: unitCost,
     supplier: "SCNT In-House Production",
     date: new Date(),
     notes:
       notes ||
-      `Distributed ${parsedCount} x 3ml decants with Decant Cards for marketing/promotion.`,
+      `Promotional giveaway distribution: ${parsedCount} items (${cleanedAllocations.length > 0 ? "itemized breakdown" : format}).`,
     promotionDetails: {
       campaignName: campaignName || "Giveaway Campaign",
-      decantUnitsGiven: parsedCount,
-      decantUnitCostApplied: decantUnitCost,
+      promoType:
+        format === "100ml"
+          ? "BOTTLES_100ML"
+          : format === "50ml"
+          ? "BOTTLES_50ML"
+          : format === "mixed"
+          ? "MIXED"
+          : "DECANTS",
+      bottles100mlGiven: bottles100ml,
+      bottles50mlGiven: bottles50ml,
+      decantUnitsGiven: decants,
+      totalUnitsGiven: parsedCount,
+      decantUnitCostApplied: unitCost,
       recipient: recipient || "Marketing Distribution",
       fragranceAllocations: cleanedAllocations,
+      unassignedFormat: unassignedFormat || format || "decant3ml",
       unassignedQuantity: Number(unassignedQuantity) || 0,
       unassignedUnitCost: Number(unassignedUnitCost) || 0,
     },
@@ -466,20 +529,20 @@ const logDecantGiveaway = asyncHandler(async (req, res) => {
   });
 
   await recordAuditAction(req, {
-    action: "DECANT_GIVEAWAY_LOG",
+    action: "GIVEAWAY_LOG",
     targetType: "Expense",
     targetId: expense._id.toString(),
-    details: { count: parsedCount, totalAmount, decantUnitCost, allocationsCount: cleanedAllocations.length },
+    details: { count: parsedCount, totalAmount, unitCost, format, allocationsCount: cleanedAllocations.length },
   });
 
   res.status(201).json(
     successResponse(
       {
         expense,
-        decantUnitCost,
+        unitCost,
         totalLogged: totalAmount,
       },
-      `Logged ${parsedCount} decant giveaways (${totalAmount} EGP) into marketing expenses.`
+      `Logged promotional giveaway of ${parsedCount} units (${totalAmount} EGP) into marketing expenses.`
     )
   );
 });

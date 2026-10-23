@@ -154,4 +154,59 @@ describe("Expenses & COGS Formulas Unit Tests", () => {
     const blendedUnitCost = Number((finalExactTotal / totalTargetDecants).toFixed(2));
     expect(blendedUnitCost).toBe(10.95);
   });
+
+  it("calculates full boxed bottle promotional giveaway campaign with incremental allocation", () => {
+    // Campaign: 10 full 100ml boxed bottles for VIP gifting
+    const targetBottles100 = 10;
+    // Complete 100ml Packaging & solvent base:
+    // bottle 38 + box 22 + bottle sticker 5 + box top sticker 2 + box sealing sticker 1.875
+    // + shredded paper 15 + wrapping sheet 2.5 + thank you card 0.7 + flyer 3 + 75ml alcohol (75 * 0.20 = 15)
+    const baseNonOil100ml = 38 + 22 + 5 + 2 + 1.875 + 15 + 2.5 + 0.7 + 3 + 15; // 105.075 EGP
+    const avgOilCostPerMl = 3.0; // average 3.00 EGP/ml
+    const approxOilCost100ml = 25 * avgOilCostPerMl; // 75.00 EGP
+    const approx100mlCogs = Number((baseNonOil100ml + approxOilCost100ml).toFixed(2)); // 180.07 EGP
+
+    // Initial baseline: 10 bottles at approx 180.07 EGP = 1,800.70 EGP
+    const initialApproxTotal = Number((targetBottles100 * approx100mlCogs).toFixed(2));
+    expect(initialApproxTotal).toBe(1800.7);
+
+    // Step 1: Allocate 4 bottles of Fragrance A (oil cost 5 EGP/ml => 25 * 5 = 125 oil + 105.075 = 230.075 EGP)
+    const fragranceACogs100 = 125 + baseNonOil100ml; // 230.075 EGP
+    const allocA = { qty: 4, unitCost: fragranceACogs100, totalCost: 4 * fragranceACogs100 }; // 920.30 EGP
+    expect(Number(allocA.totalCost.toFixed(2))).toBe(920.3);
+
+    // Remaining unassigned = 6 bottles at approx 180.07 = 1080.42 EGP
+    const intermediateTotal = Number((allocA.totalCost + (6 * approx100mlCogs)).toFixed(2));
+    expect(intermediateTotal).toBe(2000.72);
+
+    // Step 2: Allocate 6 bottles of Fragrance B (oil cost 2 EGP/ml => 25 * 2 = 50 oil + 105.075 = 155.075 EGP)
+    const fragranceBCogs100 = 50 + baseNonOil100ml; // 155.075 EGP
+    const allocB = { qty: 6, unitCost: fragranceBCogs100, totalCost: 6 * fragranceBCogs100 }; // 930.45 EGP
+
+    // Target reached (4 + 6 = 10), exact full COGS for every bottle with all packaging!
+    const finalExactTotal = Number((allocA.totalCost + allocB.totalCost).toFixed(2)); // 920.30 + 930.45 = 1850.75 EGP
+    expect(finalExactTotal).toBe(1850.75);
+
+    const blendedBottleCost = Number((finalExactTotal / targetBottles100).toFixed(2));
+    expect(blendedBottleCost).toBe(185.07);
+  });
+
+  it("calculates mixed promotional campaign containing full boxed bottles and decant cards", () => {
+    // Campaign: 5x 100ml full boxed bottles + 10x 50ml full boxed bottles + 50x 3ml decants
+    const base100 = 105.075;
+    const base50 = 28 + 16 + 5 + 2 + 1.875 + 15 + 2.5 + 0.7 + 3 + (35 * 0.2); // 81.075
+    const baseDecant = 6 + 0.9 + 0.4; // 7.30
+
+    // Fragrance Royal Amber with oil 4 EGP/ml:
+    const royal100 = base100 + (25 * 4); // 105.075 + 100 = 205.075
+    const royal50 = base50 + (15 * 4); // 81.075 + 60 = 141.075
+    const royalDecant = baseDecant + (1 * 4); // 7.30 + 4 = 11.30
+
+    const totalMixed = Number((5 * royal100 + 10 * royal50 + 50 * royalDecant).toFixed(2));
+    // 5 * 205.075 = 1025.375
+    // 10 * 141.075 = 1410.75
+    // 50 * 11.30 = 565.00
+    // Total = 1025.375 + 1410.75 + 565.00 = 3001.13
+    expect(totalMixed).toBe(3001.13);
+  });
 });

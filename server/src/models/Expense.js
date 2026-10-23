@@ -54,18 +54,36 @@ const expenseSchema = new mongoose.Schema(
     // Promotional & Giveaway tracking (when category === 'MARKETING_GIVEAWAYS')
     promotionDetails: {
       campaignName: { type: String, default: "" },
+      promoType: {
+        type: String,
+        enum: ["DECANTS", "BOTTLES_100ML", "BOTTLES_50ML", "MIXED"],
+        default: "DECANTS",
+      },
+      bottles100mlGiven: { type: Number, default: 0 },
+      bottles50mlGiven: { type: Number, default: 0 },
       decantUnitsGiven: { type: Number, default: 0 },
+      totalUnitsGiven: { type: Number, default: 0 },
       decantUnitCostApplied: { type: Number, default: 0 },
       recipient: { type: String, default: "" },
       fragranceAllocations: [
         {
           product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", default: null },
           productName: { type: String, default: "" },
+          format: {
+            type: String,
+            enum: ["100ml", "50ml", "decant3ml"],
+            default: "decant3ml",
+          },
           quantity: { type: Number, default: 0 },
           unitCost: { type: Number, default: 0 },
           totalCost: { type: Number, default: 0 },
         },
       ],
+      unassignedFormat: {
+        type: String,
+        enum: ["100ml", "50ml", "decant3ml"],
+        default: "decant3ml",
+      },
       unassignedQuantity: { type: Number, default: 0 },
       unassignedUnitCost: { type: Number, default: 0 },
     },
