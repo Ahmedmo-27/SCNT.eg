@@ -264,4 +264,27 @@ describe("Expenses & COGS Formulas Unit Tests", () => {
     const oilCostDecant = 1 * oilPricePerGram;
     expect(oilCostDecant).toBe(3.5);
   });
+
+  it("handles distinct 50ml and 100ml bottle and box procurement categories with different benchmark prices", () => {
+    const bottle50Benchmark = 28;
+    const bottle100Benchmark = 38;
+    const box50Benchmark = 16;
+    const box100Benchmark = 22;
+
+    // Verify bottle price difference
+    expect(bottle50Benchmark).not.toBe(bottle100Benchmark);
+    expect(bottle100Benchmark - bottle50Benchmark).toBe(10); // 100ml bottle is 10 EGP more expensive
+
+    // Verify box price difference
+    expect(box50Benchmark).not.toBe(box100Benchmark);
+    expect(box100Benchmark - box50Benchmark).toBe(6); // 100ml box is 6 EGP more expensive
+
+    // Procurement batch of 100x 50ml bottles @ 28 EGP = 2,800 EGP
+    const batch50Bottles = 100 * bottle50Benchmark;
+    expect(batch50Bottles).toBe(2800);
+
+    // Procurement batch of 100x 100ml bottles @ 38 EGP = 3,800 EGP
+    const batch100Bottles = 100 * bottle100Benchmark;
+    expect(batch100Bottles).toBe(3800);
+  });
 });
