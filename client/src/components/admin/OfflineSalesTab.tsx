@@ -88,7 +88,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Line item picker
-  const [selectedProductId, setSelectedProductId] = useState<string>(products[0]?._id || '')
+  const [selectedProductId, setSelectedProductId] = useState<string>('')
   const [selectedSize, setSelectedSize] = useState<string>('100ml')
   const [itemSoldPrice, setItemSoldPrice] = useState<string>('')
   const [itemQuantity, setItemQuantity] = useState<number>(1)
@@ -119,10 +119,38 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
   const [deletingSale, setDeletingSale] = useState<OfflineSale | null>(null)
   const [restoreStockOnDelete, setRestoreStockOnDelete] = useState(true)
 
+  // Ensure selectedProductId is initialized when products prop loads or changes
+  useEffect(() => {
+    if (products.length > 0) {
+      const exists = products.some((p) => (p._id || (p as any).id) === selectedProductId)
+      if (!exists || !selectedProductId) {
+        const firstId = products[0]._id || (products[0] as any).id
+        setSelectedProductId(firstId)
+      }
+    }
+  }, [products, selectedProductId])
+
   // Currently selected product object
   const currentProduct = useMemo(() => {
-    return products.find((p) => p._id === selectedProductId) || products[0] || null
+    if (!products || products.length === 0) return null
+    return (
+      products.find((p) => (p._id || (p as any).id) === selectedProductId) ||
+      products[0] ||
+      null
+    )
   }, [products, selectedProductId])
+
+  // Helper to select a product and auto-fill price
+  const handleSelectProduct = useCallback(
+    (product: AdminProduct) => {
+      const id = product._id || (product as any).id
+      setSelectedProductId(id)
+      const sizeOpt = product.sizes?.find((s) => s.size === selectedSize)
+      const defaultPrice = sizeOpt ? sizeOpt.price : product.price || 750
+      setItemSoldPrice(String(defaultPrice))
+    },
+    [selectedSize]
+  )
 
   // Update unit sold price when selected product or size changes
   useEffect(() => {
@@ -500,27 +528,135 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                 </div>
 
                 {/* Product Search & Select */}
-                <div className="space-y-2">
-                  <label className="text-xs text-scnt-text-muted">Search Fragrance</label>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-scnt-text">Select Fragrance</label>
+                    {productSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setProductSearch('')}
+                        className="text-[11px] text-amber-400 hover:text-amber-300"
+                      >
+                        Clear filter ✕
+                      </button>
+                    )}
+                  </div>
+
                   <input
                     type="text"
-                    placeholder="Search by name (e.g. Explorer, Noir, Executive...)"
+                    placeholder="Search by perfume name or inspiration (e.g. Explorer, Sauvage, Noir...)"
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                     className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm text-scnt-text placeholder-scnt-text-muted/60 focus:outline-none focus:ring-1 focus:ring-amber-500"
                   />
 
+                  {/* Dropdown Selector */}
                   <select
                     value={selectedProductId}
-                    onChange={(e) => setSelectedProductId(e.target.value)}
-                    className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm text-scnt-text focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    onChange={(e) => {
+                      const id = e.target.value
+                      const found = products.find((p) => (p._id || (p as any).id) === id)
+                      if (found) {
+                        handleSelectProduct(found)
+                      } else {
+                        setSelectedProductId(id)
+                      }
+                    }}
+                    className="w-full rounded-lg border border-amber-500/50 bg-scnt-bg px-3 py-2 text-sm text-scnt-text focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
                   >
-                    {filteredProducts.map((p) => (
-                      <option key={p._id} value={p._id}>
-                        {p.name} {p.inspired_from ? `(${p.inspired_from})` : ''} - Stock: {p.stock}
-                      </option>
-                    ))}
+                    {filteredProducts.map((p) => {
+                      const id = p._id || (p as any).id
+                      return (
+                        <option key={id} value={id}>
+                          {p.name} {p.inspired_from ? `(Inspired by ${p.inspired_from})` : ''} - Stock: {p.stock ?? 0}
+                        </option>
+                      )
+                    })}
                   </select>
+
+                  {/* Search Matches Quick-Pick (shows when searching) */}
+                  {productSearch.trim().length > 0 && (
+                    <div className="space-y-1 rounded-lg border border-scnt-border/60 bg-scnt-bg/95 p-2 max-h-48 overflow-y-auto">
+                      <span className="text-[10px] uppercase font-semibold text-scnt-text-muted px-1 block">
+                        Matching Fragrances ({filteredProducts.length}) - Click to Pick
+                      </span>
+                      {filteredProducts.length === 0 ? (
+                        <p className="text-xs text-scnt-text-muted p-2">
+                          No fragrances matching &quot;{productSearch}&quot;
+                        </p>
+                      ) : (
+                        filteredProducts.slice(0, 10).map((p) => {
+                          const id = p._id || (p as any).id
+                          const isSelected = (currentProduct?._id || (currentProduct as any)?.id) === id
+                          return (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => {
+                                handleSelectProduct(p)
+                                setProductSearch('')
+                              }}
+                              className={`w-full flex items-center justify-between p-2 rounded-md text-left text-xs transition ${
+                                isSelected
+                                  ? 'bg-amber-500/20 text-amber-200 border border-amber-500/50 font-semibold'
+                                  : 'hover:bg-scnt-bg-elevated text-scnt-text'
+                              }`}
+                            >
+                              <div className="truncate mr-2">
+                                <span className="block truncate font-medium">{p.name}</span>
+                                {p.inspired_from && (
+                                  <span className="text-[10px] text-scnt-text-muted truncate block">
+                                    {p.inspired_from}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="shrink-0 text-right">
+                                <span className="text-[11px] font-mono text-emerald-400">
+                                  {formatEgp(p.price || 750)}
+                                </span>
+                                <span className="text-[10px] text-scnt-text-muted block">
+                                  Stock: {p.stock}
+                                </span>
+                              </div>
+                            </button>
+                          )
+                        })
+                      )}
+                    </div>
+                  )}
+
+                  {/* Active Selected Product Badge */}
+                  {currentProduct && (
+                    <div className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-950/20 p-3">
+                      {currentProduct.coverImage || currentProduct.clearBackground_Image ? (
+                        <img
+                          src={currentProduct.coverImage || currentProduct.clearBackground_Image}
+                          alt={currentProduct.name}
+                          className="w-11 h-11 object-contain rounded-lg bg-black/40 p-1 border border-amber-500/20 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-base shrink-0">
+                          🧴
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-amber-200 truncate">
+                            {currentProduct.name}
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium">
+                            Active
+                          </span>
+                        </div>
+                        <p className="text-xs text-scnt-text-muted truncate">
+                          {currentProduct.inspired_from ? `Inspired by ${currentProduct.inspired_from}` : ''}
+                        </p>
+                        <p className="text-[11px] text-scnt-text-muted mt-0.5">
+                          Catalog Price: <span className="font-mono text-emerald-400">{formatEgp(currentProduct.price || 750)}</span> · Stock: <span className="text-scnt-text">{currentProduct.stock} bottles</span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Size, Price sold for, Quantity */}
@@ -529,7 +665,15 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                     <label className="text-xs text-scnt-text-muted">Size / Variant</label>
                     <select
                       value={selectedSize}
-                      onChange={(e) => setSelectedSize(e.target.value)}
+                      onChange={(e) => {
+                        const newSize = e.target.value
+                        setSelectedSize(newSize)
+                        if (currentProduct) {
+                          const sizeOpt = currentProduct.sizes?.find((s) => s.size === newSize)
+                          const defaultPrice = sizeOpt ? sizeOpt.price : currentProduct.price || 750
+                          setItemSoldPrice(String(defaultPrice))
+                        }
+                      }}
                       className="w-full mt-1 rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm text-scnt-text"
                     >
                       <option value="100ml">100ml</option>

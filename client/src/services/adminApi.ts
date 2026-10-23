@@ -75,6 +75,8 @@ export type AdminProduct = {
   sizes?: { size: string; price: number; stock?: number }[]
   description?: string
   coverImage?: string
+  clearBackground_Image?: string
+  images?: string[]
   stock: number
   rating?: number
   reviews?: AdminReview[]
