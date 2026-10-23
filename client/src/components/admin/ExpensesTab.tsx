@@ -1950,11 +1950,21 @@ export function ExpensesTab() {
 
       {/* MODAL: ADD / EDIT EXPENSE */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-scnt-bg border border-scnt-border p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-semibold text-scnt-text mb-4">
-              {editingExpense ? 'Edit Expense Record' : 'Log New Expense / Procurement'}
-            </h3>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-black/70 backdrop-blur-xs p-4 sm:p-6">
+          <div className="relative my-auto w-full max-w-lg rounded-xl bg-scnt-bg border border-scnt-border p-6 shadow-2xl max-h-[min(90vh,calc(100vh-3rem))] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-scnt-border/40">
+              <h3 className="text-base font-semibold text-scnt-text">
+                {editingExpense ? 'Edit Expense Record' : 'Log New Expense / Procurement'}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="rounded-lg p-1 text-xs text-scnt-text-muted hover:text-scnt-text hover:bg-scnt-card/60 transition-colors"
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
 
             <form onSubmit={handleSaveExpense} className="space-y-3">
               <div>
@@ -2124,12 +2134,24 @@ export function ExpensesTab() {
 
       {/* MODAL: QUICK DECANT GIVEAWAY */}
       {showGiveawayModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-xl bg-scnt-bg border border-scnt-border p-6 shadow-2xl">
-            <h3 className="text-base font-semibold text-scnt-text mb-1">🎁 Log 3ml Decant Giveaway</h3>
-            <p className="text-xs text-scnt-text-muted mb-4">
-              Records free 3ml decants with their Decant Cards as a promotional marketing expense.
-            </p>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-black/70 backdrop-blur-xs p-4 sm:p-6">
+          <div className="relative my-auto w-full max-w-md rounded-xl bg-scnt-bg border border-scnt-border p-6 shadow-2xl max-h-[min(90vh,calc(100vh-3rem))] overflow-y-auto">
+            <div className="flex items-start justify-between pb-2 mb-2 border-b border-scnt-border/40">
+              <div>
+                <h3 className="text-base font-semibold text-scnt-text mb-0.5">🎁 Log 3ml Decant Giveaway</h3>
+                <p className="text-[11px] text-scnt-text-muted">
+                  Records free 3ml decants with their Decant Cards as a promotional marketing expense.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGiveawayModal(false)}
+                className="rounded-lg p-1 text-xs text-scnt-text-muted hover:text-scnt-text hover:bg-scnt-card/60 transition-colors"
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
 
             <form onSubmit={handleLogGiveaway} className="space-y-3">
               <div>
