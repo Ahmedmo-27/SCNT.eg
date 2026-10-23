@@ -299,7 +299,7 @@ const createOfflineSale = asyncHandler(async (req, res) => {
       paymentMethod,
       channel,
       itemCount: processedItems.length,
-      deductedStock,
+      deductedStock: offlineSale.deductedStock,
     },
   });
 

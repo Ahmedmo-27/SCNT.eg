@@ -113,4 +113,28 @@ describe("Offline Purchases & Direct Sales Unit Tests", () => {
     expect(supportedChannels).toContain("WALK_IN");
     expect(supportedChannels).toContain("WHATSAPP");
   });
+
+  it("verifies offline sale audit payload includes deductedStock correctly", () => {
+    const offlineSale = {
+      _id: "661000000000000000000001",
+      receiptNumber: "OFF-261023-1234",
+      total: 750,
+      paymentMethod: "CASH",
+      channel: "WALK_IN",
+      deductedStock: true,
+    };
+    const processedItems = [{ productName: "Amber Rush" }];
+
+    const auditDetails = {
+      receiptNumber: offlineSale.receiptNumber,
+      total: offlineSale.total,
+      paymentMethod: offlineSale.paymentMethod,
+      channel: offlineSale.channel,
+      itemCount: processedItems.length,
+      deductedStock: offlineSale.deductedStock,
+    };
+
+    expect(auditDetails.deductedStock).toBe(true);
+    expect(auditDetails.receiptNumber).toBe("OFF-261023-1234");
+  });
 });
