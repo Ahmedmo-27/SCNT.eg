@@ -287,4 +287,26 @@ describe("Expenses & COGS Formulas Unit Tests", () => {
     const batch100Bottles = 100 * bottle100Benchmark;
     expect(batch100Bottles).toBe(3800);
   });
+
+  it("calculates complete package COGS including 1 Thank You card with 2 attached 3ml Decants (no specific decant cards)", () => {
+    // Each package incorporates:
+    // 1x Thank You Card (0.70 EGP)
+    // 2x 3ml Decant Vials attached directly to the Thank You Card (6 EGP each = 12 EGP)
+    // 0x Decant Cards (0 EGP, no specific decant cards used in package)
+    // 2x Decant Alcohol (2ml each @ 0.20/ml = 0.80 EGP)
+    // 2x Decant Fragrance Oil (1ml each @ 3 EGP/ml = 6 EGP)
+    const thankYouCard = 0.7;
+    const decantVials = 2 * 6; // 12
+    const decantCards = 0; // No decant cards in the package
+    const decantAlcohol = 2 * (2 * 0.2); // 0.80
+    const decantOil = 2 * (1 * 3); // 6
+    const total2Decants = decantVials + decantCards + decantAlcohol + decantOil; // 18.8 EGP
+
+    expect(total2Decants).toBe(18.8);
+
+    // If bottle 100ml base COGS is 179.57:
+    const bottle100mlCogs = 179.57;
+    const fullPackage100mlCogs = Number((bottle100mlCogs + total2Decants).toFixed(2));
+    expect(fullPackage100mlCogs).toBe(198.37);
+  });
 });

@@ -163,6 +163,17 @@ export interface CostConfig {
   currency: string
 }
 
+export interface PackageDecantsBreakdown {
+  count: number
+  description: string
+  vialsCost: number
+  cardsCost: number
+  alcoholCost: number
+  oilCost: number
+  baseNonOilCost: number
+  totalCost: number
+}
+
 export interface CogsBreakdownProduct {
   oilCost: number
   alcoholCost: number
@@ -180,7 +191,12 @@ export interface CogsBreakdownProduct {
     shreddedPaper: number
     thankYouCard: number
     courierFlyer: number
+    decantCards?: number
+    decantVials?: number
+    packageDecantsTotal?: number
   }
+  packageDecants?: PackageDecantsBreakdown
+  packageTotalCogs?: number
   baseNonOilCost?: number
   totalCogs: number
 }
@@ -210,6 +226,7 @@ export interface CogsData {
     shreddedPaperPerBox: number
     oilPerMl: number
     fragrantAlcoholPerMl: number
+    packageIncludedDecantsCost?: number
   }
 }
 

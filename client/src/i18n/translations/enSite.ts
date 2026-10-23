@@ -82,17 +82,17 @@ export const enSite: Record<string, string> = {
   'home.hiw.step1': 'Order',
   'home.hiw.step1b':
     'Place your order and enjoy free shipping on any order over 1,500 EGP within Cairo only.',
-  'home.hiw.step2': 'Try the decant',
+  'home.hiw.step2': 'Try the decants',
   'home.hiw.step2b':
-    'Every full bottle ships with a small decant. Spray and wear the decant to decide if the scent is yours — keep the main bottle sealed until you are sure.',
+    'Every package includes a thank-you card with 2 complimentary 3ml decants attached directly to it: one matching your purchased scent to wear on skin while keeping the full bottle sealed, plus a discovery decant of a different fragrance to explore.',
   'home.hiw.step3': 'Decide',
   'home.hiw.step3b':
     'Not a match? Return the unopened full bottle within 14 days, no questions asked. If the main bottle has been opened, we cannot accept it for return.',
   'home.hiw.kicker': 'We know perfumes are personal',
-  'home.hiw.title': 'Choose with confidence. Every order ships with a trial decant.',
+  'home.hiw.title': 'Choose with confidence. Every package includes 2 decants and a thank you card.',
   'home.hiw.noteLabel': 'Note:',
   'home.hiw.noteBody':
-    'Accepted returns receive a full refund of the purchase price; return shipping is included. The complimentary decant is for testing only — the full bottle must stay completely unopened to remain eligible. Returns must be postmarked within 14 days of the initial order.',
+    'Accepted returns receive a full refund of the purchase price; return shipping is included. The matching decant is for risk-free testing — the full bottle must remain completely unopened to remain eligible. Both decants and the thank you card are yours to keep. Returns must be postmarked within 14 days of the initial order.',
 
   'collections.kicker': 'Index',
   'collections.title': 'Collections',
@@ -421,10 +421,10 @@ export const enSite: Record<string, string> = {
     'We ship domestically within Egypt. Delivery timelines and fees are confirmed at checkout and may vary by city. You will receive tracking or dispatch details with your order confirmation when available.',
   'faq.q4': 'What is your returns or exchange policy?',
   'faq.a4':
-    'Each full bottle ships with a complimentary decant so you can wear and test the scent first. Returns are only accepted when the full bottle is still sealed and unopened — once the main bottle is opened, it cannot be returned. Use the decant to decide before breaking the seal. Eligible unopened bottles may be returned within 14 days of your order (postmark deadline), with full refund of the purchase price and return shipping covered for accepted returns. Defective or incorrect shipments are handled separately — contact us with your order details.',
-  'faq.q5': 'Why is there a small decant in my box?',
+    'Each full bottle package ships with a thank you card and 2 complimentary decants — including one matching your purchased scent so you can wear and test it first. Returns are only accepted when the full bottle is still sealed and unopened — once the main bottle is opened, it cannot be returned. Use the matching decant to decide before breaking the seal. Both decants and the thank you card are yours to keep. Eligible unopened bottles may be returned within 14 days of your order (postmark deadline), with full refund of the purchase price and return shipping covered for accepted returns. Defective or incorrect shipments are handled separately — contact us with your order details.',
+  'faq.q5': 'What is inside each package with my fragrance?',
   'faq.a5':
-    'The decant is your risk-free way to try the fragrance on skin and room without opening the retail bottle. If you love it, open the full bottle. If not, you can request a return only while that full bottle stays sealed.',
+    'Every package contains your purchased bottle along with a thank-you card that has two 3ml decants attached directly to it: one decant of the fragrance you purchased so you can try it risk-free on your skin without unsealing the retail bottle, and another decant of a different fragrance to discover a new creation. Both decants and the card are yours to keep.',
   'faq.q6': 'How should I store my bottle?',
   'faq.a6':
     'Keep fragrances away from direct sunlight and heat, and store bottles upright with the cap closed. A cool, stable environment helps preserve the juice and keeps projection consistent over time.',

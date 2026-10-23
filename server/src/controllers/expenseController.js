@@ -62,6 +62,21 @@ function computeStandardCogs(config, overrideOilPerMl = 0) {
   const baseNonOilDecant = decantAlc + decantVial + decantCard;
   const totalDecant3ml = Number((decantOil + baseNonOilDecant).toFixed(2));
 
+  // Package Inclusions: 1 Thank You card with 2x 3ml Decants attached to it (no specific decant cards)
+  const packageDecants = {
+    count: 2,
+    description: "2x 3ml decants attached to the thank you card (1 purchased fragrance + 1 discovery fragrance)",
+    vialsCost: Number((2 * decantVial).toFixed(2)),
+    cardsCost: 0, // No specific decant cards; decants are attached directly to the Thank You Card
+    alcoholCost: Number((2 * decantAlc).toFixed(2)),
+    oilCost: Number((2 * decantOil).toFixed(2)),
+    baseNonOilCost: Number((2 * (decantAlc + decantVial)).toFixed(2)),
+    totalCost: Number((2 * (decantOil + decantAlc + decantVial)).toFixed(2)),
+  };
+
+  const package100mlTotalCogs = Number((total100ml + packageDecants.totalCost).toFixed(2));
+  const package50mlTotalCogs = Number((total50ml + packageDecants.totalCost).toFixed(2));
+
   return {
     breakdowns: {
       size100ml: {
@@ -81,7 +96,11 @@ function computeStandardCogs(config, overrideOilPerMl = 0) {
           shreddedPaper: shreddedPaperUnit,
           thankYouCard: thankYouCardUnit,
           courierFlyer: flyerUnit,
+          decantVials: Number((2 * decantVial).toFixed(2)),
+          packageDecantsTotal: packageDecants.totalCost,
         },
+        packageDecants,
+        packageTotalCogs: package100mlTotalCogs,
         baseNonOilCost: Number(baseNonOil100.toFixed(2)),
         totalCogs: total100ml,
       },
@@ -102,7 +121,11 @@ function computeStandardCogs(config, overrideOilPerMl = 0) {
           shreddedPaper: shreddedPaperUnit,
           thankYouCard: thankYouCardUnit,
           courierFlyer: flyerUnit,
+          decantVials: Number((2 * decantVial).toFixed(2)),
+          packageDecantsTotal: packageDecants.totalCost,
         },
+        packageDecants,
+        packageTotalCogs: package50mlTotalCogs,
         baseNonOilCost: Number(baseNonOil50.toFixed(2)),
         totalCogs: total50ml,
       },
@@ -124,6 +147,7 @@ function computeStandardCogs(config, overrideOilPerMl = 0) {
       decantCard: decantCardUnit,
       shreddedPaperPerBox: shreddedPaperUnit,
       fragrantAlcoholPerMl: alcPerMl,
+      packageIncludedDecantsCost: packageDecants.totalCost,
       baseNonOil100ml: Number(baseNonOil100.toFixed(2)),
       baseNonOil50ml: Number(baseNonOil50.toFixed(2)),
       baseNonOilDecant3ml: Number(baseNonOilDecant.toFixed(2)),

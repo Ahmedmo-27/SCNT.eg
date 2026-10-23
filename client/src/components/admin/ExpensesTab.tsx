@@ -2159,9 +2159,17 @@ export function ExpensesTab() {
                     <span className="text-scnt-text-muted">Courier Flyer</span>
                     <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.packagingDetails.courierFlyer)}</span>
                   </div>
+                  <div className="flex justify-between pt-1 text-amber-800 dark:text-amber-300">
+                    <span className="text-xs">2x 3ml Decants attached to Card (Purchased + Discovery)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.packageDecants?.totalCost ?? activeBreakdowns.size100ml.packagingDetails.packageDecantsTotal ?? 0)}</span>
+                  </div>
                   <div className="flex justify-between pt-2 font-semibold text-sm border-t border-scnt-border/80">
-                    <span>Total Unit COGS</span>
-                    <span className="text-emerald-700">{formatEgp(activeBreakdowns.size100ml.totalCogs)}</span>
+                    <span>Full Package COGS (with 2 Decants)</span>
+                    <span className="text-emerald-700">{formatEgp(activeBreakdowns.size100ml.packageTotalCogs || activeBreakdowns.size100ml.totalCogs)}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-scnt-text-muted pt-0.5">
+                    <span>Base Bottle COGS (Bottle only)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.totalCogs)}</span>
                   </div>
                 </div>
 
@@ -2176,16 +2184,16 @@ export function ExpensesTab() {
                   />
                   <div className="grid grid-cols-2 gap-2 pt-1 border-t border-scnt-border/30">
                     <div>
-                      <span className="text-[10px] text-scnt-text-muted">Gross Profit</span>
+                      <span className="text-[10px] text-scnt-text-muted">Gross Profit (Full Box)</span>
                       <p className="text-sm font-semibold text-emerald-800">
-                        {formatEgp(simRetail100 - activeBreakdowns.size100ml.totalCogs)}
+                        {formatEgp(simRetail100 - (activeBreakdowns.size100ml.packageTotalCogs || activeBreakdowns.size100ml.totalCogs))}
                       </p>
                     </div>
                     <div>
                       <span className="text-[10px] text-scnt-text-muted">Margin</span>
                       <p className="text-sm font-semibold text-emerald-800">
                         {simRetail100 > 0
-                          ? (((simRetail100 - activeBreakdowns.size100ml.totalCogs) / simRetail100) * 100).toFixed(1)
+                          ? (((simRetail100 - (activeBreakdowns.size100ml.packageTotalCogs || activeBreakdowns.size100ml.totalCogs)) / simRetail100) * 100).toFixed(1)
                           : 0}
                         %
                       </p>
@@ -2250,9 +2258,17 @@ export function ExpensesTab() {
                     <span className="text-scnt-text-muted">Courier Flyer</span>
                     <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.packagingDetails.courierFlyer)}</span>
                   </div>
+                  <div className="flex justify-between pt-1 text-amber-800 dark:text-amber-300">
+                    <span className="text-xs">2x 3ml Decants attached to Card (Purchased + Discovery)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.packageDecants?.totalCost ?? activeBreakdowns.size50ml.packagingDetails.packageDecantsTotal ?? 0)}</span>
+                  </div>
                   <div className="flex justify-between pt-2 font-semibold text-sm border-t border-scnt-border/80">
-                    <span>Total Unit COGS</span>
-                    <span className="text-emerald-700">{formatEgp(activeBreakdowns.size50ml.totalCogs)}</span>
+                    <span>Full Package COGS (with 2 Decants)</span>
+                    <span className="text-emerald-700">{formatEgp(activeBreakdowns.size50ml.packageTotalCogs || activeBreakdowns.size50ml.totalCogs)}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-scnt-text-muted pt-0.5">
+                    <span>Base Bottle COGS (Bottle only)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.totalCogs)}</span>
                   </div>
                 </div>
 
@@ -2267,16 +2283,16 @@ export function ExpensesTab() {
                   />
                   <div className="grid grid-cols-2 gap-2 pt-1 border-t border-scnt-border/30">
                     <div>
-                      <span className="text-[10px] text-scnt-text-muted">Gross Profit</span>
+                      <span className="text-[10px] text-scnt-text-muted">Gross Profit (Full Box)</span>
                       <p className="text-sm font-semibold text-emerald-800">
-                        {formatEgp(simRetail50 - activeBreakdowns.size50ml.totalCogs)}
+                        {formatEgp(simRetail50 - (activeBreakdowns.size50ml.packageTotalCogs || activeBreakdowns.size50ml.totalCogs))}
                       </p>
                     </div>
                     <div>
                       <span className="text-[10px] text-scnt-text-muted">Margin</span>
                       <p className="text-sm font-semibold text-emerald-800">
                         {simRetail50 > 0
-                          ? (((simRetail50 - activeBreakdowns.size50ml.totalCogs) / simRetail50) * 100).toFixed(1)
+                          ? (((simRetail50 - (activeBreakdowns.size50ml.packageTotalCogs || activeBreakdowns.size50ml.totalCogs)) / simRetail50) * 100).toFixed(1)
                           : 0}
                         %
                       </p>
