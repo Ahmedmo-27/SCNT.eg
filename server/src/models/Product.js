@@ -57,6 +57,8 @@ const productSchema = new mongoose.Schema(
     baseNotes: [{ type: String }],
     description: { type: String, default: "" },
     stock: { type: Number, default: 0, min: 0 },
+    oilCostPerKg: { type: Number, default: 0, min: 0 },
+    oilCostPerMl: { type: Number, default: 0, min: 0 },
     translations: {
       ar: { type: arProductFields, default: () => ({}) },
     },

@@ -17,11 +17,11 @@ describe("Expenses & COGS Formulas Unit Tests", () => {
     expect(unitCost).toBe(1.875);
   });
 
-  it("derives box top sticker cost per unit from sheet rate and yield", () => {
-    const costPerSheet = 30; // 30 EGP per sheet
-    const stickersPerSheet = 20; // 20 stickers per sheet
-    const unitCost = Number((costPerSheet / stickersPerSheet).toFixed(4));
-    expect(unitCost).toBe(1.5);
+  it("derives box top sticker cost per unit from meter rate and stickers per meter yield", () => {
+    const costPerMeter = 50; // 50 EGP per meter
+    const stickersPerMeter = 25; // 25 stickers per meter
+    const unitCost = Number((costPerMeter / stickersPerMeter).toFixed(4));
+    expect(unitCost).toBe(2);
   });
 
   it("derives shredded paper unit cost per box: 1 bag makes 3 boxes", () => {
@@ -90,5 +90,25 @@ describe("Expenses & COGS Formulas Unit Tests", () => {
     const margin100 = Number(((grossProfit100 / retail100) * 100).toFixed(1));
     expect(grossProfit100).toBe(570.43);
     expect(margin100).toBe(76.1);
+  });
+
+  it("calculates specific COGS per fragrance when oil price varies", () => {
+    // Fragrance A: Oud Blend with expensive oil (5,000 EGP/kg = 5 EGP/ml)
+    // Fragrance B: Fresh Citrus with standard oil (2,000 EGP/kg = 2 EGP/ml)
+    const baseNonOilCogs100 = 15 + 38 + 22 + 5 + 2 + 1.875 + 2.5 + 15 + 0.7 + 3; // 105.075
+
+    const oilMl100 = 25;
+    const cogsA = Number((oilMl100 * 5 + baseNonOilCogs100).toFixed(2)); // 125 + 105.075 = 230.08
+    const cogsB = Number((oilMl100 * 2 + baseNonOilCogs100).toFixed(2)); // 50 + 105.075 = 155.08
+
+    expect(cogsA).toBe(230.07);
+    expect(cogsB).toBe(155.07);
+
+    // Margins differ accordingly at the same 750 EGP retail price:
+    const marginA = Number((((750 - cogsA) / 750) * 100).toFixed(1));
+    const marginB = Number((((750 - cogsB) / 750) * 100).toFixed(1));
+
+    expect(marginA).toBe(69.3);
+    expect(marginB).toBe(79.3);
   });
 });

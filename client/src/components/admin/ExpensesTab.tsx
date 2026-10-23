@@ -11,6 +11,7 @@ import {
   fetchCostConfig,
   updateCostConfig,
   fetchCogsAnalysis,
+  updateProductOilPrice,
   type ExpenseItem,
   type ExpenseCategory,
   type ExpenseUnit,
@@ -45,7 +46,7 @@ const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   BOXES: 'Outer Boxes',
   BOTTLE_STICKERS: 'Bottle Stickers (Meter)',
   BOX_SEALING_STICKERS: 'Box Sealing Stickers (Sheet)',
-  BOX_TOP_STICKERS: 'Box Top Stickers',
+  BOX_TOP_STICKERS: 'Box Top Stickers (Meter)',
   THANK_YOU_CARDS: 'Thank You Cards',
   DECANT_CARDS: 'Decant Cards',
   DECANTS_3ML: '3ml Decants',
@@ -125,6 +126,11 @@ export function ExpensesTab() {
   // Form: Benchmark rates editing state
   const [ratesForm, setRatesForm] = useState<CostConfig | null>(null)
 
+  // Fragrance-specific selection and custom oil pricing
+  const [selectedProductSlug, setSelectedProductSlug] = useState<string>('DEFAULT')
+  const [editingOilProductId, setEditingOilProductId] = useState<string | null>(null)
+  const [editingOilKg, setEditingOilKg] = useState<string>('')
+
   // Calculator simulation state
   const [simRetail100, setSimRetail100] = useState<number>(750)
   const [simRetail50, setSimRetail50] = useState<number>(500)
@@ -183,10 +189,28 @@ export function ExpensesTab() {
   useEffect(() => {
     if (subTab === 'ledger' || subTab === 'promotions') {
       void loadExpenses()
-    } else if (subTab === 'catalog') {
+    } else if (subTab === 'catalog' || subTab === 'calculator') {
       void loadCatalogAnalysis()
     }
   }, [subTab, loadExpenses, loadCatalogAnalysis])
+
+  const handleSaveProductOilPrice = async (productId: string, oilKg: number) => {
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await updateProductOilPrice(productId, {
+        oilCostPerKg: oilKg,
+        oilCostPerMl: Number((oilKg / 1000).toFixed(4)),
+      })
+      showToast(`Updated oil price for ${res.product.name} to ${formatEgp(oilKg)}/kg`)
+      setEditingOilProductId(null)
+      await Promise.all([loadCatalogAnalysis(), loadOverviewAndConfig()])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update fragrance oil price')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const openAddModal = (item?: ExpenseItem) => {
     if (item) {
@@ -969,15 +993,15 @@ export function ExpensesTab() {
                 </div>
               </div>
 
-              {/* Box Top Stickers */}
+              {/* Box Top Stickers (Meter) */}
               <div className="rounded-lg border border-scnt-border/40 p-3 bg-scnt-card/20 space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-medium text-lime-800">Box Top / Lid Stickers</span>
+                  <span className="text-xs font-medium text-lime-800">Box Top / Lid Stickers (Bought by the METER)</span>
                   <span className="text-[11px] font-mono font-semibold text-lime-700">
                     {formatEgp(
-                      ratesForm.stickers.boxTopStickers.stickersPerSheet > 0
-                        ? ratesForm.stickers.boxTopStickers.costPerSheet /
-                            ratesForm.stickers.boxTopStickers.stickersPerSheet
+                      ratesForm.stickers.boxTopStickers.stickersPerMeter > 0
+                        ? ratesForm.stickers.boxTopStickers.costPerMeter /
+                            ratesForm.stickers.boxTopStickers.stickersPerMeter
                         : 0
                     )}{' '}
                     / sticker
@@ -985,12 +1009,12 @@ export function ExpensesTab() {
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <label className="text-[10px] text-scnt-text-muted">Cost per Sheet (EGP)</label>
+                    <label className="text-[10px] text-scnt-text-muted">Cost per Meter (EGP)</label>
                     <input
                       type="number"
                       step="any"
                       className="mt-1 w-full rounded border px-2 py-1 text-xs"
-                      value={ratesForm.stickers.boxTopStickers.costPerSheet}
+                      value={ratesForm.stickers.boxTopStickers.costPerMeter}
                       onChange={(e) => {
                         const val = Number(e.target.value)
                         setRatesForm((r) =>
@@ -999,7 +1023,7 @@ export function ExpensesTab() {
                                 ...r,
                                 stickers: {
                                   ...r.stickers,
-                                  boxTopStickers: { ...r.stickers.boxTopStickers, costPerSheet: val },
+                                  boxTopStickers: { ...r.stickers.boxTopStickers, costPerMeter: val },
                                 },
                               }
                             : null
@@ -1008,11 +1032,11 @@ export function ExpensesTab() {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-scnt-text-muted">Stickers / Sheet</label>
+                    <label className="text-[10px] text-scnt-text-muted">Stickers Yield / Meter</label>
                     <input
                       type="number"
                       className="mt-1 w-full rounded border px-2 py-1 text-xs"
-                      value={ratesForm.stickers.boxTopStickers.stickersPerSheet}
+                      value={ratesForm.stickers.boxTopStickers.stickersPerMeter}
                       onChange={(e) => {
                         const val = Number(e.target.value)
                         setRatesForm((r) =>
@@ -1021,7 +1045,7 @@ export function ExpensesTab() {
                                 ...r,
                                 stickers: {
                                   ...r.stickers,
-                                  boxTopStickers: { ...r.stickers.boxTopStickers, stickersPerSheet: val },
+                                  boxTopStickers: { ...r.stickers.boxTopStickers, stickersPerMeter: val },
                                 },
                               }
                             : null
@@ -1365,259 +1389,358 @@ export function ExpensesTab() {
       )}
 
       {/* SUB-TAB 3: COGS & PROFIT CALCULATOR (BILL OF MATERIALS) */}
-      {subTab === 'calculator' && cogsData && (
-        <div className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-3">
-            {/* 100ml Bottle BOM */}
-            <Card asMotion={false} className="p-5 space-y-4">
-              <div className="border-b border-scnt-border/40 pb-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-scnt-text-muted">Perfume Format</span>
-                <h3 className="text-lg font-light text-scnt-text">100ml Full Bottle</h3>
-              </div>
+      {subTab === 'calculator' && cogsData && (() => {
+        const selectedProduct =
+          selectedProductSlug !== 'DEFAULT' && cogsAnalysis
+            ? cogsAnalysis.productAnalysis.find((p) => p.slug === selectedProductSlug)
+            : null
 
-              <div className="space-y-2 text-xs divide-y divide-scnt-border/30">
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Fragrance Oil (25ml)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size100ml.oilCost)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Fragrant Alcohol (75ml)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size100ml.alcoholCost)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">100ml Glass Bottle & Atomizer</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size100ml.bottleCost)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">100ml Outer Packaging Box</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size100ml.boxCost)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Bottle Sticker (From Meter)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size100ml.stickerDetails.bottleSticker)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Box Top Sticker (Lid)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size100ml.stickerDetails.boxTopSticker)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Box Sealing Sticker (Sheet)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size100ml.stickerDetails.boxSealingSticker)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Shredded Paper (1/3 Bag)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size100ml.packagingDetails.shreddedPaper)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Wrapping Sheet</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size100ml.packagingDetails.wrappingSheet)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Thank You Card</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size100ml.packagingDetails.thankYouCard)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Courier Flyer</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size100ml.packagingDetails.courierFlyer)}</span>
-                </div>
-                <div className="flex justify-between pt-2 font-semibold text-sm border-t border-scnt-border/80">
-                  <span>Total Unit COGS</span>
-                  <span className="text-emerald-700">{formatEgp(cogsData.breakdowns.size100ml.totalCogs)}</span>
-                </div>
-              </div>
+        const activeBreakdowns = selectedProduct?.breakdowns || cogsData.breakdowns
+        const activeOilCostPerMl = selectedProduct ? selectedProduct.oilCostPerMl : cogsData.unitCostsSummary.oilPerMl
+        const activeOilCostPerKg = selectedProduct
+          ? selectedProduct.oilCostPerKg || selectedProduct.oilCostPerMl * 1000
+          : (costConfig?.liquids?.oilCostPerKg || 3000)
 
-              {/* Profit Simulator */}
-              <div className="rounded-lg bg-scnt-card/40 p-3 space-y-2 border border-scnt-border/40 text-xs">
-                <label className="text-[11px] text-scnt-text-muted">Simulate Retail Price (EGP)</label>
-                <input
-                  type="number"
-                  className="w-full rounded border px-2 py-1 text-sm font-semibold"
-                  value={simRetail100}
-                  onChange={(e) => setSimRetail100(Number(e.target.value))}
-                />
-                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-scnt-border/30">
+        return (
+          <div className="space-y-6">
+            {/* Fragrance Selector & Oil Price Customizer */}
+            <Card asMotion={false} className="p-4 bg-scnt-card/40 border-scnt-border/60">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                   <div>
-                    <span className="text-[10px] text-scnt-text-muted">Gross Profit</span>
-                    <p className="text-sm font-semibold text-emerald-800">
-                      {formatEgp(simRetail100 - cogsData.breakdowns.size100ml.totalCogs)}
-                    </p>
+                    <label className="text-[11px] uppercase tracking-wider text-scnt-text-muted">
+                      Select Fragrance Recipe:
+                    </label>
+                    <select
+                      className="mt-1 block rounded-md border border-scnt-border/80 bg-scnt-bg px-3 py-1.5 text-xs font-medium text-scnt-text"
+                      value={selectedProductSlug}
+                      onChange={(e) => {
+                        const slug = e.target.value
+                        setSelectedProductSlug(slug)
+                        if (slug !== 'DEFAULT' && cogsAnalysis) {
+                          const prod = cogsAnalysis.productAnalysis.find((p) => p.slug === slug)
+                          if (prod) {
+                            setSimRetail100(prod.size100ml.retailPrice)
+                            setSimRetail50(prod.size50ml.retailPrice)
+                            setEditingOilKg(String(prod.oilCostPerKg || prod.oilCostPerMl * 1000 || 3000))
+                          }
+                        } else if (costConfig) {
+                          setSimRetail100(750)
+                          setSimRetail50(500)
+                          setEditingOilKg(String(costConfig.liquids.oilCostPerKg || 3000))
+                        }
+                      }}
+                    >
+                      <option value="DEFAULT">★ General Benchmark Formula (Average Oil)</option>
+                      {cogsAnalysis?.productAnalysis.map((p) => (
+                        <option key={p._id} value={p.slug}>
+                          {p.name} {p.hasCustomOilPrice ? `(Custom Oil: ${formatEgp(p.oilCostPerKg)}/kg)` : ''}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-scnt-text-muted">Margin</span>
-                    <p className="text-sm font-semibold text-emerald-800">
-                      {simRetail100 > 0
-                        ? (((simRetail100 - cogsData.breakdowns.size100ml.totalCogs) / simRetail100) * 100).toFixed(1)
-                        : 0}
-                      %
+
+                  <div className="rounded-lg border border-scnt-border/60 bg-scnt-bg px-3 py-1.5 text-xs">
+                    <span className="text-[10px] text-scnt-text-muted uppercase">Active Fragrance Oil Rate:</span>
+                    <p className="font-semibold text-scnt-text">
+                      {formatEgp(activeOilCostPerKg)} / kg{' '}
+                      <span className="text-[11px] font-normal text-scnt-text-muted">
+                        ({formatEgp(activeOilCostPerMl)} / ml)
+                      </span>
                     </p>
                   </div>
                 </div>
+
+                {selectedProduct && (
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <label className="text-[10px] text-scnt-text-muted block">
+                        Edit {selectedProduct.name} Oil (EGP/kg)
+                      </label>
+                      <input
+                        type="number"
+                        step="any"
+                        className="w-32 rounded border border-scnt-border bg-scnt-bg px-2 py-1 text-xs font-semibold"
+                        value={editingOilKg}
+                        onChange={(e) => setEditingOilKg(e.target.value)}
+                      />
+                    </div>
+                    <Button
+                      onClick={() => void handleSaveProductOilPrice(selectedProduct._id, Number(editingOilKg))}
+                      disabled={busy || !editingOilKg}
+                      className="!px-3 !py-1 text-xs mt-3"
+                    >
+                      Save Oil Price
+                    </Button>
+                  </div>
+                )}
               </div>
             </Card>
 
-            {/* 50ml Bottle BOM */}
-            <Card asMotion={false} className="p-5 space-y-4">
-              <div className="border-b border-scnt-border/40 pb-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-scnt-text-muted">Perfume Format</span>
-                <h3 className="text-lg font-light text-scnt-text">50ml Full Bottle</h3>
-              </div>
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* 100ml Bottle BOM */}
+              <Card asMotion={false} className="p-5 space-y-4">
+                <div className="border-b border-scnt-border/40 pb-2">
+                  <span className="text-xs font-mono uppercase tracking-wider text-scnt-text-muted">Perfume Format</span>
+                  <h3 className="text-lg font-light text-scnt-text">
+                    100ml Bottle {selectedProduct ? `(${selectedProduct.name})` : ''}
+                  </h3>
+                </div>
 
-              <div className="space-y-2 text-xs divide-y divide-scnt-border/30">
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Fragrance Oil (15ml)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size50ml.oilCost)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Fragrant Alcohol (35ml)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size50ml.alcoholCost)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">50ml Glass Bottle & Atomizer</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size50ml.bottleCost)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">50ml Outer Packaging Box</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size50ml.boxCost)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Bottle Sticker (From Meter)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size50ml.stickerDetails.bottleSticker)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Box Top Sticker (Lid)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size50ml.stickerDetails.boxTopSticker)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Box Sealing Sticker (Sheet)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size50ml.stickerDetails.boxSealingSticker)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Shredded Paper (1/3 Bag)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size50ml.packagingDetails.shreddedPaper)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Wrapping Sheet</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size50ml.packagingDetails.wrappingSheet)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Thank You Card</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size50ml.packagingDetails.thankYouCard)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Courier Flyer</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.size50ml.packagingDetails.courierFlyer)}</span>
-                </div>
-                <div className="flex justify-between pt-2 font-semibold text-sm border-t border-scnt-border/80">
-                  <span>Total Unit COGS</span>
-                  <span className="text-emerald-700">{formatEgp(cogsData.breakdowns.size50ml.totalCogs)}</span>
-                </div>
-              </div>
-
-              {/* Profit Simulator */}
-              <div className="rounded-lg bg-scnt-card/40 p-3 space-y-2 border border-scnt-border/40 text-xs">
-                <label className="text-[11px] text-scnt-text-muted">Simulate Retail Price (EGP)</label>
-                <input
-                  type="number"
-                  className="w-full rounded border px-2 py-1 text-sm font-semibold"
-                  value={simRetail50}
-                  onChange={(e) => setSimRetail50(Number(e.target.value))}
-                />
-                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-scnt-border/30">
-                  <div>
-                    <span className="text-[10px] text-scnt-text-muted">Gross Profit</span>
-                    <p className="text-sm font-semibold text-emerald-800">
-                      {formatEgp(simRetail50 - cogsData.breakdowns.size50ml.totalCogs)}
-                    </p>
+                <div className="space-y-2 text-xs divide-y divide-scnt-border/30">
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">
+                      Fragrance Oil (25ml @ {formatEgp(activeOilCostPerMl)}/ml)
+                    </span>
+                    <span className="font-mono font-medium">{formatEgp(activeBreakdowns.size100ml.oilCost)}</span>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-scnt-text-muted">Margin</span>
-                    <p className="text-sm font-semibold text-emerald-800">
-                      {simRetail50 > 0
-                        ? (((simRetail50 - cogsData.breakdowns.size50ml.totalCogs) / simRetail50) * 100).toFixed(1)
-                        : 0}
-                      %
-                    </p>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Fragrant Alcohol (75ml)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.alcoholCost)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">100ml Glass Bottle & Atomizer</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.bottleCost)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">100ml Outer Packaging Box</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.boxCost)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Bottle Sticker (From Meter)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.stickerDetails.bottleSticker)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Box Top Sticker (From Meter)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.stickerDetails.boxTopSticker)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Box Sealing Sticker (Sheet)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.stickerDetails.boxSealingSticker)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Shredded Paper (1/3 Bag)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.packagingDetails.shreddedPaper)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Wrapping Sheet</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.packagingDetails.wrappingSheet)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Thank You Card</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.packagingDetails.thankYouCard)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Courier Flyer</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size100ml.packagingDetails.courierFlyer)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 font-semibold text-sm border-t border-scnt-border/80">
+                    <span>Total Unit COGS</span>
+                    <span className="text-emerald-700">{formatEgp(activeBreakdowns.size100ml.totalCogs)}</span>
                   </div>
                 </div>
-              </div>
-            </Card>
 
-            {/* 3ml Decant BOM */}
-            <Card asMotion={false} className="p-5 space-y-4">
-              <div className="border-b border-scnt-border/40 pb-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-scnt-text-muted">Discovery / Promo</span>
-                <h3 className="text-lg font-light text-scnt-text">3ml Decant + Decant Card</h3>
-              </div>
-
-              <div className="space-y-2 text-xs divide-y divide-scnt-border/30">
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">3ml Perfume Blend (1ml Oil + 2ml Alc)</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.decant3ml.liquidCost)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">3ml Decant Glass/Plastic Vial</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.decant3ml.vialCost)}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-scnt-text-muted">Custom Decant Card Mount</span>
-                  <span className="font-mono">{formatEgp(cogsData.breakdowns.decant3ml.decantCardCost)}</span>
-                </div>
-                <div className="flex justify-between pt-2 font-semibold text-sm border-t border-scnt-border/80">
-                  <span>Total Unit COGS</span>
-                  <span className="text-emerald-700">{formatEgp(cogsData.breakdowns.decant3ml.totalCogs)}</span>
-                </div>
-              </div>
-
-              {/* Promotional Value / Gifting Impact */}
-              <div className="rounded-lg bg-fuchsia-500/10 p-3 space-y-2 border border-fuchsia-500/20 text-xs">
-                <span className="font-medium text-fuchsia-900">🎁 Promotion Cost Impact</span>
-                <p className="text-[11px] text-fuchsia-800">
-                  Giving away 10 sample decants absorbs{' '}
-                  <span className="font-semibold">{formatEgp(cogsData.breakdowns.decant3ml.totalCogs * 10)}</span> from
-                  your marketing budget.
-                </p>
-                <div className="pt-2">
-                  <Button
-                    variant="outline"
-                    className="w-full !px-3 !py-1.5 text-xs border-fuchsia-400 text-fuchsia-800 hover:bg-fuchsia-100"
-                    onClick={() => setShowGiveawayModal(true)}
-                  >
-                    Log Decants Giveaway
-                  </Button>
-                </div>
-              </div>
-
-              {/* Commercial Sale simulator */}
-              <div className="rounded-lg bg-scnt-card/40 p-3 space-y-2 border border-scnt-border/40 text-xs">
-                <label className="text-[11px] text-scnt-text-muted">If Sold as Discovery Set / Single (EGP)</label>
-                <input
-                  type="number"
-                  className="w-full rounded border px-2 py-1 text-sm font-semibold"
-                  value={simRetailDecant}
-                  onChange={(e) => setSimRetailDecant(Number(e.target.value))}
-                />
-                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-scnt-border/30">
-                  <div>
-                    <span className="text-[10px] text-scnt-text-muted">Gross Profit</span>
-                    <p className="text-sm font-semibold text-emerald-800">
-                      {formatEgp(simRetailDecant - cogsData.breakdowns.decant3ml.totalCogs)}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-scnt-text-muted">Margin</span>
-                    <p className="text-sm font-semibold text-emerald-800">
-                      {simRetailDecant > 0
-                        ? (((simRetailDecant - cogsData.breakdowns.decant3ml.totalCogs) / simRetailDecant) * 100).toFixed(1)
-                        : 0}
-                      %
-                    </p>
+                {/* Profit Simulator */}
+                <div className="rounded-lg bg-scnt-card/40 p-3 space-y-2 border border-scnt-border/40 text-xs">
+                  <label className="text-[11px] text-scnt-text-muted">Simulate Retail Price (EGP)</label>
+                  <input
+                    type="number"
+                    className="w-full rounded border px-2 py-1 text-sm font-semibold"
+                    value={simRetail100}
+                    onChange={(e) => setSimRetail100(Number(e.target.value))}
+                  />
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-scnt-border/30">
+                    <div>
+                      <span className="text-[10px] text-scnt-text-muted">Gross Profit</span>
+                      <p className="text-sm font-semibold text-emerald-800">
+                        {formatEgp(simRetail100 - activeBreakdowns.size100ml.totalCogs)}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-scnt-text-muted">Margin</span>
+                      <p className="text-sm font-semibold text-emerald-800">
+                        {simRetail100 > 0
+                          ? (((simRetail100 - activeBreakdowns.size100ml.totalCogs) / simRetail100) * 100).toFixed(1)
+                          : 0}
+                        %
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
+
+              {/* 50ml Bottle BOM */}
+              <Card asMotion={false} className="p-5 space-y-4">
+                <div className="border-b border-scnt-border/40 pb-2">
+                  <span className="text-xs font-mono uppercase tracking-wider text-scnt-text-muted">Perfume Format</span>
+                  <h3 className="text-lg font-light text-scnt-text">
+                    50ml Bottle {selectedProduct ? `(${selectedProduct.name})` : ''}
+                  </h3>
+                </div>
+
+                <div className="space-y-2 text-xs divide-y divide-scnt-border/30">
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">
+                      Fragrance Oil (15ml @ {formatEgp(activeOilCostPerMl)}/ml)
+                    </span>
+                    <span className="font-mono font-medium">{formatEgp(activeBreakdowns.size50ml.oilCost)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Fragrant Alcohol (35ml)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.alcoholCost)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">50ml Glass Bottle & Atomizer</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.bottleCost)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">50ml Outer Packaging Box</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.boxCost)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Bottle Sticker (From Meter)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.stickerDetails.bottleSticker)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Box Top Sticker (From Meter)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.stickerDetails.boxTopSticker)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Box Sealing Sticker (Sheet)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.stickerDetails.boxSealingSticker)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Shredded Paper (1/3 Bag)</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.packagingDetails.shreddedPaper)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Wrapping Sheet</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.packagingDetails.wrappingSheet)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Thank You Card</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.packagingDetails.thankYouCard)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Courier Flyer</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.packagingDetails.courierFlyer)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 font-semibold text-sm border-t border-scnt-border/80">
+                    <span>Total Unit COGS</span>
+                    <span className="text-emerald-700">{formatEgp(activeBreakdowns.size50ml.totalCogs)}</span>
+                  </div>
+                </div>
+
+                {/* Profit Simulator */}
+                <div className="rounded-lg bg-scnt-card/40 p-3 space-y-2 border border-scnt-border/40 text-xs">
+                  <label className="text-[11px] text-scnt-text-muted">Simulate Retail Price (EGP)</label>
+                  <input
+                    type="number"
+                    className="w-full rounded border px-2 py-1 text-sm font-semibold"
+                    value={simRetail50}
+                    onChange={(e) => setSimRetail50(Number(e.target.value))}
+                  />
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-scnt-border/30">
+                    <div>
+                      <span className="text-[10px] text-scnt-text-muted">Gross Profit</span>
+                      <p className="text-sm font-semibold text-emerald-800">
+                        {formatEgp(simRetail50 - activeBreakdowns.size50ml.totalCogs)}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-scnt-text-muted">Margin</span>
+                      <p className="text-sm font-semibold text-emerald-800">
+                        {simRetail50 > 0
+                          ? (((simRetail50 - activeBreakdowns.size50ml.totalCogs) / simRetail50) * 100).toFixed(1)
+                          : 0}
+                        %
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* 3ml Decant BOM */}
+              <Card asMotion={false} className="p-5 space-y-4">
+                <div className="border-b border-scnt-border/40 pb-2">
+                  <span className="text-xs font-mono uppercase tracking-wider text-scnt-text-muted">Discovery / Promo</span>
+                  <h3 className="text-lg font-light text-scnt-text">
+                    3ml Decant {selectedProduct ? `(${selectedProduct.name})` : ''}
+                  </h3>
+                </div>
+
+                <div className="space-y-2 text-xs divide-y divide-scnt-border/30">
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">
+                      3ml Blend (1ml Oil @ {formatEgp(activeOilCostPerMl)} + 2ml Alc)
+                    </span>
+                    <span className="font-mono font-medium">{formatEgp(activeBreakdowns.decant3ml.liquidCost)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">3ml Decant Glass/Plastic Vial</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.decant3ml.vialCost)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1">
+                    <span className="text-scnt-text-muted">Custom Decant Card Mount</span>
+                    <span className="font-mono">{formatEgp(activeBreakdowns.decant3ml.decantCardCost)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 font-semibold text-sm border-t border-scnt-border/80">
+                    <span>Total Unit COGS</span>
+                    <span className="text-emerald-700">{formatEgp(activeBreakdowns.decant3ml.totalCogs)}</span>
+                  </div>
+                </div>
+
+                {/* Promotional Value / Gifting Impact */}
+                <div className="rounded-lg bg-fuchsia-500/10 p-3 space-y-2 border border-fuchsia-500/20 text-xs">
+                  <span className="font-medium text-fuchsia-900">🎁 Promotion Cost Impact</span>
+                  <p className="text-[11px] text-fuchsia-800">
+                    Giving away 10 sample decants absorbs{' '}
+                    <span className="font-semibold">{formatEgp(activeBreakdowns.decant3ml.totalCogs * 10)}</span> from
+                    your marketing budget.
+                  </p>
+                  <div className="pt-2">
+                    <Button
+                      variant="outline"
+                      className="w-full !px-3 !py-1.5 text-xs border-fuchsia-400 text-fuchsia-800 hover:bg-fuchsia-100"
+                      onClick={() => setShowGiveawayModal(true)}
+                    >
+                      Log Decants Giveaway
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Commercial Sale simulator */}
+                <div className="rounded-lg bg-scnt-card/40 p-3 space-y-2 border border-scnt-border/40 text-xs">
+                  <label className="text-[11px] text-scnt-text-muted">If Sold as Discovery Set / Single (EGP)</label>
+                  <input
+                    type="number"
+                    className="w-full rounded border px-2 py-1 text-sm font-semibold"
+                    value={simRetailDecant}
+                    onChange={(e) => setSimRetailDecant(Number(e.target.value))}
+                  />
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-scnt-border/30">
+                    <div>
+                      <span className="text-[10px] text-scnt-text-muted">Gross Profit</span>
+                      <p className="text-sm font-semibold text-emerald-800">
+                        {formatEgp(simRetailDecant - activeBreakdowns.decant3ml.totalCogs)}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-scnt-text-muted">Margin</span>
+                      <p className="text-sm font-semibold text-emerald-800">
+                        {simRetailDecant > 0
+                          ? (((simRetailDecant - activeBreakdowns.decant3ml.totalCogs) / simRetailDecant) * 100).toFixed(1)
+                          : 0}
+                        %
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* SUB-TAB 4: PROMOTIONS & GIVEAWAYS */}
       {subTab === 'promotions' && (
@@ -1710,27 +1833,92 @@ export function ExpensesTab() {
             <table className="w-full text-left text-xs text-scnt-text border-collapse">
               <thead className="bg-scnt-card/80 text-[11px] font-mono uppercase text-scnt-text-muted border-b border-scnt-border/60">
                 <tr>
-                  <th className="px-4 py-3">Product Name</th>
-                  <th className="px-4 py-3">100ml Price</th>
+                  <th className="px-4 py-3">Fragrance Product</th>
+                  <th className="px-4 py-3">Fragrance Oil Price (EGP/kg)</th>
+                  <th className="px-4 py-3">100ml Retail</th>
                   <th className="px-4 py-3">100ml COGS</th>
                   <th className="px-4 py-3">100ml Profit</th>
-                  <th className="px-4 py-3">100ml Margin</th>
+                  <th className="px-4 py-3">Margin %</th>
                   <th className="px-4 py-3">Markup</th>
-                  <th className="px-4 py-3">50ml Price</th>
+                  <th className="px-4 py-3">50ml Retail</th>
+                  <th className="px-4 py-3">50ml COGS</th>
                   <th className="px-4 py-3">50ml Margin</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-scnt-border/40">
                 {!cogsAnalysis || cogsAnalysis.productAnalysis.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-scnt-text-muted">
+                    <td colSpan={10} className="px-4 py-8 text-center text-scnt-text-muted">
                       Loading catalog margins...
                     </td>
                   </tr>
                 ) : (
                   cogsAnalysis.productAnalysis.map((prod) => (
-                    <tr key={prod._id} className="hover:bg-scnt-card/30">
-                      <td className="px-4 py-3 font-medium text-scnt-text">{prod.name}</td>
+                    <tr key={prod._id} className="hover:bg-scnt-card/30 transition-colors">
+                      <td className="px-4 py-3 font-medium text-scnt-text">
+                        <p>{prod.name}</p>
+                        <span className="text-[10px] text-scnt-text-muted">{prod.slug}</span>
+                      </td>
+
+                      {/* Fragrance Oil Column with Inline Editor */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {editingOilProductId === prod._id ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              step="any"
+                              className="w-24 rounded border border-scnt-border bg-scnt-bg px-2 py-1 text-xs font-semibold"
+                              value={editingOilKg}
+                              onChange={(e) => setEditingOilKg(e.target.value)}
+                              placeholder="EGP/kg"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => void handleSaveProductOilPrice(prod._id, Number(editingOilKg))}
+                              disabled={busy || !editingOilKg}
+                              className="rounded bg-scnt-text px-2 py-1 text-[11px] font-medium text-scnt-bg hover:opacity-90 transition-opacity"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={() => setEditingOilProductId(null)}
+                              className="rounded border border-scnt-border px-1.5 py-1 text-[11px] text-scnt-text-muted hover:text-scnt-text"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="font-mono font-medium">
+                                {formatEgp(prod.oilCostPerKg || prod.oilCostPerMl * 1000)} / kg
+                              </p>
+                              <span
+                                className={`inline-block text-[10px] rounded px-1.5 py-0.2 border ${
+                                  prod.hasCustomOilPrice
+                                    ? 'bg-amber-500/10 text-amber-800 border-amber-500/20'
+                                    : 'bg-zinc-500/10 text-zinc-600 border-zinc-500/20'
+                                }`}
+                              >
+                                {prod.hasCustomOilPrice ? 'Custom Formula' : 'Global Benchmark'}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setEditingOilProductId(prod._id)
+                                setEditingOilKg(
+                                  String(prod.oilCostPerKg || (prod.oilCostPerMl ? prod.oilCostPerMl * 1000 : 3000))
+                                )
+                              }}
+                              className="rounded p-1 text-[11px] text-scnt-text-muted hover:text-scnt-text hover:bg-scnt-card/60"
+                              title="Edit this fragrance's oil cost"
+                            >
+                              ✏️
+                            </button>
+                          </div>
+                        )}
+                      </td>
+
                       <td className="px-4 py-3 font-mono">{formatEgp(prod.size100ml.retailPrice)}</td>
                       <td className="px-4 py-3 font-mono text-scnt-text-muted">{formatEgp(prod.size100ml.cogs)}</td>
                       <td className="px-4 py-3 font-semibold text-emerald-800">
@@ -1745,6 +1933,7 @@ export function ExpensesTab() {
                         {prod.size100ml.markupMultiplier}x
                       </td>
                       <td className="px-4 py-3 font-mono">{formatEgp(prod.size50ml.retailPrice)}</td>
+                      <td className="px-4 py-3 font-mono text-scnt-text-muted">{formatEgp(prod.size50ml.cogs)}</td>
                       <td className="px-4 py-3 font-semibold">
                         <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-emerald-800 border border-emerald-500/20">
                           {prod.size50ml.marginPercent}%
@@ -1789,8 +1978,8 @@ export function ExpensesTab() {
                     onChange={(e) => {
                       const cat = e.target.value as ExpenseCategory
                       setFormCategory(cat)
-                      if (cat === 'BOTTLE_STICKERS') setFormUnit('meters')
-                      else if (cat === 'BOX_SEALING_STICKERS' || cat === 'BOX_TOP_STICKERS') setFormUnit('sheets')
+                      if (cat === 'BOTTLE_STICKERS' || cat === 'BOX_TOP_STICKERS') setFormUnit('meters')
+                      else if (cat === 'BOX_SEALING_STICKERS') setFormUnit('sheets')
                       else if (cat === 'SHREDDED_PAPER') setFormUnit('bags')
                       else if (cat === 'OILS') setFormUnit('kg')
                       else if (cat === 'FRAGRANT_ALCOHOL' || cat === 'CLEANING_ALCOHOL') setFormUnit('liters')

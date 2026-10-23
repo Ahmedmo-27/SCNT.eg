@@ -111,8 +111,8 @@ export interface CostConfig {
       unitCost: number
     }
     boxTopStickers: {
-      costPerSheet: number
-      stickersPerSheet: number
+      costPerMeter: number
+      stickersPerMeter: number
       unitCost: number
     }
   }
@@ -196,6 +196,14 @@ export interface ProductMarginItem {
   name: string
   slug: string
   stock: number
+  oilCostPerKg: number
+  oilCostPerMl: number
+  hasCustomOilPrice: boolean
+  breakdowns?: {
+    size100ml: CogsBreakdownProduct
+    size50ml: CogsBreakdownProduct
+    decant3ml: CogsBreakdownDecant
+  }
   size100ml: {
     retailPrice: number
     cogs: number
@@ -208,6 +216,9 @@ export interface ProductMarginItem {
     cogs: number
     grossProfit: number
     marginPercent: number
+  }
+  decant3ml?: {
+    cogs: number
   }
 }
 
@@ -282,4 +293,11 @@ export async function updateCostConfig(payload: Partial<CostConfig>): Promise<Co
 
 export async function fetchCogsAnalysis(): Promise<CogsAnalysisResponse> {
   return apiGetDataAuthed('/admin/cogs-analysis')
+}
+
+export async function updateProductOilPrice(
+  productId: string,
+  payload: { oilCostPerKg?: number; oilCostPerMl?: number }
+): Promise<{ product: { _id: string; name: string; oilCostPerKg: number; oilCostPerMl: number }; cogs: CogsData }> {
+  return apiPutDataAuthed(`/admin/expenses/products/${productId}/oil-price`, payload)
 }

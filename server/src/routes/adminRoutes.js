@@ -25,6 +25,7 @@ router.delete("/expenses/:id", expenseController.deleteExpense);
 router.get("/cost-config", expenseController.getCostConfig);
 router.put("/cost-config", expenseController.updateCostConfig);
 router.get("/cogs-analysis", expenseController.getCogsAnalysis);
+router.put("/expenses/products/:id/oil-price", expenseController.updateProductOilPrice);
 
 // Platform Analytics & Visit Tracking
 router.get("/analytics/overview", analyticsController.getAnalyticsOverview);

@@ -16,14 +16,17 @@ async function getOrCreateCostConfig() {
 }
 
 /** Compute unit cost breakdown for standard 100ml, 50ml, and 3ml decant */
-function computeStandardCogs(config) {
+function computeStandardCogs(config, overrideOilPerMl = null) {
   const { liquids, bottles, boxes, stickers, cards, wrapping } = config;
 
-  const oilPerMl = liquids.oilCostPerMl || liquids.oilCostPerKg / 1000 || 3;
+  const oilPerMl =
+    overrideOilPerMl != null && overrideOilPerMl > 0
+      ? overrideOilPerMl
+      : liquids.oilCostPerMl || liquids.oilCostPerKg / 1000 || 3;
   const alcPerMl = liquids.fragrantAlcoholCostPerMl || liquids.fragrantAlcoholCostPerLiter / 1000 || 0.2;
 
   const bottleStickerUnit = stickers?.bottleStickers?.unitCost || 5;
-  const boxTopStickerUnit = stickers?.boxTopStickers?.unitCost || 1.5;
+  const boxTopStickerUnit = stickers?.boxTopStickers?.unitCost || 2; // bought by the meter
   const boxSealingStickerUnit = stickers?.boxSealingStickers?.unitCost || 1.875;
   const thankYouCardUnit = cards?.thankYouCard?.unitCost || 0.7;
   const decantCardUnit = cards?.decantCard?.unitCost || 0.9;
@@ -313,8 +316,8 @@ const createExpense = asyncHandler(async (req, res) => {
       config.stickers.bottleStickers.costPerMeter = computedUnitCost;
     } else if (category === "BOX_SEALING_STICKERS" && unit === "sheets") {
       config.stickers.boxSealingStickers.costPerSheet = computedUnitCost;
-    } else if (category === "BOX_TOP_STICKERS" && unit === "sheets") {
-      config.stickers.boxTopStickers.costPerSheet = computedUnitCost;
+    } else if (category === "BOX_TOP_STICKERS" && (unit === "meters" || unit === "sheets")) {
+      config.stickers.boxTopStickers.costPerMeter = computedUnitCost;
     } else if (category === "SHREDDED_PAPER" && unit === "bags") {
       config.wrapping.shreddedPaper.costPerBag = computedUnitCost;
     } else if (category === "WRAPPING_SHEETS") {
@@ -562,18 +565,86 @@ const updateCostConfig = asyncHandler(async (req, res) => {
 });
 
 /**
+ * PUT /api/admin/expenses/products/:id/oil-price
+ * Update a specific fragrance's custom oil cost per kg or per ml
+ */
+const updateProductOilPrice = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { oilCostPerKg, oilCostPerMl } = req.body;
+
+  const product = await Product.findById(id);
+  if (!product) throw new ApiError(404, "Product not found.");
+
+  if (oilCostPerKg !== undefined) {
+    product.oilCostPerKg = Number(oilCostPerKg) || 0;
+    if (!oilCostPerMl && product.oilCostPerKg > 0) {
+      product.oilCostPerMl = Number((product.oilCostPerKg / 1000).toFixed(4));
+    }
+  }
+
+  if (oilCostPerMl !== undefined && oilCostPerMl !== null) {
+    product.oilCostPerMl = Number(oilCostPerMl) || 0;
+    if (!oilCostPerKg && product.oilCostPerMl > 0) {
+      product.oilCostPerKg = Number((product.oilCostPerMl * 1000).toFixed(2));
+    }
+  }
+
+  await product.save();
+
+  await recordAuditAction(req, {
+    action: "PRODUCT_OIL_PRICE_UPDATE",
+    targetType: "Product",
+    targetId: product._id.toString(),
+    details: { name: product.name, oilCostPerKg: product.oilCostPerKg, oilCostPerMl: product.oilCostPerMl },
+  });
+
+  const config = await getOrCreateCostConfig();
+  const prodCogs = computeStandardCogs(config, product.oilCostPerMl);
+
+  res.status(200).json(
+    successResponse(
+      {
+        product: {
+          _id: product._id,
+          name: product.name,
+          oilCostPerKg: product.oilCostPerKg,
+          oilCostPerMl: product.oilCostPerMl,
+        },
+        cogs: prodCogs,
+      },
+      `Updated oil price for ${product.name}`
+    )
+  );
+});
+
+/**
  * GET /api/admin/cogs-analysis
  * Cross-references active products with computed COGS to calculate margin % and profit per item
  */
 const getCogsAnalysis = asyncHandler(async (_req, res) => {
   const config = await getOrCreateCostConfig();
-  const { breakdowns } = computeStandardCogs(config);
-  const products = await Product.find({}).select("name slug price size sizes stock SCNTcollection").lean();
+  const { breakdowns: globalBreakdowns } = computeStandardCogs(config);
+  const products = await Product.find({})
+    .select("name slug price size sizes stock oilCostPerKg oilCostPerMl SCNTcollection")
+    .lean();
+
+  const defaultOilPerMl = config.liquids.oilCostPerMl || config.liquids.oilCostPerKg / 1000 || 3;
 
   const productAnalysis = products.map((p) => {
+    // Each fragrance uses its custom oil cost if set, else falls back to global default
+    const prodOilPerMl =
+      p.oilCostPerMl > 0
+        ? p.oilCostPerMl
+        : p.oilCostPerKg > 0
+        ? p.oilCostPerKg / 1000
+        : defaultOilPerMl;
+
+    const prodCogs = computeStandardCogs(config, prodOilPerMl);
+    const prodBreakdowns = prodCogs.breakdowns;
+
     // 100ml pricing or primary price
     const retailPrice100 = p.price || 750;
-    const cogs100 = breakdowns.size100ml.totalCogs;
+    const cogs100 = prodBreakdowns.size100ml.totalCogs;
     const profit100 = Number((retailPrice100 - cogs100).toFixed(2));
     const margin100 = retailPrice100 > 0 ? Number(((profit100 / retailPrice100) * 100).toFixed(1)) : 0;
     const markup100 = cogs100 > 0 ? Number((retailPrice100 / cogs100).toFixed(2)) : 0;
@@ -581,7 +652,7 @@ const getCogsAnalysis = asyncHandler(async (_req, res) => {
     // 50ml size if available
     const size50Option = p.sizes?.find((s) => s.size === "50ml");
     const retailPrice50 = size50Option?.price || 500;
-    const cogs50 = breakdowns.size50ml.totalCogs;
+    const cogs50 = prodBreakdowns.size50ml.totalCogs;
     const profit50 = Number((retailPrice50 - cogs50).toFixed(2));
     const margin50 = retailPrice50 > 0 ? Number(((profit50 / retailPrice50) * 100).toFixed(1)) : 0;
 
@@ -590,6 +661,10 @@ const getCogsAnalysis = asyncHandler(async (_req, res) => {
       name: p.name,
       slug: p.slug,
       stock: p.stock,
+      oilCostPerKg: p.oilCostPerKg || (p.oilCostPerMl ? p.oilCostPerMl * 1000 : 0),
+      oilCostPerMl: prodOilPerMl,
+      hasCustomOilPrice: Boolean(p.oilCostPerMl > 0 || p.oilCostPerKg > 0),
+      breakdowns: prodBreakdowns,
       size100ml: {
         retailPrice: retailPrice100,
         cogs: cogs100,
@@ -603,19 +678,22 @@ const getCogsAnalysis = asyncHandler(async (_req, res) => {
         grossProfit: profit50,
         marginPercent: margin50,
       },
+      decant3ml: {
+        cogs: prodBreakdowns.decant3ml.totalCogs,
+      },
     };
   });
 
   res.status(200).json(
     successResponse({
-      benchmarks: breakdowns,
+      benchmarks: globalBreakdowns,
       productAnalysis,
       decant3mlAnalysis: {
-        cogs: breakdowns.decant3ml.totalCogs,
-        breakdown: breakdowns.decant3ml,
+        cogs: globalBreakdowns.decant3ml.totalCogs,
+        breakdown: globalBreakdowns.decant3ml,
         suggestedSellingPrice: 120, // benchmark reference
-        suggestedGrossProfit: Number((120 - breakdowns.decant3ml.totalCogs).toFixed(2)),
-        suggestedMarginPercent: Number((((120 - breakdowns.decant3ml.totalCogs) / 120) * 100).toFixed(1)),
+        suggestedGrossProfit: Number((120 - globalBreakdowns.decant3ml.totalCogs).toFixed(2)),
+        suggestedMarginPercent: Number((((120 - globalBreakdowns.decant3ml.totalCogs) / 120) * 100).toFixed(1)),
       },
     })
   );
@@ -630,5 +708,6 @@ module.exports = {
   deleteExpense,
   getCostConfig,
   updateCostConfig,
+  updateProductOilPrice,
   getCogsAnalysis,
 };
