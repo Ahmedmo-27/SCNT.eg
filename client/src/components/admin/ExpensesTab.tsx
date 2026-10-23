@@ -122,12 +122,16 @@ export function ExpensesTab() {
   const [giveawayCampaign, setGiveawayCampaign] = useState('Sample Promotion')
   const [giveawayRecipient, setGiveawayRecipient] = useState('')
   const [giveawayNotes, setGiveawayNotes] = useState('')
+  const [giveawayFragranceId, setGiveawayFragranceId] = useState<string>('')
+
+  // Form: Product assignment for oil expenses
+  const [formAssignedProduct, setFormAssignedProduct] = useState<string>('')
 
   // Form: Benchmark rates editing state
   const [ratesForm, setRatesForm] = useState<CostConfig | null>(null)
 
-  // Fragrance-specific selection and custom oil pricing
-  const [selectedProductSlug, setSelectedProductSlug] = useState<string>('DEFAULT')
+  // Fragrance-specific selection and custom oil pricing (No global default oil price)
+  const [selectedProductSlug, setSelectedProductSlug] = useState<string>('')
   const [editingOilProductId, setEditingOilProductId] = useState<string | null>(null)
   const [editingOilKg, setEditingOilKg] = useState<string>('')
 
@@ -177,6 +181,12 @@ export function ExpensesTab() {
     try {
       const res = await fetchCogsAnalysis()
       setCogsAnalysis(res)
+      if (res.productAnalysis && res.productAnalysis.length > 0) {
+        setSelectedProductSlug((prev) => {
+          if (!prev || prev === 'DEFAULT') return res.productAnalysis[0].slug
+          return prev
+        })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load catalog analysis')
     }
@@ -184,7 +194,8 @@ export function ExpensesTab() {
 
   useEffect(() => {
     void loadOverviewAndConfig()
-  }, [loadOverviewAndConfig])
+    void loadCatalogAnalysis()
+  }, [loadOverviewAndConfig, loadCatalogAnalysis])
 
   useEffect(() => {
     if (subTab === 'ledger' || subTab === 'promotions') {
@@ -224,6 +235,13 @@ export function ExpensesTab() {
       setFormInvoice(item.invoiceNumber || '')
       setFormDate(item.date ? item.date.slice(0, 10) : new Date().toISOString().slice(0, 10))
       setFormNotes(item.notes || '')
+      const assignedId =
+        typeof item.assignedProduct === 'object' && item.assignedProduct?._id
+          ? item.assignedProduct._id
+          : typeof item.assignedProduct === 'string'
+          ? item.assignedProduct
+          : ''
+      setFormAssignedProduct(assignedId)
       setFormSyncBenchmark(false)
     } else {
       setEditingExpense(null)
@@ -231,11 +249,12 @@ export function ExpensesTab() {
       setFormCategory('OILS')
       setFormAmount('')
       setFormQuantity('1')
-      setFormUnit('units')
+      setFormUnit('kg')
       setFormSupplier('')
       setFormInvoice('')
       setFormDate(new Date().toISOString().slice(0, 10))
       setFormNotes('')
+      setFormAssignedProduct('')
       setFormSyncBenchmark(false)
     }
     setShowAddModal(true)
@@ -256,6 +275,7 @@ export function ExpensesTab() {
         invoiceNumber: formInvoice,
         date: formDate,
         notes: formNotes,
+        assignedProduct: formCategory === 'OILS' && formAssignedProduct ? formAssignedProduct : null,
         syncWithCostConfig: formSyncBenchmark,
       }
 
@@ -268,7 +288,7 @@ export function ExpensesTab() {
       }
 
       setShowAddModal(false)
-      await Promise.all([loadExpenses(), loadOverviewAndConfig()])
+      await Promise.all([loadExpenses(), loadOverviewAndConfig(), loadCatalogAnalysis()])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save expense')
     } finally {
@@ -301,6 +321,7 @@ export function ExpensesTab() {
         campaignName: giveawayCampaign,
         recipient: giveawayRecipient,
         notes: giveawayNotes,
+        fragranceId: giveawayFragranceId || null,
       })
       showToast(
         `Logged ${giveawayCount} decants (${formatEgp(res.totalLogged)}) into promotional expenses!`
@@ -308,6 +329,7 @@ export function ExpensesTab() {
       setShowGiveawayModal(false)
       setGiveawayRecipient('')
       setGiveawayNotes('')
+      setGiveawayFragranceId('')
       await Promise.all([loadExpenses(), loadOverviewAndConfig()])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log promotional giveaway')
@@ -529,6 +551,11 @@ export function ExpensesTab() {
                         </td>
                         <td className="px-4 py-3">
                           <p className="font-medium text-scnt-text">{item.title}</p>
+                          {item.assignedProduct && typeof item.assignedProduct === 'object' && item.assignedProduct.name && (
+                            <span className="mt-0.5 inline-block text-[10px] rounded px-1.5 py-0.5 bg-amber-500/10 text-amber-800 border border-amber-500/20 font-medium mr-1.5">
+                              Fragrance: {item.assignedProduct.name}
+                            </span>
+                          )}
                           {item.notes && <p className="text-[11px] text-scnt-text-muted line-clamp-1">{item.notes}</p>}
                           {item.promotionDetails?.campaignName && (
                             <span className="mt-0.5 inline-block text-[10px] text-fuchsia-700">
@@ -624,32 +651,14 @@ export function ExpensesTab() {
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-[11px] text-scnt-text-muted">Oil Price per Kg (EGP)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    className="mt-1 w-full rounded-md border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
-                    value={ratesForm.liquids.oilCostPerKg}
-                    onChange={(e) => {
-                      const val = Number(e.target.value)
-                      setRatesForm((r) =>
-                        r
-                          ? {
-                              ...r,
-                              liquids: {
-                                ...r.liquids,
-                                oilCostPerKg: val,
-                                oilCostPerMl: Number((val / 1000).toFixed(4)),
-                              },
-                            }
-                          : null
-                      )
-                    }}
-                  />
-                  <span className="text-[10px] text-scnt-text-muted">
-                    = {formatEgp(ratesForm.liquids.oilCostPerMl)} / ml
-                  </span>
+                <div className="sm:col-span-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900">
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <span>💡</span>
+                    <span>Individual Fragrance Oil Pricing</span>
+                  </div>
+                  <p className="mt-1 text-[11px] leading-relaxed text-amber-800">
+                    Fragrance oils have <strong>no default or global price</strong>. Each fragrance in your catalog has its own separate oil cost per kg / ml based on its unique formula. Configure specific fragrance oil prices in the <strong>COGS Recipe Simulator</strong> or <strong>Catalog Margins</strong> tab.
+                  </p>
                 </div>
 
                 <div>
@@ -1391,15 +1400,14 @@ export function ExpensesTab() {
       {/* SUB-TAB 3: COGS & PROFIT CALCULATOR (BILL OF MATERIALS) */}
       {subTab === 'calculator' && cogsData && (() => {
         const selectedProduct =
-          selectedProductSlug !== 'DEFAULT' && cogsAnalysis
-            ? cogsAnalysis.productAnalysis.find((p) => p.slug === selectedProductSlug)
-            : null
+          cogsAnalysis?.productAnalysis.find((p) => p.slug === selectedProductSlug) ||
+          cogsAnalysis?.productAnalysis[0] ||
+          null
 
+        const isOilSet = Boolean(selectedProduct && (selectedProduct.oilCostPerKg > 0 || selectedProduct.oilCostPerMl > 0))
         const activeBreakdowns = selectedProduct?.breakdowns || cogsData.breakdowns
-        const activeOilCostPerMl = selectedProduct ? selectedProduct.oilCostPerMl : cogsData.unitCostsSummary.oilPerMl
-        const activeOilCostPerKg = selectedProduct
-          ? selectedProduct.oilCostPerKg || selectedProduct.oilCostPerMl * 1000
-          : (costConfig?.liquids?.oilCostPerKg || 3000)
+        const activeOilCostPerMl = selectedProduct ? selectedProduct.oilCostPerMl : 0
+        const activeOilCostPerKg = selectedProduct ? selectedProduct.oilCostPerKg : 0
 
         return (
           <div className="space-y-6">
@@ -1413,28 +1421,23 @@ export function ExpensesTab() {
                     </label>
                     <select
                       className="mt-1 block rounded-md border border-scnt-border/80 bg-scnt-bg px-3 py-1.5 text-xs font-medium text-scnt-text"
-                      value={selectedProductSlug}
+                      value={selectedProduct?.slug || ''}
                       onChange={(e) => {
                         const slug = e.target.value
                         setSelectedProductSlug(slug)
-                        if (slug !== 'DEFAULT' && cogsAnalysis) {
+                        if (cogsAnalysis) {
                           const prod = cogsAnalysis.productAnalysis.find((p) => p.slug === slug)
                           if (prod) {
                             setSimRetail100(prod.size100ml.retailPrice)
                             setSimRetail50(prod.size50ml.retailPrice)
-                            setEditingOilKg(String(prod.oilCostPerKg || prod.oilCostPerMl * 1000 || 3000))
+                            setEditingOilKg(prod.oilCostPerKg > 0 ? String(prod.oilCostPerKg) : '')
                           }
-                        } else if (costConfig) {
-                          setSimRetail100(750)
-                          setSimRetail50(500)
-                          setEditingOilKg(String(costConfig.liquids.oilCostPerKg || 3000))
                         }
                       }}
                     >
-                      <option value="DEFAULT">★ General Benchmark Formula (Average Oil)</option>
                       {cogsAnalysis?.productAnalysis.map((p) => (
                         <option key={p._id} value={p.slug}>
-                          {p.name} {p.hasCustomOilPrice ? `(Custom Oil: ${formatEgp(p.oilCostPerKg)}/kg)` : ''}
+                          {p.name} {p.oilCostPerKg > 0 ? `(${formatEgp(p.oilCostPerKg)}/kg)` : '(⚠ Oil Price Needed)'}
                         </option>
                       ))}
                     </select>
@@ -1442,12 +1445,18 @@ export function ExpensesTab() {
 
                   <div className="rounded-lg border border-scnt-border/60 bg-scnt-bg px-3 py-1.5 text-xs">
                     <span className="text-[10px] text-scnt-text-muted uppercase">Active Fragrance Oil Rate:</span>
-                    <p className="font-semibold text-scnt-text">
-                      {formatEgp(activeOilCostPerKg)} / kg{' '}
-                      <span className="text-[11px] font-normal text-scnt-text-muted">
-                        ({formatEgp(activeOilCostPerMl)} / ml)
-                      </span>
-                    </p>
+                    {isOilSet ? (
+                      <p className="font-semibold text-emerald-800">
+                        {formatEgp(activeOilCostPerKg)} / kg{' '}
+                        <span className="text-[11px] font-normal text-scnt-text-muted">
+                          ({formatEgp(activeOilCostPerMl)} / ml)
+                        </span>
+                      </p>
+                    ) : (
+                      <p className="font-semibold text-amber-700">
+                        Not Set (0.00 EGP / kg)
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1455,11 +1464,12 @@ export function ExpensesTab() {
                   <div className="flex items-center gap-2">
                     <div className="text-right">
                       <label className="text-[10px] text-scnt-text-muted block">
-                        Edit {selectedProduct.name} Oil (EGP/kg)
+                        Set {selectedProduct.name} Oil (EGP/kg)
                       </label>
                       <input
                         type="number"
                         step="any"
+                        placeholder="e.g. 3500"
                         className="w-32 rounded border border-scnt-border bg-scnt-bg px-2 py-1 text-xs font-semibold"
                         value={editingOilKg}
                         onChange={(e) => setEditingOilKg(e.target.value)}
@@ -1475,6 +1485,17 @@ export function ExpensesTab() {
                   </div>
                 )}
               </div>
+
+              {selectedProduct && !isOilSet && (
+                <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-900 flex items-center justify-between">
+                  <span>
+                    ⚠ <strong>Oil price required:</strong> Each fragrance has a unique oil price. Please enter <strong>{selectedProduct.name}</strong>'s oil cost per kg above to compute total COGS and profit margin.
+                  </span>
+                  <span className="font-mono text-[11px] text-amber-800">
+                    Base Packaging & Alcohol: {formatEgp(activeBreakdowns.size100ml.baseNonOilCost || 0)}
+                  </span>
+                </div>
+              )}
             </Card>
 
             <div className="grid gap-6 lg:grid-cols-3">
@@ -1891,27 +1912,27 @@ export function ExpensesTab() {
                           <div className="flex items-center gap-2">
                             <div>
                               <p className="font-mono font-medium">
-                                {formatEgp(prod.oilCostPerKg || prod.oilCostPerMl * 1000)} / kg
+                                {prod.oilCostPerKg > 0
+                                  ? `${formatEgp(prod.oilCostPerKg)} / kg`
+                                  : 'Not Set (0.00 EGP)'}
                               </p>
                               <span
                                 className={`inline-block text-[10px] rounded px-1.5 py-0.2 border ${
-                                  prod.hasCustomOilPrice
-                                    ? 'bg-amber-500/10 text-amber-800 border-amber-500/20'
-                                    : 'bg-zinc-500/10 text-zinc-600 border-zinc-500/20'
+                                  prod.oilCostPerKg > 0
+                                    ? 'bg-emerald-500/10 text-emerald-800 border-emerald-500/20'
+                                    : 'bg-amber-500/10 text-amber-800 border-amber-500/20'
                                 }`}
                               >
-                                {prod.hasCustomOilPrice ? 'Custom Formula' : 'Global Benchmark'}
+                                {prod.oilCostPerKg > 0 ? 'Oil Configured' : '⚠ Oil Price Needed'}
                               </span>
                             </div>
                             <button
                               onClick={() => {
                                 setEditingOilProductId(prod._id)
-                                setEditingOilKg(
-                                  String(prod.oilCostPerKg || (prod.oilCostPerMl ? prod.oilCostPerMl * 1000 : 3000))
-                                )
+                                setEditingOilKg(prod.oilCostPerKg > 0 ? String(prod.oilCostPerKg) : '')
                               }}
                               className="rounded p-1 text-[11px] text-scnt-text-muted hover:text-scnt-text hover:bg-scnt-card/60"
-                              title="Edit this fragrance's oil cost"
+                              title="Set this fragrance's oil cost"
                             >
                               ✏️
                             </button>
@@ -1920,7 +1941,12 @@ export function ExpensesTab() {
                       </td>
 
                       <td className="px-4 py-3 font-mono">{formatEgp(prod.size100ml.retailPrice)}</td>
-                      <td className="px-4 py-3 font-mono text-scnt-text-muted">{formatEgp(prod.size100ml.cogs)}</td>
+                      <td className="px-4 py-3 font-mono text-scnt-text-muted">
+                        {formatEgp(prod.size100ml.cogs)}
+                        {prod.oilCostPerKg === 0 && (
+                          <span className="block text-[10px] text-amber-700">(base only)</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 font-semibold text-emerald-800">
                         {formatEgp(prod.size100ml.grossProfit)}
                       </td>
@@ -2025,6 +2051,31 @@ export function ExpensesTab() {
                 </div>
               </div>
 
+              {formCategory === 'OILS' && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 space-y-1.5">
+                  <label className="text-xs font-semibold text-amber-900 block">
+                    Assign Oil to Fragrance (Each fragrance has a distinct oil price)
+                  </label>
+                  <select
+                    className="w-full rounded-md border border-amber-500/40 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
+                    value={formAssignedProduct}
+                    onChange={(e) => setFormAssignedProduct(e.target.value)}
+                  >
+                    <option value="">— Unassigned General Oil / Bulk —</option>
+                    {cogsAnalysis?.productAnalysis.map((p) => (
+                      <option key={p._id} value={p._id}>
+                        {p.name} {p.oilCostPerKg > 0 ? `(Current: ${formatEgp(p.oilCostPerKg)}/kg)` : '(Oil price not set)'}
+                      </option>
+                    ))}
+                  </select>
+                  {formAssignedProduct && (
+                    <p className="text-[11px] text-amber-800">
+                      If synced, this fragrance's official recipe oil benchmark will be updated to this purchase rate.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-scnt-text-muted">Total Paid Amount (EGP)</label>
@@ -2114,7 +2165,9 @@ export function ExpensesTab() {
                     className="rounded border-scnt-border"
                   />
                   <label htmlFor="syncBenchmark" className="text-xs text-scnt-text">
-                    Update active benchmark price with this purchase cost
+                    {formCategory === 'OILS' && formAssignedProduct
+                      ? 'Update selected fragrance official oil benchmark rate with this purchase cost'
+                      : 'Update active benchmark price with this purchase cost'}
                   </label>
                 </div>
               )}
@@ -2154,6 +2207,22 @@ export function ExpensesTab() {
             </div>
 
             <form onSubmit={handleLogGiveaway} className="space-y-3">
+              <div>
+                <label className="text-xs text-scnt-text-muted">Fragrance Product (Optional)</label>
+                <select
+                  className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-2.5 py-2 text-xs text-scnt-text"
+                  value={giveawayFragranceId}
+                  onChange={(e) => setGiveawayFragranceId(e.target.value)}
+                >
+                  <option value="">— Generic / Base Materials Only —</option>
+                  {cogsAnalysis?.productAnalysis.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.name} {p.oilCostPerKg > 0 ? `(${formatEgp(p.decant3ml?.cogs || 0)} decant COGS)` : '(Oil price not set)'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="text-xs text-scnt-text-muted">Number of 3ml Decants Given Away</label>
                 <input
@@ -2200,20 +2269,26 @@ export function ExpensesTab() {
                 />
               </div>
 
-              {cogsData && (
-                <div className="rounded-lg bg-fuchsia-500/10 p-3 text-xs text-fuchsia-900 border border-fuchsia-500/20">
-                  <div className="flex justify-between">
-                    <span>Active 3ml Decant Unit COGS:</span>
-                    <span className="font-mono font-semibold">{formatEgp(cogsData.breakdowns.decant3ml.totalCogs)}</span>
+              {cogsData && (() => {
+                const matchedProd = giveawayFragranceId && cogsAnalysis
+                  ? cogsAnalysis.productAnalysis.find((p) => p._id === giveawayFragranceId)
+                  : null
+                const decantUnitCost = matchedProd?.decant3ml?.cogs || cogsData.breakdowns.decant3ml.totalCogs
+                const totalPromotionalCost = Number((decantUnitCost * (Number(giveawayCount) || 1)).toFixed(2))
+
+                return (
+                  <div className="rounded-lg bg-fuchsia-500/10 p-3 text-xs text-fuchsia-900 border border-fuchsia-500/20">
+                    <div className="flex justify-between">
+                      <span>Unit 3ml Decant COGS {matchedProd ? `(${matchedProd.name})` : '(Base)'}:</span>
+                      <span className="font-mono font-semibold">{formatEgp(decantUnitCost)}</span>
+                    </div>
+                    <div className="flex justify-between pt-1 font-semibold">
+                      <span>Total Marketing Expense to Log:</span>
+                      <span className="font-mono">{formatEgp(totalPromotionalCost)}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between pt-1 font-semibold">
-                    <span>Total Marketing Cost Logged:</span>
-                    <span className="font-mono">
-                      {formatEgp(cogsData.breakdowns.decant3ml.totalCogs * (Number(giveawayCount) || 1))}
-                    </span>
-                  </div>
-                </div>
-              )}
+                )
+              })()}
 
               <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setShowGiveawayModal(false)} disabled={busy}>

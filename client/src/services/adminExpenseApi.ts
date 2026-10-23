@@ -43,6 +43,7 @@ export interface ExpenseItem {
   date: string
   invoiceNumber?: string
   notes?: string
+  assignedProduct?: { _id: string; name: string; slug?: string } | string | null
   promotionDetails?: {
     campaignName?: string
     decantUnitsGiven?: number
@@ -79,8 +80,8 @@ export interface CostConfig {
   _id?: string
   key: string
   liquids: {
-    oilCostPerKg: number
-    oilCostPerMl: number
+    oilCostPerKg?: number
+    oilCostPerMl?: number
     fragrantAlcoholCostPerLiter: number
     fragrantAlcoholCostPerMl: number
     cleaningAlcoholCostPerLiter: number
@@ -158,13 +159,17 @@ export interface CogsBreakdownProduct {
     thankYouCard: number
     courierFlyer: number
   }
+  baseNonOilCost?: number
   totalCogs: number
 }
 
 export interface CogsBreakdownDecant {
   liquidCost: number
+  oilCost?: number
+  alcoholCost?: number
   vialCost: number
   decantCardCost: number
+  baseNonOilCost?: number
   totalCogs: number
 }
 
@@ -199,6 +204,7 @@ export interface ProductMarginItem {
   oilCostPerKg: number
   oilCostPerMl: number
   hasCustomOilPrice: boolean
+  isOilConfigured?: boolean
   breakdowns?: {
     size100ml: CogsBreakdownProduct
     size50ml: CogsBreakdownProduct
@@ -262,7 +268,9 @@ export async function fetchExpenseSummary(): Promise<ExpenseSummary> {
   return apiGetDataAuthed('/admin/expenses/summary')
 }
 
-export async function createExpense(payload: Partial<ExpenseItem> & { syncWithCostConfig?: boolean }): Promise<ExpenseItem> {
+export async function createExpense(
+  payload: Partial<ExpenseItem> & { syncWithCostConfig?: boolean; assignedProduct?: string | null }
+): Promise<ExpenseItem> {
   return apiPostDataAuthed('/admin/expenses', payload)
 }
 
@@ -271,6 +279,7 @@ export async function logDecantGiveaway(payload: {
   campaignName?: string
   recipient?: string
   notes?: string
+  fragranceId?: string | null
 }): Promise<{ expense: ExpenseItem; decantUnitCost: number; totalLogged: number }> {
   return apiPostDataAuthed('/admin/expenses/log-decant-giveaway', payload)
 }

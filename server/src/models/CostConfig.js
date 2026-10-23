@@ -4,10 +4,8 @@ const costConfigSchema = new mongoose.Schema(
   {
     key: { type: String, default: "global", unique: true },
 
-    // Fragrance formulation (Fragrance Oil + Fragrant Alcohol + Cleaning Alcohol)
+    // Shared Liquids formulation (Fragrant Alcohol + Cleaning Alcohol)
     liquids: {
-      oilCostPerKg: { type: Number, default: 3000 },
-      oilCostPerMl: { type: Number, default: 3 }, // derived or custom: EGP/ml
       fragrantAlcoholCostPerLiter: { type: Number, default: 200 },
       fragrantAlcoholCostPerMl: { type: Number, default: 0.2 }, // EGP/ml
       cleaningAlcoholCostPerLiter: { type: Number, default: 80 },
@@ -131,10 +129,6 @@ costConfigSchema.pre("save", function (next) {
     this.wrapping.shreddedPaper.unitCostPerBox = Number(
       (this.wrapping.shreddedPaper.costPerBag / this.wrapping.shreddedPaper.boxesPerBag).toFixed(4)
     );
-  }
-  // Oil per ml if oilCostPerKg given
-  if (this.liquids?.oilCostPerKg > 0 && (!this.liquids.oilCostPerMl || this.liquids.oilCostPerMl === 0)) {
-    this.liquids.oilCostPerMl = Number((this.liquids.oilCostPerKg / 1000).toFixed(4));
   }
   // Fragrant alcohol per ml
   if (this.liquids?.fragrantAlcoholCostPerLiter > 0) {

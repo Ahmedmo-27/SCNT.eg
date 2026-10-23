@@ -59,6 +59,7 @@ const expenseSchema = new mongoose.Schema(
       recipient: { type: String, default: "" },
     },
 
+    assignedProduct: { type: mongoose.Schema.Types.ObjectId, ref: "Product", default: null },
     recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   },
   { timestamps: true }

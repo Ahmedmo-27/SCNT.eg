@@ -16,13 +16,11 @@ async function getOrCreateCostConfig() {
 }
 
 /** Compute unit cost breakdown for standard 100ml, 50ml, and 3ml decant */
-function computeStandardCogs(config, overrideOilPerMl = null) {
+function computeStandardCogs(config, overrideOilPerMl = 0) {
   const { liquids, bottles, boxes, stickers, cards, wrapping } = config;
 
-  const oilPerMl =
-    overrideOilPerMl != null && overrideOilPerMl > 0
-      ? overrideOilPerMl
-      : liquids.oilCostPerMl || liquids.oilCostPerKg / 1000 || 3;
+  // Fragrance oils have NO default; each fragrance specifies its own oil cost
+  const oilPerMl = Number(overrideOilPerMl) || 0;
   const alcPerMl = liquids.fragrantAlcoholCostPerMl || liquids.fragrantAlcoholCostPerLiter / 1000 || 0.2;
 
   const bottleStickerUnit = stickers?.bottleStickers?.unitCost || 5;
@@ -34,31 +32,35 @@ function computeStandardCogs(config, overrideOilPerMl = null) {
   const shreddedPaperUnit = wrapping?.shreddedPaper?.unitCostPerBox || 15;
   const flyerUnit = wrapping?.courierFlyerUnitCost || 3;
 
-  // 100ml Full Bottle COGS
-  const oil100 = (liquids.recipes?.size100ml?.oilMl || 25) * oilPerMl;
+  // 100ml Full Bottle Base Non-Oil Packaging & Liquid
   const alc100 = (liquids.recipes?.size100ml?.alcoholMl || 75) * alcPerMl;
   const bottle100 = bottles.size100ml || 38;
   const box100 = boxes.size100ml || 22;
   const stickers100 = bottleStickerUnit + boxTopStickerUnit + boxSealingStickerUnit;
   const packaging100 = wrappingSheetUnit + shreddedPaperUnit + thankYouCardUnit + flyerUnit;
-  const total100ml = Number((oil100 + alc100 + bottle100 + box100 + stickers100 + packaging100).toFixed(2));
+  const baseNonOil100 = alc100 + bottle100 + box100 + stickers100 + packaging100;
+  const oil100 = (liquids.recipes?.size100ml?.oilMl || 25) * oilPerMl;
+  const total100ml = Number((oil100 + baseNonOil100).toFixed(2));
 
-  // 50ml Full Bottle COGS
-  const oil50 = (liquids.recipes?.size50ml?.oilMl || 15) * oilPerMl;
+  // 50ml Full Bottle Base Non-Oil Packaging & Liquid
   const alc50 = (liquids.recipes?.size50ml?.alcoholMl || 35) * alcPerMl;
   const bottle50 = bottles.size50ml || 28;
   const box50 = boxes.size50ml || 16;
   const stickers50 = bottleStickerUnit + boxTopStickerUnit + boxSealingStickerUnit;
   const packaging50 = wrappingSheetUnit + shreddedPaperUnit + thankYouCardUnit + flyerUnit;
-  const total50ml = Number((oil50 + alc50 + bottle50 + box50 + stickers50 + packaging50).toFixed(2));
+  const baseNonOil50 = alc50 + bottle50 + box50 + stickers50 + packaging50;
+  const oil50 = (liquids.recipes?.size50ml?.oilMl || 15) * oilPerMl;
+  const total50ml = Number((oil50 + baseNonOil50).toFixed(2));
 
   // 3ml Decant Unit COGS
   const decantOilMl = liquids.recipes?.decant3ml?.oilMl || 1;
   const decantAlcMl = liquids.recipes?.decant3ml?.alcoholMl || 2;
-  const decantLiquid = decantOilMl * oilPerMl + decantAlcMl * alcPerMl;
+  const decantAlc = decantAlcMl * alcPerMl;
+  const decantOil = decantOilMl * oilPerMl;
   const decantVial = bottles.decant3mlVial || 6;
   const decantCard = decantCardUnit;
-  const totalDecant3ml = Number((decantLiquid + decantVial + decantCard).toFixed(2));
+  const baseNonOilDecant = decantAlc + decantVial + decantCard;
+  const totalDecant3ml = Number((decantOil + baseNonOilDecant).toFixed(2));
 
   return {
     breakdowns: {
@@ -80,6 +82,7 @@ function computeStandardCogs(config, overrideOilPerMl = null) {
           thankYouCard: thankYouCardUnit,
           courierFlyer: flyerUnit,
         },
+        baseNonOilCost: Number(baseNonOil100.toFixed(2)),
         totalCogs: total100ml,
       },
       size50ml: {
@@ -100,12 +103,16 @@ function computeStandardCogs(config, overrideOilPerMl = null) {
           thankYouCard: thankYouCardUnit,
           courierFlyer: flyerUnit,
         },
+        baseNonOilCost: Number(baseNonOil50.toFixed(2)),
         totalCogs: total50ml,
       },
       decant3ml: {
-        liquidCost: decantLiquid,
+        liquidCost: decantOil + decantAlc,
+        oilCost: decantOil,
+        alcoholCost: decantAlc,
         vialCost: decantVial,
         decantCardCost: decantCard,
+        baseNonOilCost: Number(baseNonOilDecant.toFixed(2)),
         totalCogs: totalDecant3ml,
       },
     },
@@ -116,8 +123,10 @@ function computeStandardCogs(config, overrideOilPerMl = null) {
       thankYouCard: thankYouCardUnit,
       decantCard: decantCardUnit,
       shreddedPaperPerBox: shreddedPaperUnit,
-      oilPerMl,
       fragrantAlcoholPerMl: alcPerMl,
+      baseNonOil100ml: Number(baseNonOil100.toFixed(2)),
+      baseNonOil50ml: Number(baseNonOil50.toFixed(2)),
+      baseNonOilDecant3ml: Number(baseNonOilDecant.toFixed(2)),
     },
   };
 }
@@ -155,7 +164,11 @@ const listExpenses = asyncHandler(async (req, res) => {
   const skip = (pageNum - 1) * limitNum;
 
   const [items, total] = await Promise.all([
-    Expense.find(query).sort({ date: -1, createdAt: -1 }).skip(skip).limit(limitNum),
+    Expense.find(query)
+      .populate("assignedProduct", "name slug")
+      .sort({ date: -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum),
     Expense.countDocuments(query),
   ]);
 
@@ -276,6 +289,7 @@ const createExpense = asyncHandler(async (req, res) => {
     invoiceNumber = "",
     notes = "",
     promotionDetails = {},
+    assignedProduct = null,
     syncWithCostConfig = false,
   } = req.body;
 
@@ -304,10 +318,11 @@ const createExpense = asyncHandler(async (req, res) => {
       decantUnitCostApplied: Number(promotionDetails.decantUnitCostApplied || 0),
       recipient: promotionDetails.recipient || "",
     },
+    assignedProduct: assignedProduct || null,
     recordedBy: req.user?._id || null,
   });
 
-  // Optional sync: update CostConfig benchmarks based on this purchase
+  // Optional sync: update CostConfig benchmarks or specific product oil price
   if (syncWithCostConfig) {
     const config = await getOrCreateCostConfig();
 
@@ -327,14 +342,14 @@ const createExpense = asyncHandler(async (req, res) => {
       config.liquids.fragrantAlcoholCostPerMl = Number((computedUnitCost / 1000).toFixed(4));
     } else if (category === "CLEANING_ALCOHOL") {
       config.liquids.cleaningAlcoholCostPerLiter = computedUnitCost;
-    } else if (category === "OILS" && (unit === "kg" || unit === "grams")) {
-      if (unit === "kg") {
-        config.liquids.oilCostPerKg = computedUnitCost;
-        config.liquids.oilCostPerMl = Number((computedUnitCost / 1000).toFixed(4));
-      } else {
-        config.liquids.oilCostPerMl = computedUnitCost;
-        config.liquids.oilCostPerKg = computedUnitCost * 1000;
-      }
+    } else if (category === "OILS" && assignedProduct) {
+      // Fragrance oils have NO default; sync directly to the assigned fragrance product
+      const oilKg = unit === "kg" ? computedUnitCost : computedUnitCost * 1000;
+      const oilMl = unit === "grams" ? computedUnitCost : Number((computedUnitCost / 1000).toFixed(4));
+      await Product.findByIdAndUpdate(assignedProduct, {
+        oilCostPerKg: oilKg,
+        oilCostPerMl: oilMl,
+      });
     }
     await config.save();
   }
@@ -354,16 +369,28 @@ const createExpense = asyncHandler(async (req, res) => {
  * Quick-action: log X gave-away 3ml decants with their decant cards as a promotional expense
  */
 const logDecantGiveaway = asyncHandler(async (req, res) => {
-  const { count = 1, campaignName = "Sample Giveaway", recipient = "", notes = "" } = req.body;
+  const { count = 1, campaignName = "Sample Giveaway", recipient = "", notes = "", fragranceId = null } = req.body;
 
   const parsedCount = Math.max(1, parseInt(count, 10));
   const config = await getOrCreateCostConfig();
-  const { breakdowns } = computeStandardCogs(config);
+
+  let oilPerMl = 0;
+  let fragranceName = "";
+  if (fragranceId) {
+    const prod = await Product.findById(fragranceId).select("name oilCostPerMl oilCostPerKg").lean();
+    if (prod) {
+      fragranceName = prod.name;
+      oilPerMl = prod.oilCostPerMl > 0 ? prod.oilCostPerMl : prod.oilCostPerKg > 0 ? prod.oilCostPerKg / 1000 : 0;
+    }
+  }
+
+  const { breakdowns } = computeStandardCogs(config, oilPerMl);
   const decantUnitCost = breakdowns.decant3ml.totalCogs;
   const totalAmount = Number((parsedCount * decantUnitCost).toFixed(2));
 
+  const titleDetail = fragranceName ? ` - ${fragranceName}` : "";
   const expense = await Expense.create({
-    title: `3ml Decant Giveaway (${parsedCount} units - ${campaignName || "Promotion"})`,
+    title: `3ml Decant Giveaway (${parsedCount} units${titleDetail} - ${campaignName || "Promotion"})`,
     category: "MARKETING_GIVEAWAYS",
     amount: totalAmount,
     quantity: parsedCount,
@@ -371,13 +398,16 @@ const logDecantGiveaway = asyncHandler(async (req, res) => {
     unitCost: decantUnitCost,
     supplier: "SCNT In-House Production",
     date: new Date(),
-    notes: notes || `Distributed ${parsedCount} x 3ml decants with Decant Cards for marketing/promotion.`,
+    notes:
+      notes ||
+      `Distributed ${parsedCount} x 3ml decants (${fragranceName || "Unspecified oil"}) with Decant Cards for marketing/promotion.`,
     promotionDetails: {
       campaignName: campaignName || "Giveaway Campaign",
       decantUnitsGiven: parsedCount,
       decantUnitCostApplied: decantUnitCost,
       recipient: recipient || "Marketing Distribution",
     },
+    assignedProduct: fragranceId || null,
     recordedBy: req.user?._id || null,
   });
 
@@ -385,7 +415,7 @@ const logDecantGiveaway = asyncHandler(async (req, res) => {
     action: "DECANT_GIVEAWAY_LOG",
     targetType: "Expense",
     targetId: expense._id.toString(),
-    details: { count: parsedCount, totalAmount, decantUnitCost },
+    details: { count: parsedCount, totalAmount, decantUnitCost, fragranceName },
   });
 
   res.status(201).json(
@@ -623,21 +653,19 @@ const updateProductOilPrice = asyncHandler(async (req, res) => {
  */
 const getCogsAnalysis = asyncHandler(async (_req, res) => {
   const config = await getOrCreateCostConfig();
-  const { breakdowns: globalBreakdowns } = computeStandardCogs(config);
+  // Base non-oil packaging & solvent benchmarks
+  const { breakdowns: baseBreakdowns, unitCostsSummary } = computeStandardCogs(config, 0);
   const products = await Product.find({})
     .select("name slug price size sizes stock oilCostPerKg oilCostPerMl SCNTcollection")
     .lean();
 
-  const defaultOilPerMl = config.liquids.oilCostPerMl || config.liquids.oilCostPerKg / 1000 || 3;
-
   const productAnalysis = products.map((p) => {
-    // Each fragrance uses its custom oil cost if set, else falls back to global default
-    const prodOilPerMl =
-      p.oilCostPerMl > 0
-        ? p.oilCostPerMl
-        : p.oilCostPerKg > 0
-        ? p.oilCostPerKg / 1000
-        : defaultOilPerMl;
+    // Fragrance oils have NO global default; each fragrance specifies its own oil cost
+    const hasOilPrice = Boolean(
+      (p.oilCostPerMl && p.oilCostPerMl > 0) || (p.oilCostPerKg && p.oilCostPerKg > 0)
+    );
+    const prodOilPerMl = p.oilCostPerMl > 0 ? p.oilCostPerMl : p.oilCostPerKg > 0 ? p.oilCostPerKg / 1000 : 0;
+    const prodOilPerKg = p.oilCostPerKg > 0 ? p.oilCostPerKg : prodOilPerMl > 0 ? prodOilPerMl * 1000 : 0;
 
     const prodCogs = computeStandardCogs(config, prodOilPerMl);
     const prodBreakdowns = prodCogs.breakdowns;
@@ -661,9 +689,10 @@ const getCogsAnalysis = asyncHandler(async (_req, res) => {
       name: p.name,
       slug: p.slug,
       stock: p.stock,
-      oilCostPerKg: p.oilCostPerKg || (p.oilCostPerMl ? p.oilCostPerMl * 1000 : 0),
+      oilCostPerKg: prodOilPerKg,
       oilCostPerMl: prodOilPerMl,
-      hasCustomOilPrice: Boolean(p.oilCostPerMl > 0 || p.oilCostPerKg > 0),
+      hasCustomOilPrice: hasOilPrice,
+      isOilConfigured: hasOilPrice,
       breakdowns: prodBreakdowns,
       size100ml: {
         retailPrice: retailPrice100,
@@ -686,14 +715,15 @@ const getCogsAnalysis = asyncHandler(async (_req, res) => {
 
   res.status(200).json(
     successResponse({
-      benchmarks: globalBreakdowns,
+      benchmarks: baseBreakdowns,
+      unitCostsSummary,
       productAnalysis,
       decant3mlAnalysis: {
-        cogs: globalBreakdowns.decant3ml.totalCogs,
-        breakdown: globalBreakdowns.decant3ml,
+        baseCogsWithoutOil: baseBreakdowns.decant3ml.totalCogs,
+        breakdown: baseBreakdowns.decant3ml,
         suggestedSellingPrice: 120, // benchmark reference
-        suggestedGrossProfit: Number((120 - globalBreakdowns.decant3ml.totalCogs).toFixed(2)),
-        suggestedMarginPercent: Number((((120 - globalBreakdowns.decant3ml.totalCogs) / 120) * 100).toFixed(1)),
+        suggestedGrossProfit: Number((120 - baseBreakdowns.decant3ml.totalCogs).toFixed(2)),
+        suggestedMarginPercent: Number((((120 - baseBreakdowns.decant3ml.totalCogs) / 120) * 100).toFixed(1)),
       },
     })
   );
