@@ -209,4 +209,25 @@ describe("Expenses & COGS Formulas Unit Tests", () => {
     // Total = 1025.375 + 1410.75 + 565.00 = 3001.13
     expect(totalMixed).toBe(3001.13);
   });
+
+  it("computes unit price and total amount bidirectionally and detects price adjustments from saved benchmarks", () => {
+    // Saved benchmark for bottle sticker roll is 50 EGP / meter
+    const savedBenchmarkPrice = 50;
+    const quantityPurchased = 15; // 15 meters
+
+    // Pre-loaded total
+    const preloadedTotal = savedBenchmarkPrice * quantityPurchased;
+    expect(preloadedTotal).toBe(750);
+
+    // Supplier changed meter price to 55 EGP
+    const updatedUnitPrice = 55;
+    const recalculatedTotal = Number((updatedUnitPrice * quantityPurchased).toFixed(2));
+    expect(recalculatedTotal).toBe(825);
+    expect(updatedUnitPrice !== savedBenchmarkPrice).toBe(true);
+
+    // Editing total amount backwards derives unit price
+    const newTotalPaid = 900;
+    const derivedUnitPrice = Number((newTotalPaid / quantityPurchased).toFixed(4));
+    expect(derivedUnitPrice).toBe(60);
+  });
 });

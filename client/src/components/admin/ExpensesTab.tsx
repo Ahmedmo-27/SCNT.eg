@@ -78,6 +78,25 @@ const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   MISCELLANEOUS: 'bg-zinc-500/10 text-zinc-700 border-zinc-500/20',
 }
 
+const CATEGORY_DEFAULT_TITLES: Partial<Record<ExpenseCategory, string>> = {
+  OILS: 'Fragrance Oils',
+  BOTTLE_STICKERS: 'Bottle Sticker Roll (Meters)',
+  BOX_SEALING_STICKERS: 'Box Sealing Sticker Sheets',
+  BOX_TOP_STICKERS: 'Box Top Sticker Roll (Meters)',
+  FRAGRANT_ALCOHOL: 'Fragrant Alcohol 96% (Ethanol)',
+  CLEANING_ALCOHOL: 'Cleaning Alcohol (IPA)',
+  SHREDDED_PAPER: 'Shredded Paper Packaging Bags',
+  WRAPPING_SHEETS: 'Protective Wrapping Sheets',
+  THANK_YOU_CARDS: 'Thank You Customer Cards',
+  DECANT_CARDS: 'Custom 3ml Decant Cards',
+  DECANTS_3ML: '3ml Decant Sample Vials',
+  BOTTLES: '100ml Glass Perfume Bottles & Atomizers',
+  BOXES: '100ml Rigid Packaging Outer Boxes',
+  PACKAGING_SHIPPING: 'Courier Shipping Bags & Flyers',
+  LAB_TOOLS: 'Lab Equipment & Measuring Tools',
+  MARKETING_GIVEAWAYS: 'Promotional Giveaway Campaign',
+}
+
 type SubTabKey = 'ledger' | 'rates' | 'calculator' | 'promotions' | 'catalog'
 
 export function ExpensesTab() {
@@ -110,6 +129,7 @@ export function ExpensesTab() {
   const [formCategory, setFormCategory] = useState<ExpenseCategory>('OILS')
   const [formAmount, setFormAmount] = useState('')
   const [formQuantity, setFormQuantity] = useState('1')
+  const [formUnitPrice, setFormUnitPrice] = useState('')
   const [formUnit, setFormUnit] = useState<ExpenseUnit>('units')
   const [formSupplier, setFormSupplier] = useState('')
   const [formInvoice, setFormInvoice] = useState('')
@@ -312,13 +332,173 @@ export function ExpensesTab() {
       .reduce((sum, a) => sum + Number(a.quantity || 0), 0) +
     (unassignedFormat === 'decant3ml' ? unassignedUnitsCount : 0)
 
+  const getSavedPriceForItem = (
+    category: ExpenseCategory,
+    assignedProdId?: string,
+    titleText?: string
+  ): { price: number; unit: ExpenseUnit; label: string } | null => {
+    if (category === 'OILS') {
+      if (assignedProdId && cogsAnalysis) {
+        const prod = cogsAnalysis.productAnalysis.find((p) => p._id === assignedProdId)
+        if (prod && prod.oilCostPerKg > 0) {
+          return { price: prod.oilCostPerKg, unit: 'kg', label: `${prod.name} Benchmark Rate` }
+        }
+      }
+      const recentOil = expenses.find(
+        (e) => e.category === 'OILS' && (!assignedProdId || e.assignedProduct === assignedProdId)
+      )
+      if (recentOil && recentOil.unitCost > 0) {
+        return { price: recentOil.unitCost, unit: recentOil.unit, label: 'Last Recorded Oil Purchase' }
+      }
+      return null
+    }
+
+    if (category === 'BOTTLE_STICKERS') {
+      const price = costConfig?.stickers?.bottleStickers?.costPerMeter || 50
+      return { price, unit: 'meters', label: 'Roll Benchmark per Meter' }
+    }
+
+    if (category === 'BOX_SEALING_STICKERS') {
+      const price = costConfig?.stickers?.boxSealingStickers?.costPerSheet || 150
+      return { price, unit: 'sheets', label: 'Sheet Benchmark (40 pcs)' }
+    }
+
+    if (category === 'BOX_TOP_STICKERS') {
+      const price = costConfig?.stickers?.boxTopStickers?.costPerMeter || 50
+      return { price, unit: 'meters', label: 'Roll Benchmark per Meter' }
+    }
+
+    if (category === 'FRAGRANT_ALCOHOL') {
+      const price = costConfig?.liquids?.fragrantAlcoholCostPerLiter || 200
+      return { price, unit: 'liters', label: 'Ethanol 96% Benchmark per Liter' }
+    }
+
+    if (category === 'CLEANING_ALCOHOL') {
+      const price = costConfig?.liquids?.cleaningAlcoholCostPerLiter || 90
+      return { price, unit: 'liters', label: 'Isopropyl Alcohol per Liter' }
+    }
+
+    if (category === 'SHREDDED_PAPER') {
+      const price = costConfig?.wrapping?.shreddedPaper?.costPerBag || 45
+      return { price, unit: 'bags', label: 'Bag Benchmark (Makes ~3 boxes)' }
+    }
+
+    if (category === 'WRAPPING_SHEETS') {
+      const price = costConfig?.wrapping?.wrappingSheetUnitCost || 2.5
+      return { price, unit: 'pcs', label: 'Wrapping Sheet Benchmark' }
+    }
+
+    if (category === 'THANK_YOU_CARDS') {
+      const price = costConfig?.cards?.thankYouCard?.unitCost || 0.7
+      return { price, unit: 'pcs', label: 'Thank You Card Benchmark' }
+    }
+
+    if (category === 'DECANT_CARDS') {
+      const price = costConfig?.cards?.decantCard?.unitCost || 0.9
+      return { price, unit: 'pcs', label: 'Decant Card Benchmark' }
+    }
+
+    if (category === 'DECANTS_3ML') {
+      const price = costConfig?.bottles?.decant3mlVial || 6
+      return { price, unit: 'pcs', label: '3ml Sample Vial Benchmark' }
+    }
+
+    if (category === 'BOTTLES') {
+      const is50 = (titleText || '').toLowerCase().includes('50')
+      const price = is50 ? costConfig?.bottles?.size50ml || 28 : costConfig?.bottles?.size100ml || 38
+      return { price, unit: 'pcs', label: is50 ? '50ml Bottle Benchmark' : '100ml Bottle Benchmark' }
+    }
+
+    if (category === 'BOXES') {
+      const is50 = (titleText || '').toLowerCase().includes('50')
+      const price = is50 ? costConfig?.boxes?.size50ml || 16 : costConfig?.boxes?.size100ml || 22
+      return { price, unit: 'pcs', label: is50 ? '50ml Box Benchmark' : '100ml Box Benchmark' }
+    }
+
+    if (category === 'PACKAGING_SHIPPING') {
+      const price = costConfig?.wrapping?.courierFlyerUnitCost || 3
+      return { price, unit: 'pcs', label: 'Courier Flyer Benchmark' }
+    }
+
+    const recent = expenses.find((e) => e.category === category)
+    if (recent && recent.unitCost > 0) {
+      return { price: recent.unitCost, unit: recent.unit, label: 'Last Recorded Purchase Price' }
+    }
+
+    return null
+  }
+
+  const handleCategoryChange = (cat: ExpenseCategory) => {
+    setFormCategory(cat)
+
+    if (cat === 'MARKETING_GIVEAWAYS') {
+      setFormUnit('pcs')
+      setUsePromoCalculator(true)
+      if (!formTitle || Object.values(CATEGORY_DEFAULT_TITLES).includes(formTitle)) {
+        setFormTitle(`${promoTargetTotal} Items Promotion`)
+      }
+      setFormUnitPrice(String(computedPromoBlendedUnitCost))
+      setFormAmount(String(computedPromoTotalAmount))
+      return
+    }
+
+    if (!formTitle || Object.values(CATEGORY_DEFAULT_TITLES).includes(formTitle)) {
+      setFormTitle(CATEGORY_DEFAULT_TITLES[cat] || '')
+    }
+
+    const saved = getSavedPriceForItem(cat, formAssignedProduct, formTitle)
+    if (saved) {
+      setFormUnit(saved.unit)
+      setFormUnitPrice(String(saved.price))
+      const q = Number(formQuantity) || 1
+      setFormAmount(String(Number((saved.price * q).toFixed(2))))
+    } else {
+      if (cat === 'BOTTLE_STICKERS' || cat === 'BOX_TOP_STICKERS') setFormUnit('meters')
+      else if (cat === 'BOX_SEALING_STICKERS') setFormUnit('sheets')
+      else if (cat === 'SHREDDED_PAPER') setFormUnit('bags')
+      else if (cat === 'OILS') setFormUnit('kg')
+      else if (cat === 'FRAGRANT_ALCOHOL' || cat === 'CLEANING_ALCOHOL') setFormUnit('liters')
+      else setFormUnit('pcs')
+      setFormUnitPrice('')
+      setFormAmount('')
+    }
+  }
+
+  const handleAssignedProductChange = (prodId: string) => {
+    setFormAssignedProduct(prodId)
+    if (!prodId) {
+      if (formCategory === 'OILS') {
+        setFormUnitPrice('')
+        setFormAmount('')
+      }
+      return
+    }
+
+    const prod = cogsAnalysis?.productAnalysis.find((p) => p._id === prodId)
+    if (prod) {
+      if (!formTitle || Object.values(CATEGORY_DEFAULT_TITLES).includes(formTitle) || formTitle.endsWith('Fragrance Oil')) {
+        setFormTitle(`${prod.name} Fragrance Oil`)
+      }
+      if (prod.oilCostPerKg > 0) {
+        setFormUnitPrice(String(prod.oilCostPerKg))
+        setFormUnit('kg')
+        const q = Number(formQuantity) || 1
+        setFormAmount(String(Number((prod.oilCostPerKg * q).toFixed(2))))
+      } else {
+        setFormUnitPrice('')
+        setFormAmount('')
+      }
+    }
+  }
+
   useEffect(() => {
     if (usePromoCalculator && showAddModal) {
       setFormAmount(String(computedPromoTotalAmount))
       setFormQuantity(String(promoTargetTotal))
+      setFormUnitPrice(String(computedPromoBlendedUnitCost))
       setFormUnit('pcs')
     }
-  }, [usePromoCalculator, computedPromoTotalAmount, promoTargetTotal, showAddModal])
+  }, [usePromoCalculator, computedPromoTotalAmount, computedPromoBlendedUnitCost, promoTargetTotal, showAddModal])
 
   const openAddModal = (item?: ExpenseItem) => {
     if (item) {
@@ -327,6 +507,7 @@ export function ExpensesTab() {
       setFormCategory(item.category)
       setFormAmount(String(item.amount))
       setFormQuantity(String(item.quantity))
+      setFormUnitPrice(String(item.unitCost || (item.quantity ? Number((item.amount / item.quantity).toFixed(4)) : '')))
       setFormUnit(item.unit)
       setFormSupplier(item.supplier || '')
       setFormInvoice(item.invoiceNumber || '')
@@ -366,6 +547,7 @@ export function ExpensesTab() {
       setFormCategory('OILS')
       setFormAmount('')
       setFormQuantity('1')
+      setFormUnitPrice('')
       setFormUnit('kg')
       setFormSupplier('')
       setFormInvoice('')
@@ -2233,24 +2415,7 @@ export function ExpensesTab() {
                   <select
                     className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-2.5 py-2 text-xs text-scnt-text"
                     value={formCategory}
-                    onChange={(e) => {
-                      const cat = e.target.value as ExpenseCategory
-                      setFormCategory(cat)
-                      if (cat === 'BOTTLE_STICKERS' || cat === 'BOX_TOP_STICKERS') setFormUnit('meters')
-                      else if (cat === 'BOX_SEALING_STICKERS') setFormUnit('sheets')
-                      else if (cat === 'SHREDDED_PAPER') setFormUnit('bags')
-                      else if (cat === 'OILS') setFormUnit('kg')
-                      else if (cat === 'FRAGRANT_ALCOHOL' || cat === 'CLEANING_ALCOHOL') setFormUnit('liters')
-                      else if (cat === 'MARKETING_GIVEAWAYS') {
-                        setFormUnit('pcs')
-                        setUsePromoCalculator(true)
-                        if (!formTitle || formTitle === 'Fragrance Oils' || formTitle === 'Fragrance Oil') {
-                          setFormTitle(`${promoTargetTotal} Items Promotion`)
-                        }
-                      } else {
-                        setFormUnit('pcs')
-                      }
-                    }}
+                    onChange={(e) => handleCategoryChange(e.target.value as ExpenseCategory)}
                   >
                     {(Object.keys(CATEGORY_LABELS) as ExpenseCategory[]).map((cat) => (
                       <option key={cat} value={cat}>
@@ -2289,7 +2454,7 @@ export function ExpensesTab() {
                   <select
                     className="w-full rounded-md border border-amber-500/40 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
                     value={formAssignedProduct}
-                    onChange={(e) => setFormAssignedProduct(e.target.value)}
+                    onChange={(e) => handleAssignedProductChange(e.target.value)}
                   >
                     <option value="">— Unassigned General Oil / Bulk —</option>
                     {cogsAnalysis?.productAnalysis.map((p) => (
@@ -2300,7 +2465,7 @@ export function ExpensesTab() {
                   </select>
                   {formAssignedProduct && (
                     <p className="text-[11px] text-amber-800">
-                      If synced, this fragrance's official recipe oil benchmark will be updated to this purchase rate.
+                      Selecting a fragrance automatically loads its saved oil benchmark rate so you can record or adjust it.
                     </p>
                   )}
                 </div>
@@ -2673,39 +2838,146 @@ export function ExpensesTab() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-scnt-text-muted">Total Paid Amount (EGP)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    required
-                    placeholder="0.00"
-                    className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-3 py-2 text-xs text-scnt-text"
-                    value={formAmount}
-                    onChange={(e) => setFormAmount(e.target.value)}
-                  />
-                </div>
+              {/* Saved Benchmark Rate Indicator & Pricing Row */}
+              {(() => {
+                const currentSavedPrice = getSavedPriceForItem(formCategory, formAssignedProduct, formTitle)
+                const numericUnit = Number(formUnitPrice)
+                const isPriceModified =
+                  Boolean(currentSavedPrice && formUnitPrice !== '' && !isNaN(numericUnit) && Math.abs(numericUnit - currentSavedPrice.price) > 0.0001)
 
-                <div>
-                  <label className="text-xs text-scnt-text-muted">Quantity Purchased</label>
-                  <input
-                    type="number"
-                    step="any"
-                    required
-                    placeholder="1"
-                    className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-3 py-2 text-xs text-scnt-text"
-                    value={formQuantity}
-                    onChange={(e) => setFormQuantity(e.target.value)}
-                  />
-                </div>
-              </div>
+                return (
+                  <div className="space-y-3">
+                    {/* Active Saved Price Banner */}
+                    {currentSavedPrice && (
+                      <div
+                        className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2.5 text-xs transition-colors ${
+                          isPriceModified
+                            ? 'border-amber-500/40 bg-amber-500/10 text-amber-900'
+                            : 'border-emerald-500/40 bg-emerald-500/10 text-emerald-900'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">{isPriceModified ? '⚡' : '✓'}</span>
+                          <div>
+                            <div className="font-medium">
+                              {isPriceModified ? 'Price Adjusted from Saved Rate' : 'Loaded Active Saved Price'}:
+                              <span className="font-mono font-bold ml-1.5">{formatEgp(currentSavedPrice.price)}</span> / {currentSavedPrice.unit}
+                            </div>
+                            <p className="text-[10px] text-scnt-text-muted">
+                              {currentSavedPrice.label} · {isPriceModified ? 'You can edit the price below if it changed.' : 'Pre-filled automatically from system records.'}
+                            </p>
+                          </div>
+                        </div>
 
-              {Number(formAmount) > 0 && Number(formQuantity) > 0 && (
-                <div className="rounded bg-scnt-card/40 p-2 text-xs text-scnt-text-muted font-mono">
-                  Calculated Unit Cost: {formatEgp(Number(formAmount) / Number(formQuantity))} / {formUnit}
-                </div>
-              )}
+                        {isPriceModified && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormUnitPrice(String(currentSavedPrice.price))
+                              const q = Number(formQuantity) || 1
+                              setFormAmount(String(Number((currentSavedPrice.price * q).toFixed(2))))
+                            }}
+                            className="px-2 py-1 rounded bg-amber-600/20 hover:bg-amber-600/30 text-amber-900 text-[11px] font-medium transition-colors"
+                          >
+                            ↺ Revert to Saved ({formatEgp(currentSavedPrice.price)})
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Synchronized 3-field Pricing Grid */}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div>
+                        <label className="text-xs text-scnt-text-muted flex items-center justify-between">
+                          <span>Unit Price (EGP / {formUnit})</span>
+                          {currentSavedPrice && (
+                            <span className="text-[10px] text-emerald-700 font-mono">
+                              Saved: {formatEgp(currentSavedPrice.price)}
+                            </span>
+                          )}
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          required
+                          placeholder={currentSavedPrice ? String(currentSavedPrice.price) : '0.00'}
+                          className={`mt-1 w-full rounded-md border bg-scnt-bg px-3 py-2 text-xs font-semibold text-scnt-text ${
+                            isPriceModified ? 'border-amber-500 font-bold' : 'border-scnt-border'
+                          }`}
+                          value={formUnitPrice}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setFormUnitPrice(val)
+                            const q = Number(formQuantity) || 1
+                            if (val !== '' && !isNaN(Number(val))) {
+                              setFormAmount(String(Number((Number(val) * q).toFixed(2))))
+                              if (currentSavedPrice && Math.abs(Number(val) - currentSavedPrice.price) > 0.0001) {
+                                setFormSyncBenchmark(true)
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-scnt-text-muted">Quantity Purchased ({formUnit})</label>
+                        <input
+                          type="number"
+                          step="any"
+                          required
+                          min="0.0001"
+                          placeholder="1"
+                          className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-3 py-2 text-xs font-semibold text-scnt-text"
+                          value={formQuantity}
+                          onChange={(e) => {
+                            const qVal = e.target.value
+                            setFormQuantity(qVal)
+                            const q = Number(qVal) || 0
+                            if (formUnitPrice !== '' && !isNaN(Number(formUnitPrice))) {
+                              setFormAmount(String(Number((Number(formUnitPrice) * q).toFixed(2))))
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-scnt-text-muted">Total Paid Amount (EGP)</label>
+                        <input
+                          type="number"
+                          step="any"
+                          required
+                          placeholder="0.00"
+                          className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-3 py-2 text-xs font-bold text-scnt-text"
+                          value={formAmount}
+                          onChange={(e) => {
+                            const amtVal = e.target.value
+                            setFormAmount(amtVal)
+                            const q = Number(formQuantity) || 1
+                            if (amtVal !== '' && !isNaN(Number(amtVal)) && q > 0) {
+                              const calculatedUnit = Number((Number(amtVal) / q).toFixed(4))
+                              setFormUnitPrice(String(calculatedUnit))
+                              if (currentSavedPrice && Math.abs(calculatedUnit - currentSavedPrice.price) > 0.0001) {
+                                setFormSyncBenchmark(true)
+                              }
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {isPriceModified && currentSavedPrice && (
+                      <div className="rounded bg-amber-500/10 border border-amber-500/30 p-2 text-[11px] text-amber-800 flex items-center justify-between">
+                        <span>
+                          💡 Price adjusted from saved benchmark (was {formatEgp(currentSavedPrice.price)} → now {formatEgp(numericUnit)} / {formUnit}).
+                        </span>
+                        <span className="font-semibold text-amber-900">
+                          {formSyncBenchmark ? '✓ Sync benchmark enabled' : 'Check sync below to save'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -2752,22 +3024,20 @@ export function ExpensesTab() {
                 />
               </div>
 
-              {!editingExpense && (
-                <div className="flex items-center gap-2 pt-1">
-                  <input
-                    type="checkbox"
-                    id="syncBenchmark"
-                    checked={formSyncBenchmark}
-                    onChange={(e) => setFormSyncBenchmark(e.target.checked)}
-                    className="rounded border-scnt-border"
-                  />
-                  <label htmlFor="syncBenchmark" className="text-xs text-scnt-text">
-                    {formCategory === 'OILS' && formAssignedProduct
-                      ? 'Update selected fragrance official oil benchmark rate with this purchase cost'
-                      : 'Update active benchmark price with this purchase cost'}
-                  </label>
-                </div>
-              )}
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="syncBenchmark"
+                  checked={formSyncBenchmark}
+                  onChange={(e) => setFormSyncBenchmark(e.target.checked)}
+                  className="rounded border-scnt-border"
+                />
+                <label htmlFor="syncBenchmark" className="text-xs text-scnt-text cursor-pointer">
+                  {formCategory === 'OILS' && formAssignedProduct
+                    ? 'Update selected fragrance official oil benchmark rate with this purchase cost'
+                    : 'Update active benchmark price with this purchase cost'}
+                </label>
+              </div>
 
               <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setShowAddModal(false)} disabled={busy}>

@@ -290,6 +290,61 @@ const getExpenseSummary = asyncHandler(async (_req, res) => {
 });
 
 /**
+ * Helper: sync newly logged expense purchase cost directly into CostConfig benchmarks
+ * or to a specific fragrance's oil cost benchmark
+ */
+async function syncExpenseToCostConfig({ category, unit, computedUnitCost, title = "", assignedProduct = null }) {
+  const config = await getOrCreateCostConfig();
+
+  if (category === "BOTTLE_STICKERS") {
+    config.stickers.bottleStickers.costPerMeter = computedUnitCost;
+  } else if (category === "BOX_SEALING_STICKERS") {
+    config.stickers.boxSealingStickers.costPerSheet = computedUnitCost;
+  } else if (category === "BOX_TOP_STICKERS") {
+    config.stickers.boxTopStickers.costPerMeter = computedUnitCost;
+  } else if (category === "SHREDDED_PAPER") {
+    config.wrapping.shreddedPaper.costPerBag = computedUnitCost;
+  } else if (category === "WRAPPING_SHEETS") {
+    config.wrapping.wrappingSheetUnitCost = computedUnitCost;
+  } else if (category === "FRAGRANT_ALCOHOL") {
+    config.liquids.fragrantAlcoholCostPerLiter = computedUnitCost;
+    config.liquids.fragrantAlcoholCostPerMl = Number((computedUnitCost / 1000).toFixed(4));
+  } else if (category === "CLEANING_ALCOHOL") {
+    config.liquids.cleaningAlcoholCostPerLiter = computedUnitCost;
+  } else if (category === "THANK_YOU_CARDS") {
+    config.cards.thankYouCard.unitCost = computedUnitCost;
+  } else if (category === "DECANT_CARDS") {
+    config.cards.decantCard.unitCost = computedUnitCost;
+  } else if (category === "DECANTS_3ML") {
+    config.bottles.decant3mlVial = computedUnitCost;
+  } else if (category === "PACKAGING_SHIPPING") {
+    config.wrapping.courierFlyerUnitCost = computedUnitCost;
+  } else if (category === "BOTTLES") {
+    const is50 = (title || "").toLowerCase().includes("50");
+    if (is50) {
+      config.bottles.size50ml = computedUnitCost;
+    } else {
+      config.bottles.size100ml = computedUnitCost;
+    }
+  } else if (category === "BOXES") {
+    const is50 = (title || "").toLowerCase().includes("50");
+    if (is50) {
+      config.boxes.size50ml = computedUnitCost;
+    } else {
+      config.boxes.size100ml = computedUnitCost;
+    }
+  } else if (category === "OILS" && assignedProduct) {
+    const oilKg = unit === "kg" ? computedUnitCost : computedUnitCost * 1000;
+    const oilMl = unit === "grams" ? computedUnitCost : Number((computedUnitCost / 1000).toFixed(4));
+    await Product.findByIdAndUpdate(assignedProduct, {
+      oilCostPerKg: oilKg,
+      oilCostPerMl: oilMl,
+    });
+  }
+  await config.save();
+}
+
+/**
  * POST /api/admin/expenses
  * Create an expense entry, optionally syncing unit price to CostConfig
  */
@@ -357,34 +412,13 @@ const createExpense = asyncHandler(async (req, res) => {
 
   // Optional sync: update CostConfig benchmarks or specific product oil price
   if (syncWithCostConfig) {
-    const config = await getOrCreateCostConfig();
-
-    if (category === "BOTTLE_STICKERS" && unit === "meters") {
-      // Amount is total for quantity meters => costPerMeter = computedUnitCost
-      config.stickers.bottleStickers.costPerMeter = computedUnitCost;
-    } else if (category === "BOX_SEALING_STICKERS" && unit === "sheets") {
-      config.stickers.boxSealingStickers.costPerSheet = computedUnitCost;
-    } else if (category === "BOX_TOP_STICKERS" && (unit === "meters" || unit === "sheets")) {
-      config.stickers.boxTopStickers.costPerMeter = computedUnitCost;
-    } else if (category === "SHREDDED_PAPER" && unit === "bags") {
-      config.wrapping.shreddedPaper.costPerBag = computedUnitCost;
-    } else if (category === "WRAPPING_SHEETS") {
-      config.wrapping.wrappingSheetUnitCost = computedUnitCost;
-    } else if (category === "FRAGRANT_ALCOHOL" && (unit === "liters" || unit === "other")) {
-      config.liquids.fragrantAlcoholCostPerLiter = computedUnitCost;
-      config.liquids.fragrantAlcoholCostPerMl = Number((computedUnitCost / 1000).toFixed(4));
-    } else if (category === "CLEANING_ALCOHOL") {
-      config.liquids.cleaningAlcoholCostPerLiter = computedUnitCost;
-    } else if (category === "OILS" && assignedProduct) {
-      // Fragrance oils have NO default; sync directly to the assigned fragrance product
-      const oilKg = unit === "kg" ? computedUnitCost : computedUnitCost * 1000;
-      const oilMl = unit === "grams" ? computedUnitCost : Number((computedUnitCost / 1000).toFixed(4));
-      await Product.findByIdAndUpdate(assignedProduct, {
-        oilCostPerKg: oilKg,
-        oilCostPerMl: oilMl,
-      });
-    }
-    await config.save();
+    await syncExpenseToCostConfig({
+      category,
+      unit,
+      computedUnitCost,
+      title: expense.title,
+      assignedProduct,
+    });
   }
 
   await recordAuditAction(req, {
@@ -554,7 +588,20 @@ const updateExpense = asyncHandler(async (req, res) => {
   const expense = await Expense.findById(req.params.id);
   if (!expense) throw new ApiError(404, "Expense entry not found.");
 
-  const { title, category, amount, quantity, unit, supplier, date, invoiceNumber, notes, promotionDetails } = req.body;
+  const {
+    title,
+    category,
+    amount,
+    quantity,
+    unit,
+    supplier,
+    date,
+    invoiceNumber,
+    notes,
+    promotionDetails,
+    assignedProduct,
+    syncWithCostConfig = false,
+  } = req.body;
 
   if (title) expense.title = title.trim();
   if (category) expense.category = category;
@@ -565,6 +612,10 @@ const updateExpense = asyncHandler(async (req, res) => {
   if (date) expense.date = new Date(date);
   if (invoiceNumber !== undefined) expense.invoiceNumber = invoiceNumber.trim();
   if (notes !== undefined) expense.notes = notes.trim();
+  if (assignedProduct !== undefined) expense.assignedProduct = assignedProduct || null;
+
+  const parsedQty = Number(expense.quantity) > 0 ? Number(expense.quantity) : 1;
+  expense.unitCost = Number((Number(expense.amount) / parsedQty).toFixed(4));
 
   if (promotionDetails) {
     expense.promotionDetails = {
@@ -574,6 +625,16 @@ const updateExpense = asyncHandler(async (req, res) => {
   }
 
   await expense.save();
+
+  if (syncWithCostConfig) {
+    await syncExpenseToCostConfig({
+      category: expense.category,
+      unit: expense.unit,
+      computedUnitCost: expense.unitCost,
+      title: expense.title,
+      assignedProduct: expense.assignedProduct,
+    });
+  }
 
   await recordAuditAction(req, {
     action: "EXPENSE_UPDATE",
