@@ -124,6 +124,15 @@ export function ExpensesTab() {
   const [giveawayNotes, setGiveawayNotes] = useState('')
   const [giveawayFragranceId, setGiveawayFragranceId] = useState<string>('')
 
+  // Form: Multi-fragrance decant promotion calculator
+  const [useDecantPromoCalculator, setUseDecantPromoCalculator] = useState(false)
+  const [promoTotalDecants, setPromoTotalDecants] = useState<number>(100)
+  const [promoAllocations, setPromoAllocations] = useState<
+    { productId: string; productName: string; quantity: number; unitCost: number }[]
+  >([])
+  const [promoSelectedFragranceId, setPromoSelectedFragranceId] = useState<string>('')
+  const [promoAllocQuantity, setPromoAllocQuantity] = useState<string>('25')
+
   // Form: Product assignment for oil expenses
   const [formAssignedProduct, setFormAssignedProduct] = useState<string>('')
 
@@ -223,6 +232,39 @@ export function ExpensesTab() {
     }
   }
 
+  // Decant Promotion Reference Calculations
+  const baseNonOilDecantCost = cogsData?.breakdowns?.decant3ml?.baseNonOilCost || 7.3
+  const productsWithDecant = cogsAnalysis?.productAnalysis?.filter((p) => (p.decant3ml?.cogs || 0) > 0) || []
+  const avgDecantCost =
+    productsWithDecant.length > 0
+      ? Number(
+          (
+            productsWithDecant.reduce((sum, p) => sum + (p.decant3ml?.cogs || 0), 0) /
+            productsWithDecant.length
+          ).toFixed(2)
+        )
+      : cogsData?.breakdowns?.decant3ml?.totalCogs || 10.3
+
+  const allocatedDecantsCount = promoAllocations.reduce((sum, a) => sum + (Number(a.quantity) || 0), 0)
+  const unassignedDecantsCount = Math.max(0, promoTotalDecants - allocatedDecantsCount)
+  const allocatedCostSum = Number(
+    promoAllocations
+      .reduce((sum, a) => sum + (Number(a.quantity) || 0) * (Number(a.unitCost) || 0), 0)
+      .toFixed(2)
+  )
+  const unassignedCostSum = Number((unassignedDecantsCount * avgDecantCost).toFixed(2))
+  const computedPromoTotalAmount = Number((allocatedCostSum + unassignedCostSum).toFixed(2))
+  const computedPromoBlendedUnitCost =
+    promoTotalDecants > 0 ? Number((computedPromoTotalAmount / promoTotalDecants).toFixed(2)) : 0
+
+  useEffect(() => {
+    if (useDecantPromoCalculator && showAddModal) {
+      setFormAmount(String(computedPromoTotalAmount))
+      setFormQuantity(String(promoTotalDecants))
+      setFormUnit('pcs')
+    }
+  }, [useDecantPromoCalculator, computedPromoTotalAmount, promoTotalDecants, showAddModal])
+
   const openAddModal = (item?: ExpenseItem) => {
     if (item) {
       setEditingExpense(item)
@@ -243,6 +285,23 @@ export function ExpensesTab() {
           : ''
       setFormAssignedProduct(assignedId)
       setFormSyncBenchmark(false)
+
+      if (item.promotionDetails?.fragranceAllocations && item.promotionDetails.fragranceAllocations.length > 0) {
+        setUseDecantPromoCalculator(true)
+        setPromoTotalDecants(item.promotionDetails.decantUnitsGiven || item.quantity || 100)
+        setPromoAllocations(
+          item.promotionDetails.fragranceAllocations.map((a) => ({
+            productId: typeof a.product === 'object' && a.product?._id ? a.product._id : (a.product as string) || '',
+            productName: a.productName || 'Fragrance',
+            quantity: a.quantity || 0,
+            unitCost: a.unitCost || 0,
+          }))
+        )
+      } else {
+        setUseDecantPromoCalculator(item.category === 'MARKETING_GIVEAWAYS')
+        setPromoTotalDecants(item.category === 'MARKETING_GIVEAWAYS' ? item.quantity || 100 : 100)
+        setPromoAllocations([])
+      }
     } else {
       setEditingExpense(null)
       setFormTitle('')
@@ -256,6 +315,11 @@ export function ExpensesTab() {
       setFormNotes('')
       setFormAssignedProduct('')
       setFormSyncBenchmark(false)
+      setUseDecantPromoCalculator(false)
+      setPromoTotalDecants(100)
+      setPromoAllocations([])
+      setPromoSelectedFragranceId('')
+      setPromoAllocQuantity('25')
     }
     setShowAddModal(true)
   }
@@ -265,6 +329,25 @@ export function ExpensesTab() {
     setBusy(true)
     setError(null)
     try {
+      let promotionPayload = undefined
+      if (formCategory === 'MARKETING_GIVEAWAYS' || useDecantPromoCalculator) {
+        promotionPayload = {
+          campaignName: formTitle || `${promoTotalDecants} Decant Cards Promotion`,
+          decantUnitsGiven: promoTotalDecants,
+          decantUnitCostApplied: computedPromoBlendedUnitCost,
+          recipient: formSupplier || 'Promotion',
+          fragranceAllocations: promoAllocations.map((a) => ({
+            product: a.productId || null,
+            productName: a.productName,
+            quantity: a.quantity,
+            unitCost: a.unitCost,
+            totalCost: Number((a.quantity * a.unitCost).toFixed(2)),
+          })),
+          unassignedQuantity: unassignedDecantsCount,
+          unassignedUnitCost: avgDecantCost,
+        }
+      }
+
       const payload = {
         title: formTitle,
         category: formCategory,
@@ -277,6 +360,7 @@ export function ExpensesTab() {
         notes: formNotes,
         assignedProduct: formCategory === 'OILS' && formAssignedProduct ? formAssignedProduct : null,
         syncWithCostConfig: formSyncBenchmark,
+        promotionDetails: promotionPayload,
       }
 
       if (editingExpense) {
@@ -316,20 +400,34 @@ export function ExpensesTab() {
     setBusy(true)
     setError(null)
     try {
+      const isMultiFragrance = promoAllocations.length > 0
+      const countToLog = isMultiFragrance ? promoTotalDecants : Number(giveawayCount)
       const res = await logDecantGiveaway({
-        count: Number(giveawayCount),
+        count: countToLog,
         campaignName: giveawayCampaign,
         recipient: giveawayRecipient,
         notes: giveawayNotes,
-        fragranceId: giveawayFragranceId || null,
+        fragranceId: isMultiFragrance ? null : giveawayFragranceId || null,
+        fragranceAllocations: isMultiFragrance
+          ? promoAllocations.map((a) => ({
+              product: a.productId || null,
+              productName: a.productName,
+              quantity: a.quantity,
+              unitCost: a.unitCost,
+              totalCost: Number((a.quantity * a.unitCost).toFixed(2)),
+            }))
+          : [],
+        unassignedQuantity: isMultiFragrance ? unassignedDecantsCount : 0,
+        unassignedUnitCost: isMultiFragrance ? avgDecantCost : 0,
       })
       showToast(
-        `Logged ${giveawayCount} decants (${formatEgp(res.totalLogged)}) into promotional expenses!`
+        `Logged ${countToLog} decants (${formatEgp(res.totalLogged)}) into promotional expenses!`
       )
       setShowGiveawayModal(false)
       setGiveawayRecipient('')
       setGiveawayNotes('')
       setGiveawayFragranceId('')
+      setPromoAllocations([])
       await Promise.all([loadExpenses(), loadOverviewAndConfig()])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log promotional giveaway')
@@ -555,6 +653,20 @@ export function ExpensesTab() {
                             <span className="mt-0.5 inline-block text-[10px] rounded px-1.5 py-0.5 bg-amber-500/10 text-amber-800 border border-amber-500/20 font-medium mr-1.5">
                               Fragrance: {item.assignedProduct.name}
                             </span>
+                          )}
+                          {item.promotionDetails?.fragranceAllocations && item.promotionDetails.fragranceAllocations.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {item.promotionDetails.fragranceAllocations.map((a, i) => (
+                                <span key={i} className="text-[10px] rounded px-1.5 py-0.2 bg-fuchsia-500/10 text-fuchsia-900 border border-fuchsia-500/20 font-medium">
+                                  {a.quantity}x {a.productName} ({formatEgp(a.totalCost)})
+                                </span>
+                              ))}
+                              {item.promotionDetails.unassignedQuantity ? (
+                                <span className="text-[10px] rounded px-1.5 py-0.2 bg-amber-500/10 text-amber-800 border border-amber-500/20 font-medium">
+                                  {item.promotionDetails.unassignedQuantity}x approx unassigned
+                                </span>
+                              ) : null}
+                            </div>
                           )}
                           {item.notes && <p className="text-[11px] text-scnt-text-muted line-clamp-1">{item.notes}</p>}
                           {item.promotionDetails?.campaignName && (
@@ -1826,6 +1938,20 @@ export function ExpensesTab() {
                             {item.promotionDetails?.recipient && (
                               <p className="text-[11px] text-scnt-text-muted">To: {item.promotionDetails.recipient}</p>
                             )}
+                            {item.promotionDetails?.fragranceAllocations && item.promotionDetails.fragranceAllocations.length > 0 && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {item.promotionDetails.fragranceAllocations.map((a, i) => (
+                                  <span key={i} className="text-[10px] rounded px-1.5 py-0.2 bg-fuchsia-500/10 text-fuchsia-900 border border-fuchsia-500/20 font-medium">
+                                    {a.quantity}x {a.productName} ({formatEgp(a.totalCost)})
+                                  </span>
+                                ))}
+                                {item.promotionDetails.unassignedQuantity ? (
+                                  <span className="text-[10px] rounded px-1.5 py-0.2 bg-amber-500/10 text-amber-800 border border-amber-500/20 font-medium">
+                                    {item.promotionDetails.unassignedQuantity}x approx unassigned
+                                  </span>
+                                ) : null}
+                              </div>
+                            )}
                           </td>
                           <td className="px-4 py-3 font-mono text-[11px]">
                             {item.promotionDetails?.decantUnitsGiven || item.quantity} decants
@@ -2019,7 +2145,15 @@ export function ExpensesTab() {
                       else if (cat === 'SHREDDED_PAPER') setFormUnit('bags')
                       else if (cat === 'OILS') setFormUnit('kg')
                       else if (cat === 'FRAGRANT_ALCOHOL' || cat === 'CLEANING_ALCOHOL') setFormUnit('liters')
-                      else setFormUnit('pcs')
+                      else if (cat === 'MARKETING_GIVEAWAYS') {
+                        setFormUnit('pcs')
+                        setUseDecantPromoCalculator(true)
+                        if (!formTitle || formTitle === 'Fragrance Oils' || formTitle === 'Fragrance Oil') {
+                          setFormTitle(`${promoTotalDecants} Decant Cards Promotion`)
+                        }
+                      } else {
+                        setFormUnit('pcs')
+                      }
                     }}
                   >
                     {(Object.keys(CATEGORY_LABELS) as ExpenseCategory[]).map((cat) => (
@@ -2072,6 +2206,261 @@ export function ExpensesTab() {
                     <p className="text-[11px] text-amber-800">
                       If synced, this fragrance's official recipe oil benchmark will be updated to this purchase rate.
                     </p>
+                  )}
+                </div>
+              )}
+
+              {/* Decant Promotion Batch Calculator (e.g. 100 Decant Cards Giveaway) */}
+              {(formCategory === 'MARKETING_GIVEAWAYS' || useDecantPromoCalculator) && (
+                <div className="rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/5 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🎁</span>
+                      <div>
+                        <h4 className="text-xs font-semibold text-fuchsia-950">
+                          Decant Cards Promotion Batch Calculator
+                        </h4>
+                        <p className="text-[10px] text-fuchsia-800">
+                          Set total decant cards, get baseline approx price, and allocate decants per fragrance.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setUseDecantPromoCalculator(!useDecantPromoCalculator)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold border transition-colors ${
+                        useDecantPromoCalculator
+                          ? 'bg-fuchsia-600 text-white border-fuchsia-600'
+                          : 'bg-scnt-bg text-scnt-text-muted border-scnt-border'
+                      }`}
+                    >
+                      {useDecantPromoCalculator ? 'Active' : 'Disabled'}
+                    </button>
+                  </div>
+
+                  {useDecantPromoCalculator && (
+                    <>
+                      <div className="grid grid-cols-2 gap-3 bg-scnt-bg/80 p-3 rounded-lg border border-scnt-border/40">
+                        <div>
+                          <label className="text-xs font-medium text-scnt-text block">
+                            Total Decant Cards in Promotion:
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            className="mt-1 w-full rounded border border-scnt-border bg-scnt-bg px-2.5 py-1.5 text-xs font-bold text-scnt-text"
+                            value={promoTotalDecants}
+                            onChange={(e) => {
+                              const val = Math.max(1, parseInt(e.target.value) || 1)
+                              setPromoTotalDecants(val)
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[11px] text-scnt-text-muted block">Approx Starting Baseline:</span>
+                          <p className="mt-1 text-xs font-mono font-medium text-scnt-text">
+                            ~{formatEgp(avgDecantCost)} / decant
+                          </p>
+                          <span className="text-[10px] text-scnt-text-muted">
+                            (Vial {formatEgp(6)} + Decant Card {formatEgp(0.9)} + Alcohol {formatEgp(0.4)} + avg oil)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Progress & Allocation Summary */}
+                      <div className="rounded-lg border border-scnt-border/60 p-3 text-xs space-y-2 bg-scnt-bg">
+                        <div className="flex items-center justify-between font-medium">
+                          <span>Allocation Progress:</span>
+                          <span className="font-mono">
+                            {allocatedDecantsCount} / {promoTotalDecants} Decants Specified
+                          </span>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="w-full bg-scnt-border/40 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`h-2 transition-all ${
+                              allocatedDecantsCount === promoTotalDecants
+                                ? 'bg-emerald-500'
+                                : allocatedDecantsCount > promoTotalDecants
+                                ? 'bg-rose-500'
+                                : 'bg-fuchsia-500'
+                            }`}
+                            style={{
+                              width: `${Math.min(100, (allocatedDecantsCount / promoTotalDecants) * 100)}%`,
+                            }}
+                          />
+                        </div>
+
+                        {allocatedDecantsCount < promoTotalDecants && (
+                          <div className="flex items-center justify-between text-[11px] text-amber-800">
+                            <span>
+                              ⏳ <strong>{unassignedDecantsCount} decants unassigned:</strong> priced at approx ~{formatEgp(avgDecantCost)}/ea ({formatEgp(unassignedCostSum)})
+                            </span>
+                          </div>
+                        )}
+
+                        {allocatedDecantsCount === promoTotalDecants && (
+                          <div className="text-[11px] text-emerald-800 font-medium">
+                            ✓ Exactly {promoTotalDecants} / {promoTotalDecants} decants allocated with exact fragrance COGS!
+                          </div>
+                        )}
+
+                        {allocatedDecantsCount > promoTotalDecants && (
+                          <div className="text-[11px] text-rose-800 font-medium">
+                            ⚠ Warning: Allocated {allocatedDecantsCount} decants exceeds campaign total of {promoTotalDecants}.
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Fragrance Allocation Rows */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-scnt-text block">
+                          Specify How Many Decants per Fragrance:
+                        </label>
+
+                        {promoAllocations.length === 0 ? (
+                          <div className="text-center py-2.5 px-3 text-xs text-scnt-text-muted border border-dashed rounded-lg bg-scnt-bg/40">
+                            No individual perfumes specified yet. The full campaign ({promoTotalDecants} decants) is estimated at ~{formatEgp(promoTotalDecants * avgDecantCost)}. Select perfumes below to apply their exact recipe costs!
+                          </div>
+                        ) : (
+                          <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                            {promoAllocations.map((row, idx) => (
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between gap-2 p-2 rounded bg-scnt-bg border border-scnt-border/60 text-xs"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <span className="font-medium text-scnt-text truncate block">{row.productName}</span>
+                                  <span className="text-[10px] text-scnt-text-muted font-mono">
+                                    {row.unitCost > 0
+                                      ? `${formatEgp(row.unitCost)} / decant COGS`
+                                      : `Base non-oil ${formatEgp(baseNonOilDecantCost)}`}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    className="w-16 rounded border border-scnt-border px-1.5 py-1 text-xs font-semibold text-center"
+                                    value={row.quantity}
+                                    onChange={(e) => {
+                                      const newQty = Math.max(1, parseInt(e.target.value) || 1)
+                                      setPromoAllocations((prev) =>
+                                        prev.map((r, i) => (i === idx ? { ...r, quantity: newQty } : r))
+                                      )
+                                    }}
+                                  />
+                                  <span className="text-[11px] text-scnt-text-muted">pcs</span>
+                                  <span className="font-mono font-semibold text-scnt-text min-w-[70px] text-right">
+                                    {formatEgp(row.quantity * row.unitCost)}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPromoAllocations((prev) => prev.filter((_, i) => i !== idx))}
+                                    className="p-1 text-scnt-text-muted hover:text-rose-600 text-xs"
+                                    title="Remove fragrance"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add Fragrance Row Controls */}
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <select
+                            className="flex-1 min-w-[170px] rounded border border-scnt-border bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
+                            value={promoSelectedFragranceId}
+                            onChange={(e) => setPromoSelectedFragranceId(e.target.value)}
+                          >
+                            <option value="">— Select Perfume to Add —</option>
+                            {cogsAnalysis?.productAnalysis.map((p) => (
+                              <option key={p._id} value={p._id}>
+                                {p.name} ({formatEgp(p.decant3ml?.cogs || baseNonOilDecantCost)} decant COGS)
+                              </option>
+                            ))}
+                          </select>
+
+                          <input
+                            type="number"
+                            min="1"
+                            placeholder="Qty"
+                            className="w-16 rounded border border-scnt-border bg-scnt-bg px-2 py-1.5 text-xs font-semibold text-center"
+                            value={promoAllocQuantity}
+                            onChange={(e) => setPromoAllocQuantity(e.target.value)}
+                          />
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            disabled={!promoSelectedFragranceId || !promoAllocQuantity}
+                            onClick={() => {
+                              const prod = cogsAnalysis?.productAnalysis.find((p) => p._id === promoSelectedFragranceId)
+                              if (!prod) return
+                              const qty = Math.max(1, parseInt(promoAllocQuantity) || 1)
+                              const decantCogs = prod.decant3ml?.cogs || baseNonOilDecantCost
+
+                              setPromoAllocations((prev) => {
+                                const existingIdx = prev.findIndex((r) => r.productId === prod._id)
+                                if (existingIdx >= 0) {
+                                  return prev.map((r, i) =>
+                                    i === existingIdx ? { ...r, quantity: r.quantity + qty } : r
+                                  )
+                                }
+                                return [
+                                  ...prev,
+                                  { productId: prod._id, productName: prod.name, quantity: qty, unitCost: decantCogs },
+                                ]
+                              })
+
+                              setPromoSelectedFragranceId('')
+                              setPromoAllocQuantity(String(Math.max(1, unassignedDecantsCount - qty)))
+                            }}
+                            className="!px-3 !py-1.5 text-xs"
+                          >
+                            + Add to Mix
+                          </Button>
+
+                          {unassignedDecantsCount > 0 && promoSelectedFragranceId && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPromoAllocQuantity(String(unassignedDecantsCount))
+                              }}
+                              className="text-[11px] text-fuchsia-700 hover:underline"
+                            >
+                              Fill remaining ({unassignedDecantsCount})
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Live Total Cost Breakdown */}
+                      <div className="rounded-lg bg-fuchsia-500/10 p-3 border border-fuchsia-500/20 text-xs space-y-1">
+                        <div className="flex justify-between text-scnt-text">
+                          <span>Allocated Perfumes Cost ({allocatedDecantsCount} decants):</span>
+                          <span className="font-mono font-medium">{formatEgp(allocatedCostSum)}</span>
+                        </div>
+                        {unassignedDecantsCount > 0 && (
+                          <div className="flex justify-between text-amber-800">
+                            <span>
+                              Unassigned Remaining ({unassignedDecantsCount} decants @ ~{formatEgp(avgDecantCost)}):
+                            </span>
+                            <span className="font-mono font-medium">{formatEgp(unassignedCostSum)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between pt-1 font-bold text-sm text-fuchsia-950 border-t border-fuchsia-500/30">
+                          <span>Total Promotional Campaign Cost:</span>
+                          <span className="font-mono">{formatEgp(computedPromoTotalAmount)}</span>
+                        </div>
+                        <div className="text-[10px] text-right text-scnt-text-muted">
+                          Blended Unit Cost: {formatEgp(computedPromoBlendedUnitCost)} / decant
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
               )}
@@ -2207,33 +2596,226 @@ export function ExpensesTab() {
             </div>
 
             <form onSubmit={handleLogGiveaway} className="space-y-3">
-              <div>
-                <label className="text-xs text-scnt-text-muted">Fragrance Product (Optional)</label>
-                <select
-                  className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-2.5 py-2 text-xs text-scnt-text"
-                  value={giveawayFragranceId}
-                  onChange={(e) => setGiveawayFragranceId(e.target.value)}
-                >
-                  <option value="">— Generic / Base Materials Only —</option>
-                  {cogsAnalysis?.productAnalysis.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.name} {p.oilCostPerKg > 0 ? `(${formatEgp(p.decant3ml?.cogs || 0)} decant COGS)` : '(Oil price not set)'}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex items-center justify-between border-b border-scnt-border/40 pb-2">
+                <span className="text-xs font-medium text-scnt-text">Giveaway Campaign Type:</span>
+                <div className="flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseDecantPromoCalculator(false)
+                      setPromoAllocations([])
+                    }}
+                    className={`px-2.5 py-1 rounded text-[11px] font-medium border ${
+                      !useDecantPromoCalculator
+                        ? 'bg-scnt-text text-scnt-bg border-scnt-text'
+                        : 'bg-scnt-bg text-scnt-text-muted border-scnt-border'
+                    }`}
+                  >
+                    Single Fragrance
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseDecantPromoCalculator(true)
+                      setPromoTotalDecants(Number(giveawayCount) || 100)
+                    }}
+                    className={`px-2.5 py-1 rounded text-[11px] font-medium border ${
+                      useDecantPromoCalculator
+                        ? 'bg-fuchsia-600 text-white border-fuchsia-600'
+                        : 'bg-scnt-bg text-scnt-text-muted border-scnt-border'
+                    }`}
+                  >
+                    Multi-Fragrance Mix
+                  </button>
+                </div>
               </div>
 
-              <div>
-                <label className="text-xs text-scnt-text-muted">Number of 3ml Decants Given Away</label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-3 py-2 text-xs text-scnt-text font-semibold"
-                  value={giveawayCount}
-                  onChange={(e) => setGiveawayCount(e.target.value)}
-                />
-              </div>
+              {!useDecantPromoCalculator ? (
+                <>
+                  <div>
+                    <label className="text-xs text-scnt-text-muted">Fragrance Product (Optional)</label>
+                    <select
+                      className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-2.5 py-2 text-xs text-scnt-text"
+                      value={giveawayFragranceId}
+                      onChange={(e) => setGiveawayFragranceId(e.target.value)}
+                    >
+                      <option value="">— Generic / Base Materials Only —</option>
+                      {cogsAnalysis?.productAnalysis.map((p) => (
+                        <option key={p._id} value={p._id}>
+                          {p.name} {p.oilCostPerKg > 0 ? `(${formatEgp(p.decant3ml?.cogs || 0)} decant COGS)` : '(Oil price not set)'}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-scnt-text-muted">Number of 3ml Decants Given Away</label>
+                    <input
+                      type="number"
+                      min="1"
+                      required
+                      className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-3 py-2 text-xs text-scnt-text font-semibold"
+                      value={giveawayCount}
+                      onChange={(e) => setGiveawayCount(e.target.value)}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/5 p-3.5 space-y-3">
+                  <div className="grid grid-cols-2 gap-3 bg-scnt-bg p-2.5 rounded-lg border border-scnt-border/40">
+                    <div>
+                      <label className="text-xs font-medium text-scnt-text block">
+                        Total Decant Cards in Promotion:
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        className="mt-1 w-full rounded border border-scnt-border bg-scnt-bg px-2.5 py-1 text-xs font-bold text-scnt-text"
+                        value={promoTotalDecants}
+                        onChange={(e) => {
+                          const val = Math.max(1, parseInt(e.target.value) || 1)
+                          setPromoTotalDecants(val)
+                          setGiveawayCount(String(val))
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-scnt-text-muted block">Approx Starting Baseline:</span>
+                      <p className="mt-1 text-xs font-mono font-medium text-scnt-text">
+                        ~{formatEgp(avgDecantCost)} / decant
+                      </p>
+                      <span className="text-[10px] text-scnt-text-muted">
+                        (Vial + card + ethanol + avg oil)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Progress & Allocation Summary */}
+                  <div className="rounded-lg border border-scnt-border/60 p-2.5 text-xs space-y-1.5 bg-scnt-bg">
+                    <div className="flex items-center justify-between font-medium">
+                      <span>Allocation Progress:</span>
+                      <span className="font-mono">
+                        {allocatedDecantsCount} / {promoTotalDecants} Specified
+                      </span>
+                    </div>
+                    <div className="w-full bg-scnt-border/40 rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-2 transition-all ${
+                          allocatedDecantsCount === promoTotalDecants
+                            ? 'bg-emerald-500'
+                            : allocatedDecantsCount > promoTotalDecants
+                            ? 'bg-rose-500'
+                            : 'bg-fuchsia-500'
+                        }`}
+                        style={{
+                          width: `${Math.min(100, (allocatedDecantsCount / promoTotalDecants) * 100)}%`,
+                        }}
+                      />
+                    </div>
+                    {allocatedDecantsCount < promoTotalDecants && (
+                      <div className="text-[11px] text-amber-800">
+                        ⏳ <strong>{unassignedDecantsCount} decants unassigned:</strong> priced at approx ~{formatEgp(avgDecantCost)}/ea ({formatEgp(unassignedCostSum)})
+                      </div>
+                    )}
+                    {allocatedDecantsCount === promoTotalDecants && (
+                      <div className="text-[11px] text-emerald-800 font-medium">
+                        ✓ Exactly {promoTotalDecants} / {promoTotalDecants} decants allocated!
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Fragrance Allocation Rows */}
+                  <div className="space-y-1.5">
+                    {promoAllocations.map((row, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between gap-2 p-1.5 rounded bg-scnt-bg border border-scnt-border/60 text-xs"
+                      >
+                        <span className="font-medium text-scnt-text truncate">{row.productName}</span>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            min="1"
+                            className="w-14 rounded border border-scnt-border px-1 py-0.5 text-xs font-semibold text-center"
+                            value={row.quantity}
+                            onChange={(e) => {
+                              const newQty = Math.max(1, parseInt(e.target.value) || 1)
+                              setPromoAllocations((prev) =>
+                                prev.map((r, i) => (i === idx ? { ...r, quantity: newQty } : r))
+                              )
+                            }}
+                          />
+                          <span className="font-mono font-medium text-scnt-text min-w-[60px] text-right">
+                            {formatEgp(row.quantity * row.unitCost)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setPromoAllocations((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-scnt-text-muted hover:text-rose-600 text-xs"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <select
+                        className="flex-1 min-w-[150px] rounded border border-scnt-border bg-scnt-bg px-2 py-1 text-xs text-scnt-text"
+                        value={promoSelectedFragranceId}
+                        onChange={(e) => setPromoSelectedFragranceId(e.target.value)}
+                      >
+                        <option value="">— Select Perfume —</option>
+                        {cogsAnalysis?.productAnalysis.map((p) => (
+                          <option key={p._id} value={p._id}>
+                            {p.name} ({formatEgp(p.decant3ml?.cogs || baseNonOilDecantCost)})
+                          </option>
+                        ))}
+                      </select>
+
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Qty"
+                        className="w-14 rounded border border-scnt-border bg-scnt-bg px-1.5 py-1 text-xs font-semibold text-center"
+                        value={promoAllocQuantity}
+                        onChange={(e) => setPromoAllocQuantity(e.target.value)}
+                      />
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={!promoSelectedFragranceId || !promoAllocQuantity}
+                        onClick={() => {
+                          const prod = cogsAnalysis?.productAnalysis.find((p) => p._id === promoSelectedFragranceId)
+                          if (!prod) return
+                          const qty = Math.max(1, parseInt(promoAllocQuantity) || 1)
+                          const decantCogs = prod.decant3ml?.cogs || baseNonOilDecantCost
+
+                          setPromoAllocations((prev) => {
+                            const existingIdx = prev.findIndex((r) => r.productId === prod._id)
+                            if (existingIdx >= 0) {
+                              return prev.map((r, i) =>
+                                i === existingIdx ? { ...r, quantity: r.quantity + qty } : r
+                              )
+                            }
+                            return [
+                              ...prev,
+                              { productId: prod._id, productName: prod.name, quantity: qty, unitCost: decantCogs },
+                            ]
+                          })
+
+                          setPromoSelectedFragranceId('')
+                          setPromoAllocQuantity(String(Math.max(1, unassignedDecantsCount - qty)))
+                        }}
+                        className="!px-2.5 !py-1 text-xs"
+                      >
+                        + Add
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="text-xs text-scnt-text-muted">Campaign Name</label>

@@ -111,4 +111,47 @@ describe("Expenses & COGS Formulas Unit Tests", () => {
     expect(marginA).toBe(69.3);
     expect(marginB).toBe(79.3);
   });
+
+  it("calculates promotional multi-fragrance decant campaign with incremental allocation", () => {
+    // Campaign: 100 promotional decant cards
+    const totalTargetDecants = 100;
+    // Base packaging & solvent per decant:
+    // 3ml vial = 6 EGP, Decant card = 0.90 EGP, 2ml fragrant alcohol @ 0.20/ml = 0.40 EGP
+    const baseNonOilDecant = 6 + 0.9 + 0.4; // 7.30 EGP
+    const avgOilCost = 3.0; // 3.00 EGP approx average 1ml oil
+    const approxDecantUnitCost = baseNonOilDecant + avgOilCost; // 10.30 EGP
+
+    // Step 1: Initial state before allocations (100 decants at approx price)
+    const initialApproxTotal = totalTargetDecants * approxDecantUnitCost;
+    expect(initialApproxTotal).toBe(1030);
+
+    // Step 2: Allocate 30 decants of Fragrance A (oil cost 4.50 EGP/ml => 7.30 + 4.50 = 11.80 EGP)
+    const fragranceAUnit = 7.30 + 4.50; // 11.80 EGP
+    const allocA = { qty: 30, unitCost: fragranceAUnit, totalCost: 30 * fragranceAUnit }; // 354 EGP
+    expect(allocA.totalCost).toBe(354);
+
+    // Remaining unassigned = 70 decants at approx 10.30 EGP = 721 EGP
+    const intermediateTotal1 = allocA.totalCost + (70 * approxDecantUnitCost);
+    expect(intermediateTotal1).toBe(1075);
+
+    // Step 3: Allocate 40 decants of Fragrance B (oil cost 2.00 EGP/ml => 7.30 + 2.00 = 9.30 EGP)
+    const fragranceBUnit = 7.30 + 2.00; // 9.30 EGP
+    const allocB = { qty: 40, unitCost: fragranceBUnit, totalCost: 40 * fragranceBUnit }; // 372 EGP
+    expect(allocB.totalCost).toBe(372);
+
+    // Remaining unassigned = 30 decants at approx 10.30 EGP = 309 EGP
+    const intermediateTotal2 = allocA.totalCost + allocB.totalCost + (30 * approxDecantUnitCost);
+    expect(intermediateTotal2).toBe(1035);
+
+    // Step 4: Final 30 decants assigned to Fragrance C (oil cost 5.00 EGP/ml => 7.30 + 5.00 = 12.30 EGP)
+    const fragranceCUnit = 7.30 + 5.00; // 12.30 EGP
+    const allocC = { qty: 30, unitCost: fragranceCUnit, totalCost: 30 * fragranceCUnit }; // 369 EGP
+
+    // Target reached (30 + 40 + 30 = 100), 0 unassigned
+    const finalExactTotal = allocA.totalCost + allocB.totalCost + allocC.totalCost; // 354 + 372 + 369 = 1095 EGP
+    expect(finalExactTotal).toBe(1095);
+
+    const blendedUnitCost = Number((finalExactTotal / totalTargetDecants).toFixed(2));
+    expect(blendedUnitCost).toBe(10.95);
+  });
 });

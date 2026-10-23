@@ -313,10 +313,21 @@ const createExpense = asyncHandler(async (req, res) => {
     invoiceNumber: invoiceNumber.trim(),
     notes: notes.trim(),
     promotionDetails: {
-      campaignName: promotionDetails.campaignName || "",
-      decantUnitsGiven: Number(promotionDetails.decantUnitsGiven || 0),
-      decantUnitCostApplied: Number(promotionDetails.decantUnitCostApplied || 0),
-      recipient: promotionDetails.recipient || "",
+      campaignName: promotionDetails?.campaignName || "",
+      decantUnitsGiven: Number(promotionDetails?.decantUnitsGiven || 0),
+      decantUnitCostApplied: Number(promotionDetails?.decantUnitCostApplied || 0),
+      recipient: promotionDetails?.recipient || "",
+      fragranceAllocations: Array.isArray(promotionDetails?.fragranceAllocations)
+        ? promotionDetails.fragranceAllocations.map((a) => ({
+            product: a.product || null,
+            productName: a.productName || "",
+            quantity: Number(a.quantity || 0),
+            unitCost: Number(a.unitCost || 0),
+            totalCost: Number(a.totalCost || 0),
+          }))
+        : [],
+      unassignedQuantity: Number(promotionDetails?.unassignedQuantity || 0),
+      unassignedUnitCost: Number(promotionDetails?.unassignedUnitCost || 0),
     },
     assignedProduct: assignedProduct || null,
     recordedBy: req.user?._id || null,
@@ -366,29 +377,69 @@ const createExpense = asyncHandler(async (req, res) => {
 
 /**
  * POST /api/admin/expenses/log-decant-giveaway
- * Quick-action: log X gave-away 3ml decants with their decant cards as a promotional expense
+ * Quick-action: log X gave-away 3ml decants with their decant cards as a promotional expense,
+ * with optional multi-fragrance allocation breakdown
  */
 const logDecantGiveaway = asyncHandler(async (req, res) => {
-  const { count = 1, campaignName = "Sample Giveaway", recipient = "", notes = "", fragranceId = null } = req.body;
+  const {
+    count = 1,
+    campaignName = "Sample Giveaway",
+    recipient = "",
+    notes = "",
+    fragranceId = null,
+    fragranceAllocations = [],
+    unassignedQuantity = 0,
+    unassignedUnitCost = 0,
+  } = req.body;
 
   const parsedCount = Math.max(1, parseInt(count, 10));
   const config = await getOrCreateCostConfig();
 
-  let oilPerMl = 0;
-  let fragranceName = "";
-  if (fragranceId) {
-    const prod = await Product.findById(fragranceId).select("name oilCostPerMl oilCostPerKg").lean();
-    if (prod) {
-      fragranceName = prod.name;
-      oilPerMl = prod.oilCostPerMl > 0 ? prod.oilCostPerMl : prod.oilCostPerKg > 0 ? prod.oilCostPerKg / 1000 : 0;
+  let totalAmount = 0;
+  let decantUnitCost = 0;
+  let titleDetail = "";
+  const cleanedAllocations = [];
+
+  if (Array.isArray(fragranceAllocations) && fragranceAllocations.length > 0) {
+    let allocatedSum = 0;
+    for (const alloc of fragranceAllocations) {
+      const qty = Number(alloc.quantity) || 0;
+      const uCost = Number(alloc.unitCost) || 0;
+      const tCost = Number((qty * uCost).toFixed(2));
+      allocatedSum += tCost;
+      cleanedAllocations.push({
+        product: alloc.product || null,
+        productName: alloc.productName || "Fragrance",
+        quantity: qty,
+        unitCost: uCost,
+        totalCost: tCost,
+      });
     }
+
+    const unassignedQty = Number(unassignedQuantity) || 0;
+    const unassignedCost = Number(unassignedUnitCost) || 0;
+    const unassignedTotal = Number((unassignedQty * unassignedCost).toFixed(2));
+
+    totalAmount = Number((allocatedSum + unassignedTotal).toFixed(2));
+    decantUnitCost = parsedCount > 0 ? Number((totalAmount / parsedCount).toFixed(4)) : 0;
+    const allocSummary = cleanedAllocations.map((a) => `${a.quantity}x ${a.productName}`).join(", ");
+    titleDetail = ` (${allocSummary}${unassignedQty > 0 ? `, ${unassignedQty}x Unassigned` : ""})`;
+  } else {
+    let oilPerMl = 0;
+    let fragranceName = "";
+    if (fragranceId) {
+      const prod = await Product.findById(fragranceId).select("name oilCostPerMl oilCostPerKg").lean();
+      if (prod) {
+        fragranceName = prod.name;
+        oilPerMl = prod.oilCostPerMl > 0 ? prod.oilCostPerMl : prod.oilCostPerKg > 0 ? prod.oilCostPerKg / 1000 : 0;
+      }
+    }
+    const { breakdowns } = computeStandardCogs(config, oilPerMl);
+    decantUnitCost = breakdowns.decant3ml.totalCogs;
+    totalAmount = Number((parsedCount * decantUnitCost).toFixed(2));
+    titleDetail = fragranceName ? ` - ${fragranceName}` : "";
   }
 
-  const { breakdowns } = computeStandardCogs(config, oilPerMl);
-  const decantUnitCost = breakdowns.decant3ml.totalCogs;
-  const totalAmount = Number((parsedCount * decantUnitCost).toFixed(2));
-
-  const titleDetail = fragranceName ? ` - ${fragranceName}` : "";
   const expense = await Expense.create({
     title: `3ml Decant Giveaway (${parsedCount} units${titleDetail} - ${campaignName || "Promotion"})`,
     category: "MARKETING_GIVEAWAYS",
@@ -400,12 +451,15 @@ const logDecantGiveaway = asyncHandler(async (req, res) => {
     date: new Date(),
     notes:
       notes ||
-      `Distributed ${parsedCount} x 3ml decants (${fragranceName || "Unspecified oil"}) with Decant Cards for marketing/promotion.`,
+      `Distributed ${parsedCount} x 3ml decants with Decant Cards for marketing/promotion.`,
     promotionDetails: {
       campaignName: campaignName || "Giveaway Campaign",
       decantUnitsGiven: parsedCount,
       decantUnitCostApplied: decantUnitCost,
       recipient: recipient || "Marketing Distribution",
+      fragranceAllocations: cleanedAllocations,
+      unassignedQuantity: Number(unassignedQuantity) || 0,
+      unassignedUnitCost: Number(unassignedUnitCost) || 0,
     },
     assignedProduct: fragranceId || null,
     recordedBy: req.user?._id || null,
@@ -415,7 +469,7 @@ const logDecantGiveaway = asyncHandler(async (req, res) => {
     action: "DECANT_GIVEAWAY_LOG",
     targetType: "Expense",
     targetId: expense._id.toString(),
-    details: { count: parsedCount, totalAmount, decantUnitCost, fragranceName },
+    details: { count: parsedCount, totalAmount, decantUnitCost, allocationsCount: cleanedAllocations.length },
   });
 
   res.status(201).json(

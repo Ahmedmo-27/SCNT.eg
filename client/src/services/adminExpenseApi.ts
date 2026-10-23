@@ -49,6 +49,15 @@ export interface ExpenseItem {
     decantUnitsGiven?: number
     decantUnitCostApplied?: number
     recipient?: string
+    fragranceAllocations?: {
+      product?: string | { _id: string; name: string } | null
+      productName?: string
+      quantity: number
+      unitCost: number
+      totalCost: number
+    }[]
+    unassignedQuantity?: number
+    unassignedUnitCost?: number
   }
   createdAt: string
   updatedAt: string
@@ -280,6 +289,15 @@ export async function logDecantGiveaway(payload: {
   recipient?: string
   notes?: string
   fragranceId?: string | null
+  fragranceAllocations?: {
+    product?: string | null
+    productName: string
+    quantity: number
+    unitCost: number
+    totalCost: number
+  }[]
+  unassignedQuantity?: number
+  unassignedUnitCost?: number
 }): Promise<{ expense: ExpenseItem; decantUnitCost: number; totalLogged: number }> {
   return apiPostDataAuthed('/admin/expenses/log-decant-giveaway', payload)
 }

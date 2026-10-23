@@ -57,6 +57,17 @@ const expenseSchema = new mongoose.Schema(
       decantUnitsGiven: { type: Number, default: 0 },
       decantUnitCostApplied: { type: Number, default: 0 },
       recipient: { type: String, default: "" },
+      fragranceAllocations: [
+        {
+          product: { type: mongoose.Schema.Types.ObjectId, ref: "Product", default: null },
+          productName: { type: String, default: "" },
+          quantity: { type: Number, default: 0 },
+          unitCost: { type: Number, default: 0 },
+          totalCost: { type: Number, default: 0 },
+        },
+      ],
+      unassignedQuantity: { type: Number, default: 0 },
+      unassignedUnitCost: { type: Number, default: 0 },
     },
 
     assignedProduct: { type: mongoose.Schema.Types.ObjectId, ref: "Product", default: null },
