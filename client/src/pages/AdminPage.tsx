@@ -37,6 +37,7 @@ import { AnalyticsTab } from '../components/admin/AnalyticsTab'
 import { LogsTab } from '../components/admin/LogsTab'
 import { JourneysTab } from '../components/admin/JourneysTab'
 import { ActiveCartsTab } from '../components/admin/ActiveCartsTab'
+import { ExpensesTab } from '../components/admin/ExpensesTab'
 import {
   fetchAnalyticsOverview,
   fetchAdminLogStats,
@@ -56,6 +57,7 @@ type TabKey =
   | 'products'
   | 'collections'
   | 'orders'
+  | 'expenses'
   | 'promos'
   | 'reviews'
   | 'users'
@@ -70,6 +72,7 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: 'products', label: 'Products' },
   { key: 'collections', label: 'Collections' },
   { key: 'orders', label: 'Orders' },
+  { key: 'expenses', label: 'Spendings & COGS' },
   { key: 'promos', label: 'Promo codes & Usage' },
   { key: 'reviews', label: 'Reviews' },
   { key: 'users', label: 'Users' },
@@ -641,6 +644,7 @@ export function AdminPage() {
         {activeTab === 'carts' ? <ActiveCartsTab /> : null}
         {activeTab === 'analytics' ? <AnalyticsTab /> : null}
         {activeTab === 'logs' ? <LogsTab /> : null}
+        {activeTab === 'expenses' ? <ExpensesTab /> : null}
 
 
         {activeTab === 'products' ? (

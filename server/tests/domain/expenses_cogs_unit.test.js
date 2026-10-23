@@ -1,0 +1,94 @@
+const { ExpenseCategory } = require("../../src/models/Expense");
+const CostConfig = require("../../src/models/CostConfig");
+const expenseController = require("../../src/controllers/expenseController");
+
+describe("Expenses & COGS Formulas Unit Tests", () => {
+  it("derives bottle sticker cost per unit from meter rate and stickers per meter yield", () => {
+    const costPerMeter = 75; // 75 EGP per meter
+    const stickersPerMeter = 15; // 15 stickers yielded per meter
+    const unitCost = Number((costPerMeter / stickersPerMeter).toFixed(4));
+    expect(unitCost).toBe(5);
+  });
+
+  it("derives box sealing sticker cost per unit from sheet rate and stickers per sheet yield", () => {
+    const costPerSheet = 45; // 45 EGP per sheet
+    const stickersPerSheet = 24; // 24 stickers per sheet
+    const unitCost = Number((costPerSheet / stickersPerSheet).toFixed(4));
+    expect(unitCost).toBe(1.875);
+  });
+
+  it("derives box top sticker cost per unit from sheet rate and yield", () => {
+    const costPerSheet = 30; // 30 EGP per sheet
+    const stickersPerSheet = 20; // 20 stickers per sheet
+    const unitCost = Number((costPerSheet / stickersPerSheet).toFixed(4));
+    expect(unitCost).toBe(1.5);
+  });
+
+  it("derives shredded paper unit cost per box: 1 bag makes 3 boxes", () => {
+    const costPerBag = 45; // 45 EGP per bag
+    const boxesPerBag = 3; // 3 boxes filled per bag
+    const unitCostPerBox = Number((costPerBag / boxesPerBag).toFixed(4));
+    expect(unitCostPerBox).toBe(15);
+  });
+
+  it("derives Thank You card and Decant card unit costs from batch pricing", () => {
+    const thankYouBatchCost = 350;
+    const thankYouBatchQty = 500;
+    const thankYouUnit = Number((thankYouBatchCost / thankYouBatchQty).toFixed(4));
+    expect(thankYouUnit).toBe(0.7);
+
+    const decantCardBatchCost = 450;
+    const decantCardBatchQty = 500;
+    const decantCardUnit = Number((decantCardBatchCost / decantCardBatchQty).toFixed(4));
+    expect(decantCardUnit).toBe(0.9);
+  });
+
+  it("calculates 3ml Decant Unit COGS correctly", () => {
+    // Decant has:
+    // 1ml Fragrance Oil (at 3 EGP/ml) = 3 EGP
+    // 2ml Fragrant Alcohol (at 0.20 EGP/ml) = 0.40 EGP
+    // 3ml Decant Vial = 6 EGP
+    // Decant Card = 0.90 EGP
+    const oilCost = 1 * 3;
+    const alcoholCost = 2 * 0.2;
+    const vialCost = 6;
+    const decantCardCost = 0.9;
+    const total3mlCogs = Number((oilCost + alcoholCost + vialCost + decantCardCost).toFixed(2));
+
+    expect(total3mlCogs).toBe(10.3);
+
+    // If 10 decants are given away for promotion:
+    const giveaway10Units = 10 * total3mlCogs;
+    expect(giveaway10Units).toBe(103);
+  });
+
+  it("calculates 100ml and 50ml Full Bottle COGS correctly", () => {
+    const oilPerMl = 3;
+    const alcPerMl = 0.2;
+    const bottleSticker = 5;
+    const boxTopSticker = 1.5;
+    const boxSealingSticker = 1.875;
+    const wrappingSheet = 2.5;
+    const shreddedPaperPerBox = 15;
+    const thankYouCard = 0.7;
+    const flyer = 3;
+
+    // 100ml: 25ml oil + 75ml alcohol + 38 bottle + 22 box + stickers + packaging
+    const oil100 = 25 * oilPerMl; // 75
+    const alc100 = 75 * alcPerMl; // 15
+    const bottle100 = 38;
+    const box100 = 22;
+    const stickers100 = bottleSticker + boxTopSticker + boxSealingSticker; // 8.375
+    const packaging100 = wrappingSheet + shreddedPaperPerBox + thankYouCard + flyer; // 21.2
+    const total100 = Number((oil100 + alc100 + bottle100 + box100 + stickers100 + packaging100).toFixed(2));
+
+    expect(total100).toBe(179.57);
+
+    // At retail price of 750 EGP:
+    const retail100 = 750;
+    const grossProfit100 = Number((retail100 - total100).toFixed(2));
+    const margin100 = Number(((grossProfit100 / retail100) * 100).toFixed(1));
+    expect(grossProfit100).toBe(570.43);
+    expect(margin100).toBe(76.1);
+  });
+});

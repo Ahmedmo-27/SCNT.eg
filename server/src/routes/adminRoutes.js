@@ -3,6 +3,7 @@ const adminController = require("../controllers/adminController");
 const analyticsController = require("../controllers/analyticsController");
 const adminLogController = require("../controllers/adminLogController");
 const cartController = require("../controllers/cartController");
+const expenseController = require("../controllers/expenseController");
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
@@ -12,6 +13,18 @@ router.use(authMiddleware, adminMiddleware);
 
 // Core Dashboard
 router.get("/dashboard", adminController.getDashboardSummary);
+
+// Expenses, Materials & COGS Management
+router.get("/expenses", expenseController.listExpenses);
+router.get("/expenses/summary", expenseController.getExpenseSummary);
+router.post("/expenses", expenseController.createExpense);
+router.post("/expenses/log-decant-giveaway", expenseController.logDecantGiveaway);
+router.put("/expenses/:id", expenseController.updateExpense);
+router.delete("/expenses/:id", expenseController.deleteExpense);
+
+router.get("/cost-config", expenseController.getCostConfig);
+router.put("/cost-config", expenseController.updateCostConfig);
+router.get("/cogs-analysis", expenseController.getCogsAnalysis);
 
 // Platform Analytics & Visit Tracking
 router.get("/analytics/overview", analyticsController.getAnalyticsOverview);
