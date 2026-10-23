@@ -38,6 +38,7 @@ import { LogsTab } from '../components/admin/LogsTab'
 import { JourneysTab } from '../components/admin/JourneysTab'
 import { ActiveCartsTab } from '../components/admin/ActiveCartsTab'
 import { ExpensesTab } from '../components/admin/ExpensesTab'
+import { OfflineSalesTab } from '../components/admin/OfflineSalesTab'
 import {
   fetchAnalyticsOverview,
   fetchAdminLogStats,
@@ -50,14 +51,15 @@ import {
 
 type TabKey =
   | 'overview'
+  | 'offline-sales'
+  | 'orders'
+  | 'expenses'
   | 'journeys'
   | 'carts'
   | 'analytics'
   | 'logs'
   | 'products'
   | 'collections'
-  | 'orders'
-  | 'expenses'
   | 'promos'
   | 'reviews'
   | 'users'
@@ -65,14 +67,15 @@ type TabKey =
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: 'overview', label: 'Overview' },
+  { key: 'offline-sales', label: 'Offline Purchases / POS' },
+  { key: 'orders', label: 'Online Orders' },
+  { key: 'expenses', label: 'Spendings & COGS' },
   { key: 'journeys', label: 'Funnel & Journeys' },
   { key: 'carts', label: 'Active Carts' },
   { key: 'analytics', label: 'Visits & Traffic' },
   { key: 'logs', label: 'System Logs' },
   { key: 'products', label: 'Products' },
   { key: 'collections', label: 'Collections' },
-  { key: 'orders', label: 'Orders' },
-  { key: 'expenses', label: 'Spendings & COGS' },
   { key: 'promos', label: 'Promo codes & Usage' },
   { key: 'reviews', label: 'Reviews' },
   { key: 'users', label: 'Users' },
@@ -584,13 +587,33 @@ export function AdminPage() {
 
         {activeTab === 'overview' ? (
           <div className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Users</p><p className="mt-2 text-3xl">{dashboard?.usersCount ?? '—'}</p></Card>
-              <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Products</p><p className="mt-2 text-3xl">{dashboard?.productsCount ?? '—'}</p></Card>
-              <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Collections</p><p className="mt-2 text-3xl">{dashboard?.collectionsCount ?? '—'}</p></Card>
-              <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Orders</p><p className="mt-2 text-3xl">{dashboard?.ordersCount ?? '—'}</p></Card>
-              <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Pending orders</p><p className="mt-2 text-3xl">{dashboard?.pendingOrders ?? '—'}</p></Card>
-              <Card asMotion={false} className="p-5"><p className="text-xs uppercase text-scnt-text-muted">Revenue</p><p className="mt-2 text-3xl">{dashboard ? formatMoney(dashboard.totalRevenue) : '—'}</p></Card>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Card asMotion={false} className="p-5">
+                <p className="text-xs uppercase text-scnt-text-muted">Total Revenue</p>
+                <p className="mt-2 text-3xl font-mono text-emerald-400">{dashboard ? formatMoney(dashboard.totalRevenue) : '—'}</p>
+                <p className="mt-1 text-[11px] text-scnt-text-muted">
+                  Online {formatMoney(dashboard?.onlineRevenue || 0)} · Offline {formatMoney(dashboard?.offlineRevenue || 0)}
+                </p>
+              </Card>
+              <Card asMotion={false} className="p-5">
+                <p className="text-xs uppercase text-scnt-text-muted">Online Orders</p>
+                <p className="mt-2 text-3xl">{dashboard?.ordersCount ?? '—'}</p>
+                <p className="mt-1 text-[11px] text-scnt-text-muted">{dashboard?.pendingOrders ?? 0} pending processing</p>
+              </Card>
+              <Card
+                asMotion={false}
+                className="p-5 cursor-pointer hover:border-amber-500/50 transition-colors"
+                onClick={() => setActiveTab('offline-sales')}
+              >
+                <p className="text-xs uppercase text-scnt-text-muted">Offline Purchases (POS)</p>
+                <p className="mt-2 text-3xl text-amber-300">{dashboard?.offlineSalesCount ?? '0'}</p>
+                <p className="mt-1 text-[11px] text-amber-400/80">Manage direct sales & POS →</p>
+              </Card>
+              <Card asMotion={false} className="p-5">
+                <p className="text-xs uppercase text-scnt-text-muted">Catalog Products</p>
+                <p className="mt-2 text-3xl">{dashboard?.productsCount ?? '—'}</p>
+                <p className="mt-1 text-[11px] text-scnt-text-muted">{dashboard?.collectionsCount ?? 0} collections active</p>
+              </Card>
             </div>
 
             <div>
@@ -640,6 +663,9 @@ export function AdminPage() {
           </div>
         ) : null}
 
+        {activeTab === 'offline-sales' ? (
+          <OfflineSalesTab products={products} onSaleCreated={() => void loadAll()} />
+        ) : null}
         {activeTab === 'journeys' ? <JourneysTab /> : null}
         {activeTab === 'carts' ? <ActiveCartsTab /> : null}
         {activeTab === 'analytics' ? <AnalyticsTab /> : null}

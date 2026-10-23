@@ -141,7 +141,21 @@ const listExpenses = asyncHandler(async (req, res) => {
   const query = {};
 
   if (category && category !== "ALL") {
-    query.category = category;
+    if (category === "BOTTLES_50ML") {
+      query.$or = [{ category: "BOTTLES_50ML" }, { category: "BOTTLES", title: /50\s*ml/i }];
+    } else if (category === "BOTTLES_100ML") {
+      query.$or = [{ category: "BOTTLES_100ML" }, { category: "BOTTLES", title: { $not: /50\s*ml/i } }];
+    } else if (category === "BOXES_50ML") {
+      query.$or = [{ category: "BOXES_50ML" }, { category: "BOXES", title: /50\s*ml/i }];
+    } else if (category === "BOXES_100ML") {
+      query.$or = [{ category: "BOXES_100ML" }, { category: "BOXES", title: { $not: /50\s*ml/i } }];
+    } else if (category === "BOTTLES") {
+      query.category = { $in: ["BOTTLES", "BOTTLES_50ML", "BOTTLES_100ML"] };
+    } else if (category === "BOXES") {
+      query.category = { $in: ["BOXES", "BOXES_50ML", "BOXES_100ML"] };
+    } else {
+      query.category = category;
+    }
   }
 
   if (search && search.trim()) {
@@ -319,23 +333,32 @@ async function syncExpenseToCostConfig({ category, unit, computedUnitCost, title
     config.bottles.decant3mlVial = computedUnitCost;
   } else if (category === "PACKAGING_SHIPPING") {
     config.wrapping.courierFlyerUnitCost = computedUnitCost;
-  } else if (category === "BOTTLES") {
-    const is50 = (title || "").toLowerCase().includes("50");
+  } else if (category === "BOTTLES" || category === "BOTTLES_50ML" || category === "BOTTLES_100ML") {
+    const is50 = category === "BOTTLES_50ML" || (title || "").toLowerCase().includes("50");
     if (is50) {
       config.bottles.size50ml = computedUnitCost;
     } else {
       config.bottles.size100ml = computedUnitCost;
     }
-  } else if (category === "BOXES") {
-    const is50 = (title || "").toLowerCase().includes("50");
+  } else if (category === "BOXES" || category === "BOXES_50ML" || category === "BOXES_100ML") {
+    const is50 = category === "BOXES_50ML" || (title || "").toLowerCase().includes("50");
     if (is50) {
       config.boxes.size50ml = computedUnitCost;
     } else {
       config.boxes.size100ml = computedUnitCost;
     }
   } else if (category === "OILS" && assignedProduct) {
-    const oilKg = unit === "kg" ? computedUnitCost : computedUnitCost * 1000;
-    const oilMl = unit === "grams" ? computedUnitCost : Number((computedUnitCost / 1000).toFixed(4));
+    const normUnit = String(unit || "").toLowerCase().trim();
+    const isGramOrMl = normUnit === "grams" || normUnit === "gram" || normUnit === "g" || normUnit === "ml";
+    let oilKg = 0;
+    let oilMl = 0;
+    if (isGramOrMl) {
+      oilMl = Number(computedUnitCost.toFixed(4));
+      oilKg = Number((computedUnitCost * 1000).toFixed(2));
+    } else {
+      oilKg = Number(computedUnitCost.toFixed(2));
+      oilMl = Number((computedUnitCost / 1000).toFixed(4));
+    }
     await Product.findByIdAndUpdate(assignedProduct, {
       oilCostPerKg: oilKg,
       oilCostPerMl: oilMl,
@@ -774,26 +797,40 @@ const updateCostConfig = asyncHandler(async (req, res) => {
 
 /**
  * PUT /api/admin/expenses/products/:id/oil-price
- * Update a specific fragrance's custom oil cost per kg or per ml
+ * Update a specific fragrance's custom oil cost per kg, per gram, or per ml
  */
 const updateProductOilPrice = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { oilCostPerKg, oilCostPerMl } = req.body;
+  const { oilCostPerKg, oilCostPerMl, oilCostPerGram, unit, pricePerUnit } = req.body;
 
   const product = await Product.findById(id);
   if (!product) throw new ApiError(404, "Product not found.");
 
-  if (oilCostPerKg !== undefined) {
-    product.oilCostPerKg = Number(oilCostPerKg) || 0;
-    if (!oilCostPerMl && product.oilCostPerKg > 0) {
-      product.oilCostPerMl = Number((product.oilCostPerKg / 1000).toFixed(4));
-    }
-  }
+  const normUnit = String(unit || "").toLowerCase().trim();
+  const isGramUnit = normUnit === "grams" || normUnit === "gram" || normUnit === "g";
 
-  if (oilCostPerMl !== undefined && oilCostPerMl !== null) {
-    product.oilCostPerMl = Number(oilCostPerMl) || 0;
-    if (!oilCostPerKg && product.oilCostPerMl > 0) {
-      product.oilCostPerKg = Number((product.oilCostPerMl * 1000).toFixed(2));
+  if (oilCostPerGram !== undefined && oilCostPerGram !== null) {
+    product.oilCostPerMl = Number(oilCostPerGram) || 0;
+    product.oilCostPerKg = Number((product.oilCostPerMl * 1000).toFixed(2));
+  } else if (isGramUnit && pricePerUnit !== undefined && pricePerUnit !== null) {
+    product.oilCostPerMl = Number(pricePerUnit) || 0;
+    product.oilCostPerKg = Number((product.oilCostPerMl * 1000).toFixed(2));
+  } else if (normUnit === "kg" && pricePerUnit !== undefined && pricePerUnit !== null) {
+    product.oilCostPerKg = Number(pricePerUnit) || 0;
+    product.oilCostPerMl = Number((product.oilCostPerKg / 1000).toFixed(4));
+  } else {
+    if (oilCostPerKg !== undefined) {
+      product.oilCostPerKg = Number(oilCostPerKg) || 0;
+      if (!oilCostPerMl && product.oilCostPerKg > 0) {
+        product.oilCostPerMl = Number((product.oilCostPerKg / 1000).toFixed(4));
+      }
+    }
+
+    if (oilCostPerMl !== undefined && oilCostPerMl !== null) {
+      product.oilCostPerMl = Number(oilCostPerMl) || 0;
+      if (!oilCostPerKg && product.oilCostPerMl > 0) {
+        product.oilCostPerKg = Number((product.oilCostPerMl * 1000).toFixed(2));
+      }
     }
   }
 
@@ -803,7 +840,12 @@ const updateProductOilPrice = asyncHandler(async (req, res) => {
     action: "PRODUCT_OIL_PRICE_UPDATE",
     targetType: "Product",
     targetId: product._id.toString(),
-    details: { name: product.name, oilCostPerKg: product.oilCostPerKg, oilCostPerMl: product.oilCostPerMl },
+    details: {
+      name: product.name,
+      oilCostPerKg: product.oilCostPerKg,
+      oilCostPerMl: product.oilCostPerMl,
+      oilCostPerGram: product.oilCostPerMl,
+    },
   });
 
   const config = await getOrCreateCostConfig();
@@ -817,6 +859,7 @@ const updateProductOilPrice = asyncHandler(async (req, res) => {
           name: product.name,
           oilCostPerKg: product.oilCostPerKg,
           oilCostPerMl: product.oilCostPerMl,
+          oilCostPerGram: product.oilCostPerMl,
         },
         cogs: prodCogs,
       },
@@ -869,6 +912,7 @@ const getCogsAnalysis = asyncHandler(async (_req, res) => {
       stock: p.stock,
       oilCostPerKg: prodOilPerKg,
       oilCostPerMl: prodOilPerMl,
+      oilCostPerGram: prodOilPerMl,
       hasCustomOilPrice: hasOilPrice,
       isOilConfigured: hasOilPrice,
       breakdowns: prodBreakdowns,

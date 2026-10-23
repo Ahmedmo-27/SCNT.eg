@@ -5,7 +5,11 @@ export type ExpenseCategory =
   | 'FRAGRANT_ALCOHOL'
   | 'CLEANING_ALCOHOL'
   | 'BOTTLES'
+  | 'BOTTLES_50ML'
+  | 'BOTTLES_100ML'
   | 'BOXES'
+  | 'BOXES_50ML'
+  | 'BOXES_100ML'
   | 'BOTTLE_STICKERS'
   | 'BOX_SEALING_STICKERS'
   | 'BOX_TOP_STICKERS'
@@ -221,6 +225,7 @@ export interface ProductMarginItem {
   stock: number
   oilCostPerKg: number
   oilCostPerMl: number
+  oilCostPerGram?: number
   hasCustomOilPrice: boolean
   isOilConfigured?: boolean
   breakdowns?: {
@@ -269,7 +274,7 @@ export async function fetchExpenses(params?: {
   endDate?: string
   page?: number
   limit?: number
-}): Promise<{ items: ExpenseItem[]; pagination: { total: 0; page: number; limit: number; pages: number } }> {
+}): Promise<{ items: ExpenseItem[]; pagination: { total: number; page: number; limit: number; pages: number } }> {
   const query = new URLSearchParams()
   if (params?.category && params.category !== 'ALL') query.set('category', params.category)
   if (params?.search) query.set('search', params.search)
@@ -336,7 +341,13 @@ export async function fetchCogsAnalysis(): Promise<CogsAnalysisResponse> {
 
 export async function updateProductOilPrice(
   productId: string,
-  payload: { oilCostPerKg?: number; oilCostPerMl?: number }
-): Promise<{ product: { _id: string; name: string; oilCostPerKg: number; oilCostPerMl: number }; cogs: CogsData }> {
+  payload: {
+    oilCostPerKg?: number
+    oilCostPerMl?: number
+    oilCostPerGram?: number
+    unit?: 'kg' | 'grams'
+    pricePerUnit?: number
+  }
+): Promise<{ product: { _id: string; name: string; oilCostPerKg: number; oilCostPerMl: number; oilCostPerGram?: number }; cogs: CogsData }> {
   return apiPutDataAuthed(`/admin/expenses/products/${productId}/oil-price`, payload)
 }

@@ -78,6 +78,14 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+productSchema.virtual("oilCostPerGram").get(function () {
+  return this.oilCostPerMl > 0
+    ? this.oilCostPerMl
+    : this.oilCostPerKg > 0
+    ? Number((this.oilCostPerKg / 1000).toFixed(4))
+    : 0;
+});
+
 /** Expose populated ref as `collection` in JSON so the public API shape stays the same. */
 function mapScntCollectionForApi(ret) {
   if (Object.prototype.hasOwnProperty.call(ret, "SCNTcollection")) {

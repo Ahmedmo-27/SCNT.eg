@@ -7,6 +7,7 @@ const User = require("../models/User");
 const Product = require("../models/Product");
 const Collection = require("../models/Collection");
 const Order = require("../models/Order");
+const OfflineSale = require("../models/OfflineSale");
 const userRepository = require("../repositories/userRepository");
 const { sendPromotionalEmail } = require("../services/emailService");
 const { getCache, setCache, deleteCache, invalidatePattern } = require("../utils/cache");
@@ -145,14 +146,28 @@ const getDashboardSummary = asyncHandler(async (_req, res) => {
     return res.status(200).json(successResponse(cachedSummary));
   }
 
-  const [usersCount, productsCount, ordersCount, collectionsCount, pendingOrders, revenueAgg] = await Promise.all([
+  const [
+    usersCount,
+    productsCount,
+    ordersCount,
+    collectionsCount,
+    pendingOrders,
+    revenueAgg,
+    offlineSalesCount,
+    offlineRevenueAgg,
+  ] = await Promise.all([
     User.countDocuments({}),
     Product.countDocuments({}),
     Order.countDocuments({}),
     Collection.countDocuments({}),
     Order.countDocuments({ status: "PENDING" }),
     Order.aggregate([{ $group: { _id: null, totalRevenue: { $sum: "$total" } } }]),
+    OfflineSale.countDocuments({}),
+    OfflineSale.aggregate([{ $group: { _id: null, totalRevenue: { $sum: "$total" } } }]),
   ]);
+
+  const onlineRevenue = revenueAgg[0]?.totalRevenue || 0;
+  const offlineRevenue = offlineRevenueAgg[0]?.totalRevenue || 0;
 
   const summary = {
     usersCount,
@@ -160,7 +175,10 @@ const getDashboardSummary = asyncHandler(async (_req, res) => {
     ordersCount,
     collectionsCount,
     pendingOrders,
-    totalRevenue: revenueAgg[0]?.totalRevenue || 0,
+    totalRevenue: onlineRevenue + offlineRevenue,
+    onlineRevenue,
+    offlineRevenue,
+    offlineSalesCount,
   };
 
   // Cache for 5 minutes (frequently updated stats)

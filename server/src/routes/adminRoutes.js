@@ -4,6 +4,7 @@ const analyticsController = require("../controllers/analyticsController");
 const adminLogController = require("../controllers/adminLogController");
 const cartController = require("../controllers/cartController");
 const expenseController = require("../controllers/expenseController");
+const offlineSaleController = require("../controllers/offlineSaleController");
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
@@ -55,6 +56,14 @@ router.delete("/users/:id", adminController.deleteUser);
 // Orders Management
 router.get("/orders", adminController.getAllOrders);
 router.put("/orders/:id/status", adminController.updateOrderStatus);
+
+// Offline Purchases & POS Management
+router.get("/offline-sales", offlineSaleController.listOfflineSales);
+router.get("/offline-sales/summary", offlineSaleController.getOfflineSalesSummary);
+router.post("/offline-sales", offlineSaleController.createOfflineSale);
+router.get("/offline-sales/:id", offlineSaleController.getOfflineSaleById);
+router.patch("/offline-sales/:id", offlineSaleController.updateOfflineSale);
+router.delete("/offline-sales/:id", offlineSaleController.deleteOfflineSale);
 
 // Collections Management
 router.get("/collections", adminController.listCollections);

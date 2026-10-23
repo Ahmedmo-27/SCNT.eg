@@ -7,6 +7,9 @@ export type AdminDashboard = {
   collectionsCount: number
   pendingOrders: number
   totalRevenue: number
+  onlineRevenue?: number
+  offlineRevenue?: number
+  offlineSalesCount?: number
 }
 
 export type AdminUser = {
@@ -192,3 +195,128 @@ export function deleteAdminProduct(id: string): Promise<null> {
 export function sendPromotionalMail(payload: PromotionalMailPayload): Promise<PromotionalMailResult> {
   return apiPostDataAuthed<PromotionalMailResult>('/admin/mail/promotional', payload)
 }
+
+export type OfflineSaleItem = {
+  product: string | { _id: string; name: string; slug?: string; price?: number; images?: string[]; coverImage?: string }
+  productName: string
+  size: string
+  quantity: number
+  unitPrice: number
+  subtotal: number
+}
+
+export type OfflineSaleCustomer = {
+  fullName: string
+  phone: string
+  email: string
+}
+
+export type OfflineSale = {
+  _id: string
+  receiptNumber: string
+  items: OfflineSaleItem[]
+  subtotal: number
+  discount: number
+  total: number
+  paymentMethod: 'CASH' | 'INSTAPAY' | 'CARD' | 'VODAFONE_CASH' | 'BANK_TRANSFER' | 'OTHER'
+  paymentStatus: 'PAID' | 'PARTIALLY_PAID' | 'PENDING'
+  channel: 'WALK_IN' | 'BAZAAR' | 'POPUP_BOOTH' | 'WHATSAPP' | 'PHONE' | 'INSTAGRAM' | 'EXHIBITION' | 'OTHER'
+  location?: string
+  customer?: OfflineSaleCustomer
+  notes?: string
+  saleDate: string
+  deductedStock: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type CreateOfflineSalePayload = {
+  items: Array<{
+    product: string
+    productName?: string
+    size: string
+    quantity: number
+    unitPrice: number
+  }>
+  discount?: number
+  paymentMethod?: 'CASH' | 'INSTAPAY' | 'CARD' | 'VODAFONE_CASH' | 'BANK_TRANSFER' | 'OTHER'
+  paymentStatus?: 'PAID' | 'PARTIALLY_PAID' | 'PENDING'
+  channel?: 'WALK_IN' | 'BAZAAR' | 'POPUP_BOOTH' | 'WHATSAPP' | 'PHONE' | 'INSTAGRAM' | 'EXHIBITION' | 'OTHER'
+  location?: string
+  customer?: {
+    fullName?: string
+    phone?: string
+    email?: string
+  }
+  notes?: string
+  saleDate?: string
+  deductStock?: boolean
+}
+
+export type OfflineSalesSummary = {
+  totalRevenue: number
+  totalOrders: number
+  totalUnitsSold: number
+  avgOrderValue: number
+  paymentMethods: Array<{ method: string; count: number; total: number }>
+  channels: Array<{ channel: string; count: number; total: number }>
+  topProducts: Array<{ productName: string; quantity: number; revenue: number }>
+}
+
+export type OfflineSalesListResponse = {
+  sales: OfflineSale[]
+  pagination: {
+    total: number
+    page: number
+    pages: number
+    limit: number
+  }
+}
+
+export function fetchOfflineSales(params?: {
+  page?: number
+  limit?: number
+  search?: string
+  paymentMethod?: string
+  channel?: string
+  paymentStatus?: string
+  startDate?: string
+  endDate?: string
+}): Promise<OfflineSalesListResponse> {
+  const query = new URLSearchParams()
+  if (params?.page) query.set('page', String(params.page))
+  if (params?.limit) query.set('limit', String(params.limit))
+  if (params?.search) query.set('search', params.search)
+  if (params?.paymentMethod) query.set('paymentMethod', params.paymentMethod)
+  if (params?.channel) query.set('channel', params.channel)
+  if (params?.paymentStatus) query.set('paymentStatus', params.paymentStatus)
+  if (params?.startDate) query.set('startDate', params.startDate)
+  if (params?.endDate) query.set('endDate', params.endDate)
+  const qs = query.toString()
+  return apiGetDataAuthed<OfflineSalesListResponse>(`/admin/offline-sales${qs ? `?${qs}` : ''}`)
+}
+
+export function fetchOfflineSalesSummary(): Promise<OfflineSalesSummary> {
+  return apiGetDataAuthed<OfflineSalesSummary>('/admin/offline-sales/summary')
+}
+
+export function createOfflineSale(payload: CreateOfflineSalePayload): Promise<OfflineSale> {
+  return apiPostDataAuthed<OfflineSale>('/admin/offline-sales', payload)
+}
+
+export function updateOfflineSale(
+  id: string,
+  payload: Partial<CreateOfflineSalePayload>
+): Promise<OfflineSale> {
+  return apiPatchDataAuthed<OfflineSale>(`/admin/offline-sales/${id}`, payload)
+}
+
+export function deleteOfflineSale(
+  id: string,
+  restoreStock = true
+): Promise<{ deletedId: string; restoredStock: boolean }> {
+  return apiDeleteDataAuthed<{ deletedId: string; restoredStock: boolean }>(
+    `/admin/offline-sales/${id}?restoreStock=${restoreStock ? 'true' : 'false'}`
+  )
+}
+

@@ -10,7 +10,11 @@ const expenseSchema = new mongoose.Schema(
         "FRAGRANT_ALCOHOL",
         "CLEANING_ALCOHOL",
         "BOTTLES",
+        "BOTTLES_50ML",
+        "BOTTLES_100ML",
         "BOXES",
+        "BOXES_50ML",
+        "BOXES_100ML",
         "BOTTLE_STICKERS",      // bought by meter
         "BOX_SEALING_STICKERS", // sold by sheet
         "BOX_TOP_STICKERS",     // box lid sticker

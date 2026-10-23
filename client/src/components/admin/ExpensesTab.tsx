@@ -42,8 +42,12 @@ const CATEGORY_LABELS: Record<ExpenseCategory, string> = {
   OILS: 'Fragrance Oils',
   FRAGRANT_ALCOHOL: 'Fragrant Alcohol',
   CLEANING_ALCOHOL: 'Cleaning Alcohol',
-  BOTTLES: 'Bottles & Atomizers',
-  BOXES: 'Outer Boxes',
+  BOTTLES: 'Bottles & Atomizers (All)',
+  BOTTLES_50ML: '50ml Bottles & Atomizers',
+  BOTTLES_100ML: '100ml Bottles & Atomizers',
+  BOXES: 'Outer Boxes (All)',
+  BOXES_50ML: '50ml Outer Boxes',
+  BOXES_100ML: '100ml Outer Boxes',
   BOTTLE_STICKERS: 'Bottle Stickers (Meter)',
   BOX_SEALING_STICKERS: 'Box Sealing Stickers (Sheet)',
   BOX_TOP_STICKERS: 'Box Top Stickers (Meter)',
@@ -63,7 +67,11 @@ const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   FRAGRANT_ALCOHOL: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
   CLEANING_ALCOHOL: 'bg-cyan-500/10 text-cyan-700 border-cyan-500/20',
   BOTTLES: 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20',
+  BOTTLES_50ML: 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20',
+  BOTTLES_100ML: 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20',
   BOXES: 'bg-purple-500/10 text-purple-700 border-purple-500/20',
+  BOXES_50ML: 'bg-purple-500/10 text-purple-700 border-purple-500/20',
+  BOXES_100ML: 'bg-purple-500/10 text-purple-700 border-purple-500/20',
   BOTTLE_STICKERS: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
   BOX_SEALING_STICKERS: 'bg-teal-500/10 text-teal-700 border-teal-500/20',
   BOX_TOP_STICKERS: 'bg-lime-500/10 text-lime-700 border-lime-500/20',
@@ -91,13 +99,40 @@ const CATEGORY_DEFAULT_TITLES: Partial<Record<ExpenseCategory, string>> = {
   DECANT_CARDS: 'Custom 3ml Decant Cards',
   DECANTS_3ML: '3ml Decant Sample Vials',
   BOTTLES: '100ml Glass Perfume Bottles & Atomizers',
+  BOTTLES_50ML: '50ml Glass Perfume Bottles & Atomizers',
+  BOTTLES_100ML: '100ml Glass Perfume Bottles & Atomizers',
   BOXES: '100ml Rigid Packaging Outer Boxes',
+  BOXES_50ML: '50ml Rigid Packaging Outer Boxes',
+  BOXES_100ML: '100ml Rigid Packaging Outer Boxes',
   PACKAGING_SHIPPING: 'Courier Shipping Bags & Flyers',
   LAB_TOOLS: 'Lab Equipment & Measuring Tools',
   MARKETING_GIVEAWAYS: 'Promotional Giveaway Campaign',
 }
 
 type SubTabKey = 'ledger' | 'rates' | 'calculator' | 'promotions' | 'catalog'
+
+function getPageNumbers(current: number, total: number): (number | string)[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | string)[] = []
+  if (current <= 3) {
+    for (let i = 1; i <= 4; i++) pages.push(i)
+    pages.push('...')
+    pages.push(total)
+  } else if (current >= total - 2) {
+    pages.push(1)
+    pages.push('...')
+    for (let i = total - 3; i <= total; i++) pages.push(i)
+  } else {
+    pages.push(1)
+    pages.push('...')
+    pages.push(current - 1)
+    pages.push(current)
+    pages.push(current + 1)
+    pages.push('...')
+    pages.push(total)
+  }
+  return pages
+}
 
 export function ExpensesTab() {
   const [subTab, setSubTab] = useState<SubTabKey>('ledger')
@@ -107,11 +142,14 @@ export function ExpensesTab() {
 
   // Data states
   const [expenses, setExpenses] = useState<ExpenseItem[]>([])
+  const [expensesLoading, setExpensesLoading] = useState(false)
   const [summary, setSummary] = useState<ExpenseSummary | null>(null)
   const [costConfig, setCostConfig] = useState<CostConfig | null>(null)
   const [cogsData, setCogsData] = useState<CogsData | null>(null)
   const [cogsAnalysis, setCogsAnalysis] = useState<CogsAnalysisResponse | null>(null)
-  const [pagination, setPagination] = useState({ page: 1, limit: 25, total: 0, pages: 1 })
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(25)
+  const [pagination, setPagination] = useState({ total: 0, page: 1, limit: 25, pages: 1 })
 
   // Filters for ledger
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL')
@@ -161,10 +199,11 @@ export function ExpensesTab() {
   // Form: Benchmark rates editing state
   const [ratesForm, setRatesForm] = useState<CostConfig | null>(null)
 
-  // Fragrance-specific selection and custom oil pricing (No global default oil price)
+  // Fragrance-specific selection and custom oil pricing (supports Grams and Kilograms)
   const [selectedProductSlug, setSelectedProductSlug] = useState<string>('')
   const [editingOilProductId, setEditingOilProductId] = useState<string | null>(null)
-  const [editingOilKg, setEditingOilKg] = useState<string>('')
+  const [editingOilValue, setEditingOilValue] = useState<string>('')
+  const [fragranceOilUnit, setFragranceOilUnit] = useState<'grams' | 'kg'>('grams')
 
   // Calculator simulation state
   const [simRetail100, setSimRetail100] = useState<number>(750)
@@ -177,22 +216,28 @@ export function ExpensesTab() {
   }
 
   // Load expenses list
-  const loadExpenses = useCallback(async () => {
-    try {
-      const res = await fetchExpenses({
-        category: categoryFilter,
-        search: searchQuery,
-        startDate: startDateFilter,
-        endDate: endDateFilter,
-        page: pagination.page,
-        limit: pagination.limit,
-      })
-      setExpenses(res.items)
-      setPagination(res.pagination)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch expenses')
-    }
-  }, [categoryFilter, searchQuery, startDateFilter, endDateFilter, pagination.page, pagination.limit])
+  const loadExpenses = useCallback(
+    async (targetPage = page, targetLimit = limit) => {
+      setExpensesLoading(true)
+      try {
+        const res = await fetchExpenses({
+          category: categoryFilter,
+          search: searchQuery,
+          startDate: startDateFilter,
+          endDate: endDateFilter,
+          page: targetPage,
+          limit: targetLimit,
+        })
+        setExpenses(res.items)
+        setPagination(res.pagination)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch expenses')
+      } finally {
+        setExpensesLoading(false)
+      }
+    },
+    [categoryFilter, searchQuery, startDateFilter, endDateFilter, page, limit]
+  )
 
   // Load summary and cost config
   const loadOverviewAndConfig = useCallback(async () => {
@@ -230,21 +275,40 @@ export function ExpensesTab() {
 
   useEffect(() => {
     if (subTab === 'ledger' || subTab === 'promotions') {
-      void loadExpenses()
+      void loadExpenses(page, limit)
     } else if (subTab === 'catalog' || subTab === 'calculator') {
       void loadCatalogAnalysis()
     }
-  }, [subTab, loadExpenses, loadCatalogAnalysis])
+  }, [subTab, loadExpenses, loadCatalogAnalysis, page, limit])
 
-  const handleSaveProductOilPrice = async (productId: string, oilKg: number) => {
+  const handleSaveProductOilPrice = async (
+    productId: string,
+    val: number,
+    unit: 'grams' | 'kg' = fragranceOilUnit
+  ) => {
     setBusy(true)
     setError(null)
     try {
-      const res = await updateProductOilPrice(productId, {
-        oilCostPerKg: oilKg,
-        oilCostPerMl: Number((oilKg / 1000).toFixed(4)),
-      })
-      showToast(`Updated oil price for ${res.product.name} to ${formatEgp(oilKg)}/kg`)
+      const payload =
+        unit === 'grams'
+          ? {
+              oilCostPerGram: val,
+              oilCostPerMl: val,
+              oilCostPerKg: Number((val * 1000).toFixed(2)),
+              unit: 'grams' as const,
+              pricePerUnit: val,
+            }
+          : {
+              oilCostPerKg: val,
+              oilCostPerMl: Number((val / 1000).toFixed(4)),
+              oilCostPerGram: Number((val / 1000).toFixed(4)),
+              unit: 'kg' as const,
+              pricePerUnit: val,
+            }
+      const res = await updateProductOilPrice(productId, payload)
+      showToast(
+        `Updated oil price for ${res.product.name} to ${formatEgp(unit === 'grams' ? val : val / 1000)}/g (${formatEgp(unit === 'grams' ? val * 1000 : val)}/kg)`
+      )
       setEditingOilProductId(null)
       await Promise.all([loadCatalogAnalysis(), loadOverviewAndConfig()])
     } catch (err) {
@@ -338,10 +402,18 @@ export function ExpensesTab() {
     titleText?: string
   ): { price: number; unit: ExpenseUnit; label: string } | null => {
     if (category === 'OILS') {
+      const isGrams = formUnit === 'grams'
       if (assignedProdId && cogsAnalysis) {
         const prod = cogsAnalysis.productAnalysis.find((p) => p._id === assignedProdId)
         if (prod && prod.oilCostPerKg > 0) {
-          return { price: prod.oilCostPerKg, unit: 'kg', label: `${prod.name} Benchmark Rate` }
+          const price = isGrams
+            ? (prod.oilCostPerGram || Number((prod.oilCostPerKg / 1000).toFixed(4)))
+            : prod.oilCostPerKg
+          return {
+            price,
+            unit: isGrams ? 'grams' : 'kg',
+            label: `${prod.name} Benchmark Rate (${isGrams ? 'Per Gram' : 'Per Kg'})`,
+          }
         }
       }
       const recentOil = expenses.find(
@@ -403,10 +475,30 @@ export function ExpensesTab() {
       return { price, unit: 'pcs', label: '3ml Sample Vial Benchmark' }
     }
 
+    if (category === 'BOTTLES_50ML') {
+      const price = costConfig?.bottles?.size50ml || 28
+      return { price, unit: 'pcs', label: '50ml Bottle Benchmark' }
+    }
+
+    if (category === 'BOTTLES_100ML') {
+      const price = costConfig?.bottles?.size100ml || 38
+      return { price, unit: 'pcs', label: '100ml Bottle Benchmark' }
+    }
+
     if (category === 'BOTTLES') {
       const is50 = (titleText || '').toLowerCase().includes('50')
       const price = is50 ? costConfig?.bottles?.size50ml || 28 : costConfig?.bottles?.size100ml || 38
       return { price, unit: 'pcs', label: is50 ? '50ml Bottle Benchmark' : '100ml Bottle Benchmark' }
+    }
+
+    if (category === 'BOXES_50ML') {
+      const price = costConfig?.boxes?.size50ml || 16
+      return { price, unit: 'pcs', label: '50ml Box Benchmark' }
+    }
+
+    if (category === 'BOXES_100ML') {
+      const price = costConfig?.boxes?.size100ml || 22
+      return { price, unit: 'pcs', label: '100ml Box Benchmark' }
     }
 
     if (category === 'BOXES') {
@@ -446,7 +538,8 @@ export function ExpensesTab() {
       setFormTitle(CATEGORY_DEFAULT_TITLES[cat] || '')
     }
 
-    const saved = getSavedPriceForItem(cat, formAssignedProduct, formTitle)
+    const defaultTitle = CATEGORY_DEFAULT_TITLES[cat] || formTitle
+    const saved = getSavedPriceForItem(cat, formAssignedProduct, defaultTitle)
     if (saved) {
       setFormUnit(saved.unit)
       setFormUnitPrice(String(saved.price))
@@ -456,7 +549,7 @@ export function ExpensesTab() {
       if (cat === 'BOTTLE_STICKERS' || cat === 'BOX_TOP_STICKERS') setFormUnit('meters')
       else if (cat === 'BOX_SEALING_STICKERS') setFormUnit('sheets')
       else if (cat === 'SHREDDED_PAPER') setFormUnit('bags')
-      else if (cat === 'OILS') setFormUnit('kg')
+      else if (cat === 'OILS') setFormUnit(fragranceOilUnit)
       else if (cat === 'FRAGRANT_ALCOHOL' || cat === 'CLEANING_ALCOHOL') setFormUnit('liters')
       else setFormUnit('pcs')
       setFormUnitPrice('')
@@ -480,10 +573,13 @@ export function ExpensesTab() {
         setFormTitle(`${prod.name} Fragrance Oil`)
       }
       if (prod.oilCostPerKg > 0) {
-        setFormUnitPrice(String(prod.oilCostPerKg))
-        setFormUnit('kg')
+        const isGrams = formUnit === 'grams'
+        const unitPrice = isGrams
+          ? (prod.oilCostPerGram || Number((prod.oilCostPerKg / 1000).toFixed(4)))
+          : prod.oilCostPerKg
+        setFormUnitPrice(String(unitPrice))
         const q = Number(formQuantity) || 1
-        setFormAmount(String(Number((prod.oilCostPerKg * q).toFixed(2))))
+        setFormAmount(String(Number((unitPrice * q).toFixed(2))))
       } else {
         setFormUnitPrice('')
         setFormAmount('')
@@ -617,10 +713,15 @@ export function ExpensesTab() {
       } else {
         await createExpense(payload)
         showToast('Expense logged successfully')
+        setPage(1)
       }
 
       setShowAddModal(false)
-      await Promise.all([loadExpenses(), loadOverviewAndConfig(), loadCatalogAnalysis()])
+      await Promise.all([
+        loadExpenses(editingExpense ? page : 1, limit),
+        loadOverviewAndConfig(),
+        loadCatalogAnalysis(),
+      ])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save expense')
     } finally {
@@ -635,7 +736,11 @@ export function ExpensesTab() {
     try {
       await deleteExpense(id)
       showToast('Expense removed')
-      await Promise.all([loadExpenses(), loadOverviewAndConfig()])
+      if (expenses.length === 1 && page > 1) {
+        setPage((p) => p - 1)
+      } else {
+        await Promise.all([loadExpenses(page, limit), loadOverviewAndConfig()])
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete expense')
     } finally {
@@ -675,6 +780,8 @@ export function ExpensesTab() {
         `Logged giveaway of ${countToLog} units (${formatEgp(res.totalLogged)}) into promotional expenses!`
       )
       setShowGiveawayModal(false)
+      setPage(1)
+      await Promise.all([loadExpenses(1, limit), loadOverviewAndConfig()])
       setGiveawayRecipient('')
       setGiveawayNotes('')
       setGiveawayFragranceId('')
@@ -825,7 +932,10 @@ export function ExpensesTab() {
                 <select
                   className="mt-1 w-full rounded-md border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
                   value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value)
+                    setPage(1)
+                  }}
                 >
                   <option value="ALL">All Categories</option>
                   {(Object.keys(CATEGORY_LABELS) as ExpenseCategory[]).map((cat) => (
@@ -843,7 +953,10 @@ export function ExpensesTab() {
                   placeholder="Supplier, title, invoice, notes..."
                   className="mt-1 w-full rounded-md border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setPage(1)
+                  }}
                 />
               </div>
 
@@ -853,7 +966,10 @@ export function ExpensesTab() {
                   type="date"
                   className="mt-1 w-full rounded-md border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
                   value={startDateFilter}
-                  onChange={(e) => setStartDateFilter(e.target.value)}
+                  onChange={(e) => {
+                    setStartDateFilter(e.target.value)
+                    setPage(1)
+                  }}
                 />
               </div>
 
@@ -863,10 +979,34 @@ export function ExpensesTab() {
                   type="date"
                   className="mt-1 w-full rounded-md border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
                   value={endDateFilter}
-                  onChange={(e) => setEndDateFilter(e.target.value)}
+                  onChange={(e) => {
+                    setEndDateFilter(e.target.value)
+                    setPage(1)
+                  }}
                 />
               </div>
             </div>
+
+            {(categoryFilter !== 'ALL' || searchQuery || startDateFilter || endDateFilter) && (
+              <div className="mt-3 pt-2.5 border-t border-scnt-border/40 flex items-center justify-between text-xs">
+                <span className="text-scnt-text-muted">
+                  Filters active
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCategoryFilter('ALL')
+                    setSearchQuery('')
+                    setStartDateFilter('')
+                    setEndDateFilter('')
+                    setPage(1)
+                  }}
+                  className="text-xs text-scnt-text underline underline-offset-2 hover:opacity-80 transition-opacity"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            )}
           </Card>
 
           {/* Expenses Table */}
@@ -886,7 +1026,13 @@ export function ExpensesTab() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-scnt-border/40">
-                  {expenses.length === 0 ? (
+                  {expensesLoading ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-8 text-center text-scnt-text-muted">
+                        Loading spendings ledger entries...
+                      </td>
+                    </tr>
+                  ) : expenses.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="px-4 py-8 text-center text-scnt-text-muted">
                         No expenses found. Click "+ Log Expense" or "🎁 Log 3ml Decant Giveaway" to record spendings.
@@ -973,31 +1119,119 @@ export function ExpensesTab() {
             </div>
 
             {/* Pagination Controls */}
-            {pagination.pages > 1 && (
-              <div className="flex items-center justify-between border-t border-scnt-border/60 px-4 py-3 text-xs text-scnt-text-muted">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-scnt-border/60 px-4 py-3 text-xs text-scnt-text-muted">
+              {/* Range & Total Entries */}
+              <div className="flex items-center gap-3">
                 <span>
-                  Page {pagination.page} of {pagination.pages} ({pagination.total} entries)
+                  {pagination.total > 0 ? (
+                    <>
+                      Showing <strong className="text-scnt-text font-mono">{(page - 1) * limit + 1}</strong>–
+                      <strong className="text-scnt-text font-mono">
+                        {Math.min(page * limit, pagination.total)}
+                      </strong>{' '}
+                      of <strong className="text-scnt-text font-mono">{pagination.total}</strong> entries
+                    </>
+                  ) : (
+                    'No entries'
+                  )}
                 </span>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    disabled={pagination.page <= 1 || busy}
-                    onClick={() => setPagination((p) => ({ ...p, page: p.page - 1 }))}
-                    className="!px-3 !py-1 text-xs"
+
+                {/* Rows per page selector */}
+                <div className="flex items-center gap-1.5 ml-2 border-l border-scnt-border/60 pl-3">
+                  <span className="text-[11px]">Rows:</span>
+                  <select
+                    className="rounded border border-scnt-border/80 bg-scnt-bg px-2 py-0.5 text-xs text-scnt-text"
+                    value={limit}
+                    onChange={(e) => {
+                      const newLimit = Number(e.target.value)
+                      setLimit(newLimit)
+                      setPage(1)
+                    }}
                   >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={pagination.page >= pagination.pages || busy}
-                    onClick={() => setPagination((p) => ({ ...p, page: p.page + 1 }))}
-                    className="!px-3 !py-1 text-xs"
-                  >
-                    Next
-                  </Button>
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
                 </div>
               </div>
-            )}
+
+              {/* Navigation buttons */}
+              {pagination.pages > 1 && (
+                <div className="flex items-center gap-1">
+                  {/* First page button */}
+                  <button
+                    type="button"
+                    disabled={page <= 1 || expensesLoading || busy}
+                    onClick={() => setPage(1)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded border border-scnt-border/80 bg-scnt-bg text-xs text-scnt-text hover:bg-scnt-card/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    title="First page"
+                  >
+                    «
+                  </button>
+
+                  {/* Previous button */}
+                  <button
+                    type="button"
+                    disabled={page <= 1 || expensesLoading || busy}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className="inline-flex h-7 px-2.5 items-center justify-center rounded border border-scnt-border/80 bg-scnt-bg text-xs text-scnt-text hover:bg-scnt-card/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Prev
+                  </button>
+
+                  {/* Page numbers */}
+                  <div className="flex items-center gap-1 px-1">
+                    {getPageNumbers(page, pagination.pages).map((pNum, idx) => {
+                      if (pNum === '...') {
+                        return (
+                          <span key={`ellipsis-${idx}`} className="px-1 text-scnt-text-muted">
+                            …
+                          </span>
+                        )
+                      }
+                      const isCurrent = pNum === page
+                      return (
+                        <button
+                          key={pNum}
+                          type="button"
+                          disabled={expensesLoading || busy}
+                          onClick={() => setPage(Number(pNum))}
+                          className={`inline-flex h-7 w-7 items-center justify-center rounded text-xs font-medium transition-colors ${
+                            isCurrent
+                              ? 'bg-scnt-text text-scnt-bg font-semibold'
+                              : 'border border-scnt-border/80 bg-scnt-bg text-scnt-text hover:bg-scnt-card/80'
+                          }`}
+                        >
+                          {pNum}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Next button */}
+                  <button
+                    type="button"
+                    disabled={page >= pagination.pages || expensesLoading || busy}
+                    onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
+                    className="inline-flex h-7 px-2.5 items-center justify-center rounded border border-scnt-border/80 bg-scnt-bg text-xs text-scnt-text hover:bg-scnt-card/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
+
+                  {/* Last page button */}
+                  <button
+                    type="button"
+                    disabled={page >= pagination.pages || expensesLoading || busy}
+                    onClick={() => setPage(pagination.pages)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded border border-scnt-border/80 bg-scnt-bg text-xs text-scnt-text hover:bg-scnt-card/80 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    title="Last page"
+                  >
+                    »
+                  </button>
+                </div>
+              )}
+            </div>
           </Card>
         </div>
       )}
@@ -1793,14 +2027,19 @@ export function ExpensesTab() {
                           if (prod) {
                             setSimRetail100(prod.size100ml.retailPrice)
                             setSimRetail50(prod.size50ml.retailPrice)
-                            setEditingOilKg(prod.oilCostPerKg > 0 ? String(prod.oilCostPerKg) : '')
+                            if (fragranceOilUnit === 'grams') {
+                              const gPrice = prod.oilCostPerGram || (prod.oilCostPerKg > 0 ? Number((prod.oilCostPerKg / 1000).toFixed(4)) : '')
+                              setEditingOilValue(gPrice ? String(gPrice) : '')
+                            } else {
+                              setEditingOilValue(prod.oilCostPerKg > 0 ? String(prod.oilCostPerKg) : '')
+                            }
                           }
                         }
                       }}
                     >
                       {cogsAnalysis?.productAnalysis.map((p) => (
                         <option key={p._id} value={p.slug}>
-                          {p.name} {p.oilCostPerKg > 0 ? `(${formatEgp(p.oilCostPerKg)}/kg)` : '(⚠ Oil Price Needed)'}
+                          {p.name} {p.oilCostPerKg > 0 ? `(${formatEgp(fragranceOilUnit === 'grams' ? (p.oilCostPerGram || p.oilCostPerKg / 1000) : p.oilCostPerKg)}/${fragranceOilUnit === 'grams' ? 'g' : 'kg'})` : '(⚠ Oil Price Needed)'}
                         </option>
                       ))}
                     </select>
@@ -1810,14 +2049,16 @@ export function ExpensesTab() {
                     <span className="text-[10px] text-scnt-text-muted uppercase">Active Fragrance Oil Rate:</span>
                     {isOilSet ? (
                       <p className="font-semibold text-emerald-800">
-                        {formatEgp(activeOilCostPerKg)} / kg{' '}
+                        {fragranceOilUnit === 'grams'
+                          ? `${formatEgp(activeOilCostPerMl)} / g `
+                          : `${formatEgp(activeOilCostPerKg)} / kg `}
                         <span className="text-[11px] font-normal text-scnt-text-muted">
-                          ({formatEgp(activeOilCostPerMl)} / ml)
+                          ({fragranceOilUnit === 'grams' ? `${formatEgp(activeOilCostPerKg)} / kg` : `${formatEgp(activeOilCostPerMl)} / g`})
                         </span>
                       </p>
                     ) : (
                       <p className="font-semibold text-amber-700">
-                        Not Set (0.00 EGP / kg)
+                        Not Set (0.00 EGP)
                       </p>
                     )}
                   </div>
@@ -1827,20 +2068,20 @@ export function ExpensesTab() {
                   <div className="flex items-center gap-2">
                     <div className="text-right">
                       <label className="text-[10px] text-scnt-text-muted block">
-                        Set {selectedProduct.name} Oil (EGP/kg)
+                        Set {selectedProduct.name} Oil ({fragranceOilUnit === 'grams' ? 'EGP/g' : 'EGP/kg'})
                       </label>
                       <input
                         type="number"
                         step="any"
-                        placeholder="e.g. 3500"
+                        placeholder={fragranceOilUnit === 'grams' ? 'e.g. 3.5' : 'e.g. 3500'}
                         className="w-32 rounded border border-scnt-border bg-scnt-bg px-2 py-1 text-xs font-semibold"
-                        value={editingOilKg}
-                        onChange={(e) => setEditingOilKg(e.target.value)}
+                        value={editingOilValue}
+                        onChange={(e) => setEditingOilValue(e.target.value)}
                       />
                     </div>
                     <Button
-                      onClick={() => void handleSaveProductOilPrice(selectedProduct._id, Number(editingOilKg))}
-                      disabled={busy || !editingOilKg}
+                      onClick={() => void handleSaveProductOilPrice(selectedProduct._id, Number(editingOilValue), fragranceOilUnit)}
+                      disabled={busy || !editingOilValue}
                       className="!px-3 !py-1 text-xs mt-3"
                     >
                       Save Oil Price
@@ -2259,7 +2500,37 @@ export function ExpensesTab() {
               <thead className="bg-scnt-card/80 text-[11px] font-mono uppercase text-scnt-text-muted border-b border-scnt-border/60">
                 <tr>
                   <th className="px-4 py-3">Fragrance Product</th>
-                  <th className="px-4 py-3">Fragrance Oil Price (EGP/kg)</th>
+                  <th className="px-4 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Fragrance Oil Price ({fragranceOilUnit === 'grams' ? 'EGP/g' : 'EGP/kg'})</span>
+                      <div className="inline-flex items-center rounded border border-scnt-border/60 bg-scnt-bg p-0.5 text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => setFragranceOilUnit('grams')}
+                          className={`px-1.5 py-0.5 rounded font-medium transition-colors ${
+                            fragranceOilUnit === 'grams'
+                              ? 'bg-scnt-text text-scnt-bg'
+                              : 'text-scnt-text-muted hover:text-scnt-text'
+                          }`}
+                          title="View and edit prices per gram"
+                        >
+                          g
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFragranceOilUnit('kg')}
+                          className={`px-1.5 py-0.5 rounded font-medium transition-colors ${
+                            fragranceOilUnit === 'kg'
+                              ? 'bg-scnt-text text-scnt-bg'
+                              : 'text-scnt-text-muted hover:text-scnt-text'
+                          }`}
+                          title="View and edit prices per kilogram"
+                        >
+                          kg
+                        </button>
+                      </div>
+                    </div>
+                  </th>
                   <th className="px-4 py-3">100ml Retail</th>
                   <th className="px-4 py-3">100ml COGS</th>
                   <th className="px-4 py-3">100ml Profit</th>
@@ -2293,14 +2564,14 @@ export function ExpensesTab() {
                               type="number"
                               step="any"
                               className="w-24 rounded border border-scnt-border bg-scnt-bg px-2 py-1 text-xs font-semibold"
-                              value={editingOilKg}
-                              onChange={(e) => setEditingOilKg(e.target.value)}
-                              placeholder="EGP/kg"
+                              value={editingOilValue}
+                              onChange={(e) => setEditingOilValue(e.target.value)}
+                              placeholder={fragranceOilUnit === 'grams' ? 'EGP/g' : 'EGP/kg'}
                               autoFocus
                             />
                             <button
-                              onClick={() => void handleSaveProductOilPrice(prod._id, Number(editingOilKg))}
-                              disabled={busy || !editingOilKg}
+                              onClick={() => void handleSaveProductOilPrice(prod._id, Number(editingOilValue), fragranceOilUnit)}
+                              disabled={busy || !editingOilValue}
                               className="rounded bg-scnt-text px-2 py-1 text-[11px] font-medium text-scnt-bg hover:opacity-90 transition-opacity"
                             >
                               Save
@@ -2317,11 +2588,20 @@ export function ExpensesTab() {
                             <div>
                               <p className="font-mono font-medium">
                                 {prod.oilCostPerKg > 0
-                                  ? `${formatEgp(prod.oilCostPerKg)} / kg`
+                                  ? fragranceOilUnit === 'grams'
+                                    ? `${formatEgp(prod.oilCostPerGram || prod.oilCostPerKg / 1000)} / g`
+                                    : `${formatEgp(prod.oilCostPerKg)} / kg`
                                   : 'Not Set (0.00 EGP)'}
                               </p>
+                              {prod.oilCostPerKg > 0 && (
+                                <span className="text-[10px] text-scnt-text-muted block font-mono">
+                                  {fragranceOilUnit === 'grams'
+                                    ? `${formatEgp(prod.oilCostPerKg)} / kg`
+                                    : `${formatEgp(prod.oilCostPerGram || prod.oilCostPerKg / 1000)} / g`}
+                                </span>
+                              )}
                               <span
-                                className={`inline-block text-[10px] rounded px-1.5 py-0.2 border ${
+                                className={`inline-block text-[10px] rounded px-1.5 py-0.2 border mt-0.5 ${
                                   prod.oilCostPerKg > 0
                                     ? 'bg-emerald-500/10 text-emerald-800 border-emerald-500/20'
                                     : 'bg-amber-500/10 text-amber-800 border-amber-500/20'
@@ -2333,10 +2613,15 @@ export function ExpensesTab() {
                             <button
                               onClick={() => {
                                 setEditingOilProductId(prod._id)
-                                setEditingOilKg(prod.oilCostPerKg > 0 ? String(prod.oilCostPerKg) : '')
+                                if (fragranceOilUnit === 'grams') {
+                                  const val = prod.oilCostPerGram || (prod.oilCostPerKg > 0 ? Number((prod.oilCostPerKg / 1000).toFixed(4)) : '')
+                                  setEditingOilValue(val ? String(val) : '')
+                                } else {
+                                  setEditingOilValue(prod.oilCostPerKg > 0 ? String(prod.oilCostPerKg) : '')
+                                }
                               }}
                               className="rounded p-1 text-[11px] text-scnt-text-muted hover:text-scnt-text hover:bg-scnt-card/60"
-                              title="Set this fragrance's oil cost"
+                              title={`Set this fragrance's oil cost in ${fragranceOilUnit === 'grams' ? 'EGP/gram' : 'EGP/kg'}`}
                             >
                               ✏️
                             </button>
@@ -2430,14 +2715,31 @@ export function ExpensesTab() {
                   <select
                     className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-2.5 py-2 text-xs text-scnt-text"
                     value={formUnit}
-                    onChange={(e) => setFormUnit(e.target.value as ExpenseUnit)}
+                    onChange={(e) => {
+                      const nextUnit = e.target.value as ExpenseUnit
+                      if (formCategory === 'OILS' && formUnitPrice) {
+                        const currentVal = Number(formUnitPrice)
+                        if (formUnit === 'kg' && nextUnit === 'grams' && currentVal > 0) {
+                          const converted = Number((currentVal / 1000).toFixed(4))
+                          setFormUnitPrice(String(converted))
+                          const q = Number(formQuantity) || 1
+                          setFormAmount(String(Number((converted * q).toFixed(2))))
+                        } else if (formUnit === 'grams' && nextUnit === 'kg' && currentVal > 0) {
+                          const converted = Number((currentVal * 1000).toFixed(2))
+                          setFormUnitPrice(String(converted))
+                          const q = Number(formQuantity) || 1
+                          setFormAmount(String(Number((converted * q).toFixed(2))))
+                        }
+                      }
+                      setFormUnit(nextUnit)
+                    }}
                   >
                     <option value="meters">Meters (Rolls)</option>
                     <option value="sheets">Sheets</option>
                     <option value="bags">Bags (Shredded)</option>
                     <option value="pcs">Pieces</option>
-                    <option value="kg">Kilograms</option>
-                    <option value="grams">Grams</option>
+                    <option value="grams">Grams (g)</option>
+                    <option value="kg">Kilograms (kg)</option>
                     <option value="liters">Liters</option>
                     <option value="ml">Milliliters</option>
                     <option value="units">Units</option>
@@ -2445,6 +2747,102 @@ export function ExpensesTab() {
                   </select>
                 </div>
               </div>
+
+              {(formCategory === 'BOTTLES' || formCategory === 'BOTTLES_50ML' || formCategory === 'BOTTLES_100ML') && (
+                <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 p-3 space-y-1.5">
+                  <label className="text-xs font-semibold text-indigo-950 block">
+                    Bottle Size & Rate Variant
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormCategory('BOTTLES_50ML')
+                        setFormTitle('50ml Glass Perfume Bottles & Atomizers')
+                        setFormUnit('pcs')
+                        const p = costConfig?.bottles?.size50ml || 28
+                        setFormUnitPrice(String(p))
+                        const q = Number(formQuantity) || 1
+                        setFormAmount(String(Number((p * q).toFixed(2))))
+                      }}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-semibold border transition-all ${
+                        formCategory === 'BOTTLES_50ML' || (formCategory === 'BOTTLES' && formTitle.toLowerCase().includes('50'))
+                          ? 'border-indigo-600 bg-indigo-600 text-white shadow-xs'
+                          : 'border-indigo-300 bg-scnt-bg text-indigo-900 hover:border-indigo-500'
+                      }`}
+                    >
+                      50ml Bottle ({formatEgp(costConfig?.bottles?.size50ml || 28)})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormCategory('BOTTLES_100ML')
+                        setFormTitle('100ml Glass Perfume Bottles & Atomizers')
+                        setFormUnit('pcs')
+                        const p = costConfig?.bottles?.size100ml || 38
+                        setFormUnitPrice(String(p))
+                        const q = Number(formQuantity) || 1
+                        setFormAmount(String(Number((p * q).toFixed(2))))
+                      }}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-semibold border transition-all ${
+                        formCategory === 'BOTTLES_100ML' || (formCategory === 'BOTTLES' && !formTitle.toLowerCase().includes('50'))
+                          ? 'border-indigo-600 bg-indigo-600 text-white shadow-xs'
+                          : 'border-indigo-300 bg-scnt-bg text-indigo-900 hover:border-indigo-500'
+                      }`}
+                    >
+                      100ml Bottle ({formatEgp(costConfig?.bottles?.size100ml || 38)})
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {(formCategory === 'BOXES' || formCategory === 'BOXES_50ML' || formCategory === 'BOXES_100ML') && (
+                <div className="rounded-lg border border-purple-500/30 bg-purple-500/10 p-3 space-y-1.5">
+                  <label className="text-xs font-semibold text-purple-950 block">
+                    Outer Box Size & Rate Variant
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormCategory('BOXES_50ML')
+                        setFormTitle('50ml Rigid Packaging Outer Boxes')
+                        setFormUnit('pcs')
+                        const p = costConfig?.boxes?.size50ml || 16
+                        setFormUnitPrice(String(p))
+                        const q = Number(formQuantity) || 1
+                        setFormAmount(String(Number((p * q).toFixed(2))))
+                      }}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-semibold border transition-all ${
+                        formCategory === 'BOXES_50ML' || (formCategory === 'BOXES' && formTitle.toLowerCase().includes('50'))
+                          ? 'border-purple-600 bg-purple-600 text-white shadow-xs'
+                          : 'border-purple-300 bg-scnt-bg text-purple-900 hover:border-purple-500'
+                      }`}
+                    >
+                      50ml Box ({formatEgp(costConfig?.boxes?.size50ml || 16)})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormCategory('BOXES_100ML')
+                        setFormTitle('100ml Rigid Packaging Outer Boxes')
+                        setFormUnit('pcs')
+                        const p = costConfig?.boxes?.size100ml || 22
+                        setFormUnitPrice(String(p))
+                        const q = Number(formQuantity) || 1
+                        setFormAmount(String(Number((p * q).toFixed(2))))
+                      }}
+                      className={`flex-1 rounded-md py-1.5 text-xs font-semibold border transition-all ${
+                        formCategory === 'BOXES_100ML' || (formCategory === 'BOXES' && !formTitle.toLowerCase().includes('50'))
+                          ? 'border-purple-600 bg-purple-600 text-white shadow-xs'
+                          : 'border-purple-300 bg-scnt-bg text-purple-900 hover:border-purple-500'
+                      }`}
+                    >
+                      100ml Box ({formatEgp(costConfig?.boxes?.size100ml || 22)})
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {formCategory === 'OILS' && (
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 space-y-1.5">
@@ -2457,11 +2855,17 @@ export function ExpensesTab() {
                     onChange={(e) => handleAssignedProductChange(e.target.value)}
                   >
                     <option value="">— Unassigned General Oil / Bulk —</option>
-                    {cogsAnalysis?.productAnalysis.map((p) => (
-                      <option key={p._id} value={p._id}>
-                        {p.name} {p.oilCostPerKg > 0 ? `(Current: ${formatEgp(p.oilCostPerKg)}/kg)` : '(Oil price not set)'}
-                      </option>
-                    ))}
+                    {cogsAnalysis?.productAnalysis.map((p) => {
+                      const isGrams = formUnit === 'grams'
+                      const rateText = isGrams
+                        ? `${formatEgp(p.oilCostPerGram || p.oilCostPerKg / 1000)}/g (${formatEgp(p.oilCostPerKg)}/kg)`
+                        : `${formatEgp(p.oilCostPerKg)}/kg (${formatEgp(p.oilCostPerGram || p.oilCostPerKg / 1000)}/g)`
+                      return (
+                        <option key={p._id} value={p._id}>
+                          {p.name} {p.oilCostPerKg > 0 ? `(Current: ${rateText})` : '(Oil price not set)'}
+                        </option>
+                      )
+                    })}
                   </select>
                   {formAssignedProduct && (
                     <p className="text-[11px] text-amber-800">

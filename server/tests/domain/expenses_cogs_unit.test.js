@@ -230,4 +230,38 @@ describe("Expenses & COGS Formulas Unit Tests", () => {
     const derivedUnitPrice = Number((newTotalPaid / quantityPurchased).toFixed(4));
     expect(derivedUnitPrice).toBe(60);
   });
+
+  it("handles fragrance oil pricing when unit is grams instead of kilos", () => {
+    // When price is specified per gram: e.g. 3.50 EGP / gram
+    const oilPricePerGram = 3.50;
+    const oilPricePerKg = Number((oilPricePerGram * 1000).toFixed(2));
+    expect(oilPricePerKg).toBe(3500);
+
+    // Derived unit cost from purchasing 500 grams for 1750 EGP
+    const amountPaid = 1750;
+    const gramsPurchased = 500;
+    const unitCostPerGram = Number((amountPaid / gramsPurchased).toFixed(4));
+    expect(unitCostPerGram).toBe(3.5);
+
+    // Converted to kg rate
+    const derivedKgRate = Number((unitCostPerGram * 1000).toFixed(2));
+    expect(derivedKgRate).toBe(3500);
+
+    // Converted from kg to gram rate: 4200 EGP / kg -> 4.20 EGP / gram
+    const kgPrice = 4200;
+    const gramPrice = Number((kgPrice / 1000).toFixed(4));
+    expect(gramPrice).toBe(4.2);
+
+    // 100ml recipe uses 25g/25ml oil
+    const oilCost100 = 25 * oilPricePerGram;
+    expect(oilCost100).toBe(87.5);
+
+    // 50ml recipe uses 15g/15ml oil
+    const oilCost50 = 15 * oilPricePerGram;
+    expect(oilCost50).toBe(52.5);
+
+    // 3ml decant recipe uses 1g/1ml oil
+    const oilCostDecant = 1 * oilPricePerGram;
+    expect(oilCostDecant).toBe(3.5);
+  });
 });
