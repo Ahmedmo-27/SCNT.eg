@@ -4,7 +4,7 @@ import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
 import { clearStoredAuthToken, getStoredAuthToken } from '../lib/authStorage'
 import { fetchProfile, updateProfile, type AuthUser } from '../services/authApi'
-import { fetchMyOrders, type OrderLine, type UserOrder } from '../services/ordersApi'
+import { cancelMyOrder, fetchMyOrders, type OrderLine, type UserOrder } from '../services/ordersApi'
 import { Card } from '../components/ui/Card'
 import { EightPointStar } from '../components/ui/EightPointStar'
 import { EGYPT_GOVERNORATES, getCitiesForGovernorate } from '../data/egyptLocations'
@@ -107,6 +107,8 @@ function orderStatusClass(status: UserOrder['status']): string {
       return 'bg-scnt-bg-muted/60 text-scnt-text'
     case 'SHIPPED':
       return 'bg-scnt-bg-muted/75 text-scnt-text ring-1 ring-scnt-text/12'
+    case 'CANCELLED':
+      return 'bg-red-500/10 text-red-400 ring-1 ring-red-500/30'
     default:
       return 'bg-scnt-bg-muted/70 text-scnt-text'
   }
@@ -132,6 +134,8 @@ export function ProfilePage() {
   const [orders, setOrders] = useState<UserOrder[]>([])
   const [ordersStatus, setOrdersStatus] = useState<'loading' | 'error' | 'ready'>('loading')
   const [expandedOrderIds, setExpandedOrderIds] = useState<string[]>([])
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null)
+  const [cancelMessage, setCancelMessage] = useState<{ id: string; error?: string; success?: string } | null>(null)
 
   const cityOptions = useMemo(() => getCitiesForGovernorate(draftGovernorate), [draftGovernorate])
 
@@ -208,6 +212,24 @@ export function ProfilePage() {
 
   const toggleOrderDetails = (orderId: string) => {
     setExpandedOrderIds((prev) => (prev.includes(orderId) ? prev.filter((id) => id !== orderId) : [...prev, orderId]))
+  }
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!window.confirm(t('profile.cancelConfirm'))) return
+    setCancellingOrderId(orderId)
+    setCancelMessage(null)
+    try {
+      const updated = await cancelMyOrder(orderId)
+      setOrders((prev) => prev.map((o) => (o._id === orderId ? { ...o, status: updated.status } : o)))
+      setCancelMessage({ id: orderId, success: t('profile.cancelSuccess') })
+    } catch (err) {
+      setCancelMessage({
+        id: orderId,
+        error: err instanceof Error ? err.message : t('profile.cancelNotAllowed'),
+      })
+    } finally {
+      setCancellingOrderId(null)
+    }
   }
 
   const handleSave = async (e: FormEvent) => {
@@ -503,15 +525,32 @@ export function ProfilePage() {
                     </p>
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
                       <p className="text-sm font-medium text-scnt-text">{formatEgp(order.total, locale)}</p>
-                      <button
-                        type="button"
-                        onClick={() => toggleOrderDetails(order._id)}
-                        className="rounded-full border border-scnt-border/80 px-3 py-1.5 text-xs uppercase tracking-[0.12em] text-scnt-text transition-colors hover:bg-scnt-bg-muted/60"
-                        aria-expanded={expandedOrderIds.includes(order._id)}
-                      >
-                        {expandedOrderIds.includes(order._id) ? t('profile.hideDetails') : t('profile.viewDetails')}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {order.status === 'PENDING' || order.status === 'CONFIRMED' ? (
+                          <button
+                            type="button"
+                            onClick={() => void handleCancelOrder(order._id)}
+                            disabled={cancellingOrderId === order._id}
+                            className="rounded-full border border-red-500/40 px-3 py-1.5 text-xs uppercase tracking-[0.12em] text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                          >
+                            {cancellingOrderId === order._id ? t('profile.cancelling') : t('profile.cancelOrder')}
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => toggleOrderDetails(order._id)}
+                          className="rounded-full border border-scnt-border/80 px-3 py-1.5 text-xs uppercase tracking-[0.12em] text-scnt-text transition-colors hover:bg-scnt-bg-muted/60"
+                          aria-expanded={expandedOrderIds.includes(order._id)}
+                        >
+                          {expandedOrderIds.includes(order._id) ? t('profile.hideDetails') : t('profile.viewDetails')}
+                        </button>
+                      </div>
                     </div>
+                    {cancelMessage && cancelMessage.id === order._id ? (
+                      <p className={`mt-2 text-xs ${cancelMessage.error ? 'text-red-400' : 'text-emerald-400'}`}>
+                        {cancelMessage.error || cancelMessage.success}
+                      </p>
+                    ) : null}
                     {expandedOrderIds.includes(order._id) ? (
                       <div className="mt-3 rounded-lg border border-scnt-border/60 bg-scnt-bg-muted/25 p-3">
                         <ul className="space-y-2">

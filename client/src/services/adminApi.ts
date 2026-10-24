@@ -48,7 +48,7 @@ export type AdminOrder = {
   subtotal?: number
   shipping?: number
   discount?: number
-  status: 'PENDING' | 'CONFIRMED' | 'PAID' | 'SHIPPED'
+  status: 'PENDING' | 'CONFIRMED' | 'PAID' | 'SHIPPED' | 'CANCELLED'
   promoCode?: string
   isGuest?: boolean
   visitorId?: string
@@ -185,6 +185,10 @@ export function fetchAdminOrders(): Promise<AdminOrder[]> {
 
 export function updateAdminOrderStatus(orderId: string, status: AdminOrder['status']): Promise<AdminOrder> {
   return apiPutDataAuthed<AdminOrder>(`/admin/orders/${orderId}/status`, { status })
+}
+
+export function cancelAdminOrder(orderId: string, reason?: string): Promise<AdminOrder> {
+  return apiPostDataAuthed<AdminOrder>(`/orders/${orderId}/cancel`, { reason })
 }
 
 export function fetchAdminCollections(): Promise<AdminCollection[]> {

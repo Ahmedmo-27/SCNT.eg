@@ -48,8 +48,14 @@ const getOrderById = asyncHandler(async (req, res) => {
   res.status(200).json(successResponse(order));
 });
 
+const cancelOrder = asyncHandler(async (req, res) => {
+  const order = await orderService.cancelOrder(req.params.id, req.user, req.body?.reason);
+  res.status(200).json(successResponse(order, "Order cancelled successfully"));
+});
+
 module.exports = {
   createOrder,
   getMyOrders,
   getOrderById,
+  cancelOrder,
 };

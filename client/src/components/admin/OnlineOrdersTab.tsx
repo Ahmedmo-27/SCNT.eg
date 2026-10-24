@@ -55,6 +55,11 @@ const statusBadgeStyles: Record<AdminOrder['status'], { badge: string; dot: stri
     dot: 'bg-emerald-400',
     label: 'Shipped',
   },
+  CANCELLED: {
+    badge: 'border-rose-500/30 bg-rose-500/10 text-rose-400',
+    dot: 'bg-rose-400',
+    label: 'Cancelled',
+  },
 }
 
 export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Props) {
@@ -140,11 +145,12 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
       CONFIRMED: orders.filter((o) => o.status === 'CONFIRMED').length,
       PAID: orders.filter((o) => o.status === 'PAID').length,
       SHIPPED: orders.filter((o) => o.status === 'SHIPPED').length,
+      CANCELLED: orders.filter((o) => o.status === 'CANCELLED').length,
     }
   }, [orders])
 
   const totalRevenue = useMemo(() => {
-    return filteredOrders.reduce((sum, o) => sum + (o.total || 0), 0)
+    return filteredOrders.reduce((sum, o) => (o.status === 'CANCELLED' ? sum : sum + (o.total || 0)), 0)
   }, [filteredOrders])
 
   return (
@@ -153,7 +159,7 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
       <Card asMotion={false} className="p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            {(['ALL', 'PENDING', 'CONFIRMED', 'PAID', 'SHIPPED'] as const).map((st) => {
+            {(['ALL', 'PENDING', 'CONFIRMED', 'PAID', 'SHIPPED', 'CANCELLED'] as const).map((st) => {
               const active = statusFilter === st
               return (
                 <button
@@ -364,6 +370,7 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
                         <option value="CONFIRMED">CONFIRMED</option>
                         <option value="PAID">PAID</option>
                         <option value="SHIPPED">SHIPPED</option>
+                        <option value="CANCELLED">CANCELLED</option>
                       </select>
 
                       <Button
@@ -464,9 +471,17 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
                     <option value="CONFIRMED">CONFIRMED</option>
                     <option value="PAID">PAID</option>
                     <option value="SHIPPED">SHIPPED</option>
+                    <option value="CANCELLED">CANCELLED</option>
                   </select>
                 </div>
               </div>
+
+              {selectedOrder.status === 'CANCELLED' ? (
+                <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-xs text-rose-300 flex items-center gap-2.5">
+                  <span className="h-2 w-2 rounded-full bg-rose-400 shrink-0" />
+                  <span>This order is cancelled. Inventory stock has been returned to stock.</span>
+                </div>
+              ) : null}
 
               {/* Customer & Shipping 2-Col Grid */}
               <div className="grid gap-4 sm:grid-cols-2">
@@ -693,6 +708,25 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
               </span>
 
               <div className="flex items-center gap-2">
+                {selectedOrder.status !== 'CANCELLED' ? (
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          'Are you sure you want to cancel this order? This will restore product inventory.'
+                        )
+                      ) {
+                        void onStatusChange(selectedOrder._id, 'CANCELLED')
+                      }
+                    }}
+                    disabled={busy}
+                    className="text-xs py-2 px-3.5 border-rose-500/40 text-rose-400 hover:bg-rose-500/10"
+                  >
+                    Cancel Order
+                  </Button>
+                ) : null}
                 <Button
                   variant="outline"
                   type="button"

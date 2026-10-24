@@ -1,6 +1,6 @@
-import { apiGetDataAuthed, apiPostOrderData } from './api'
+import { apiGetDataAuthed, apiPostDataAuthed, apiPostOrderData } from './api'
 
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PAID' | 'SHIPPED'
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PAID' | 'SHIPPED' | 'CANCELLED'
 
 export type OrderLineProduct = {
   _id: string
@@ -48,4 +48,9 @@ export function fetchMyOrders(): Promise<UserOrder[]> {
 /** Creates an order from the current server cart (requires an authenticated user account). */
 export function createOrder(address: CreateOrderAddress, customerEmail?: string): Promise<UserOrder> {
   return apiPostOrderData<UserOrder>('/orders', { address, customerEmail })
+}
+
+/** Cancels an order owned by the authenticated user (only if not yet shipped). */
+export function cancelMyOrder(orderId: string, reason?: string): Promise<UserOrder> {
+  return apiPostDataAuthed<UserOrder>(`/orders/${orderId}/cancel`, { reason })
 }

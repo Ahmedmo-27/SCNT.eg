@@ -206,17 +206,120 @@ const getOrderById = async (id, currentUser, visitorId = null) => {
   throw new ApiError(403, "Not authorized");
 };
 
+const restoreOrderStock = async (order) => {
+  if (!order || !Array.isArray(order.items)) return;
+  for (const item of order.items) {
+    const prodId = item.product?._id || item.product;
+    if (!prodId) continue;
+    const product = await productRepository.findById(prodId);
+    if (product) {
+      const updateQuery = { $inc: { stock: item.quantity } };
+      if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+        updateQuery.sizes = product.sizes.map((s) => {
+          if (s.size === item.size) {
+            return {
+              size: s.size,
+              price: s.price,
+              stock: (Number(s.stock) || 0) + item.quantity,
+            };
+          }
+          return s;
+        });
+      }
+      await productRepository.updateProduct(product._id, updateQuery);
+    }
+  }
+};
+
+const deductOrderStock = async (order) => {
+  if (!order || !Array.isArray(order.items)) return;
+  for (const item of order.items) {
+    const prodId = item.product?._id || item.product;
+    if (!prodId) continue;
+    const product = await productRepository.findById(prodId);
+    if (product) {
+      const updateQuery = { $inc: { stock: -item.quantity } };
+      if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+        updateQuery.sizes = product.sizes.map((s) => {
+          if (s.size === item.size) {
+            return {
+              size: s.size,
+              price: s.price,
+              stock: Math.max(0, (Number(s.stock) || 0) - item.quantity),
+            };
+          }
+          return s;
+        });
+      }
+      await productRepository.updateProduct(product._id, updateQuery);
+    }
+  }
+};
+
 const getAllOrders = () => orderRepository.findAll();
 
 const updateOrderStatus = async (id, status) => {
-  const allowed = ["PENDING", "CONFIRMED", "PAID", "SHIPPED"];
+  const allowed = ["PENDING", "CONFIRMED", "PAID", "SHIPPED", "CANCELLED"];
   if (!allowed.includes(status)) {
     throw new ApiError(400, "Invalid status");
   }
 
+  const existing = await orderRepository.findById(id);
+  if (!existing) throw new ApiError(404, "Order not found");
+
+  if (existing.status === status) {
+    return existing;
+  }
+
+  if (status === "CANCELLED" && existing.status !== "CANCELLED") {
+    await restoreOrderStock(existing);
+  } else if (existing.status === "CANCELLED" && status !== "CANCELLED") {
+    await deductOrderStock(existing);
+  }
+
   const order = await orderRepository.updateStatus(id, status);
   if (!order) throw new ApiError(404, "Order not found");
+
+  await deleteCache("admin:orders:all");
+  await deleteCache("admin:dashboard:summary");
+
   return order;
+};
+
+const cancelOrder = async (id, currentUser, reason = "") => {
+  const order = await orderRepository.findById(id);
+  if (!order) throw new ApiError(404, "Order not found");
+
+  const isAdmin = currentUser?.role === "admin";
+  const isOwner =
+    currentUser?.userId &&
+    order.user &&
+    ((order.user._id && order.user._id.toString() === currentUser.userId.toString()) ||
+      order.user.toString() === currentUser.userId.toString());
+
+  if (!isAdmin && !isOwner) {
+    throw new ApiError(403, "Not authorized to cancel this order");
+  }
+
+  if (order.status === "CANCELLED") {
+    throw new ApiError(400, "Order is already cancelled");
+  }
+
+  if (!isAdmin && (order.status === "SHIPPED" || order.status === "PAID")) {
+    throw new ApiError(
+      400,
+      "Orders that have already been shipped or paid cannot be cancelled online. Please contact support."
+    );
+  }
+
+  await restoreOrderStock(order);
+
+  const updatedOrder = await orderRepository.updateStatus(id, "CANCELLED");
+
+  await deleteCache("admin:orders:all");
+  await deleteCache("admin:dashboard:summary");
+
+  return updatedOrder;
 };
 
 module.exports = {
@@ -225,4 +328,7 @@ module.exports = {
   getOrderById,
   getAllOrders,
   updateOrderStatus,
+  cancelOrder,
+  restoreOrderStock,
+  deductOrderStock,
 };
