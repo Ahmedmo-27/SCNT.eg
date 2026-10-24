@@ -7,6 +7,10 @@ export type CartPromo = {
   minSubtotal: number
   maxDiscount: number | null
   discountAmount: number
+  applicableProducts?: Array<{
+    product: string
+    maxCount?: number | null
+  }>
 }
 
 export type ServerCart = {

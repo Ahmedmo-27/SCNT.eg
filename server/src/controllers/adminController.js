@@ -47,6 +47,18 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   res.status(200).json(successResponse(order, "Order status updated"));
 });
 
+const normalizeApplicableProducts = (list) => {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((item) => item && (item.product || item.productId))
+    .map((item) => {
+      const product = item.product?._id || item.product || item.productId;
+      const rawCount = item.maxCount != null && item.maxCount !== "" ? Number(item.maxCount) : null;
+      const maxCount = Number.isFinite(rawCount) && rawCount > 0 ? rawCount : null;
+      return { product, maxCount };
+    });
+};
+
 const listPromoCodes = asyncHandler(async (_req, res) => {
   const cacheKey = "admin:promoCodes:all";
 
@@ -56,7 +68,9 @@ const listPromoCodes = asyncHandler(async (_req, res) => {
     return res.status(200).json(successResponse(cachedPromos));
   }
 
-  const promos = await PromoCode.find({}).sort({ createdAt: -1 });
+  const promos = await PromoCode.find({})
+    .populate("applicableProducts.product", "name price sizes images slug")
+    .sort({ createdAt: -1 });
   
   // Cache for 30 minutes (promos change less frequently)
   await setCache(cacheKey, promos, 1800);
@@ -74,36 +88,52 @@ const createPromoCode = asyncHandler(async (req, res) => {
     isActive: req.body?.isActive,
     startsAt: req.body?.startsAt,
     expiresAt: req.body?.expiresAt,
+    applicableProducts: normalizeApplicableProducts(req.body?.applicableProducts),
   });
   
   // Invalidate cache
   await deleteCache("admin:promoCodes:all");
 
+  const populated = await PromoCode.findById(promo._id).populate(
+    "applicableProducts.product",
+    "name price sizes images slug"
+  );
+
   await recordAuditAction(req, {
     action: "PROMO_CREATE",
     targetType: "PromoCode",
     targetId: promo._id?.toString(),
-    details: { code: promo.code, discountType: promo.discountType, discountValue: promo.discountValue },
+    details: {
+      code: promo.code,
+      discountType: promo.discountType,
+      discountValue: promo.discountValue,
+      applicableProducts: promo.applicableProducts,
+    },
   });
   
-  res.status(201).json(successResponse(promo, "Promo code created"));
+  res.status(201).json(successResponse(populated || promo, "Promo code created"));
 });
 
 const updatePromoCode = asyncHandler(async (req, res) => {
+  const updateData = {
+    code: req.body?.code,
+    discountType: req.body?.discountType,
+    discountValue: req.body?.discountValue,
+    minSubtotal: req.body?.minSubtotal,
+    maxDiscount: req.body?.maxDiscount,
+    isActive: req.body?.isActive,
+    startsAt: req.body?.startsAt,
+    expiresAt: req.body?.expiresAt,
+  };
+  if (req.body?.applicableProducts !== undefined) {
+    updateData.applicableProducts = normalizeApplicableProducts(req.body?.applicableProducts);
+  }
+
   const promo = await PromoCode.findByIdAndUpdate(
     req.params.id,
-    {
-      code: req.body?.code,
-      discountType: req.body?.discountType,
-      discountValue: req.body?.discountValue,
-      minSubtotal: req.body?.minSubtotal,
-      maxDiscount: req.body?.maxDiscount,
-      isActive: req.body?.isActive,
-      startsAt: req.body?.startsAt,
-      expiresAt: req.body?.expiresAt,
-    },
+    updateData,
     { new: true, runValidators: true }
-  );
+  ).populate("applicableProducts.product", "name price sizes images slug");
   if (!promo) throw new ApiError(404, "Promo code not found");
   
   // Invalidate cache

@@ -41,6 +41,11 @@ export type AdminCollection = {
   description?: string
 }
 
+export type PromoApplicableProduct = {
+  product: string | { _id: string; name: string; price?: number; slug?: string }
+  maxCount?: number | null
+}
+
 export type AdminPromo = {
   _id: string
   code: string
@@ -51,6 +56,7 @@ export type AdminPromo = {
   isActive: boolean
   startsAt?: string | null
   expiresAt?: string | null
+  applicableProducts?: PromoApplicableProduct[]
 }
 
 export type AdminReview = {

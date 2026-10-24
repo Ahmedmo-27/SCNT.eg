@@ -325,6 +325,10 @@ export type CouponPerformance = {
   isActive: boolean
   startsAt?: string | null
   expiresAt?: string | null
+  applicableProducts?: Array<{
+    product: string | { _id: string; name: string; price?: number; slug?: string }
+    maxCount?: number | null
+  }>
   totalRedemptions: number
   totalRevenueDriven: number
   totalDiscountGiven: number

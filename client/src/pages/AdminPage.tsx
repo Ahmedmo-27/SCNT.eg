@@ -151,6 +151,11 @@ const emptyCollectionForm: CollectionForm = {
   description: '',
 }
 
+type PromoProductRule = {
+  productId: string
+  maxCount: string
+}
+
 type PromoForm = {
   code: string
   discountType: 'PERCENTAGE' | 'FIXED'
@@ -160,6 +165,7 @@ type PromoForm = {
   isActive: boolean
   startsAt: string
   expiresAt: string
+  applicableProducts: PromoProductRule[]
 }
 const emptyPromoForm: PromoForm = {
   code: '',
@@ -170,6 +176,7 @@ const emptyPromoForm: PromoForm = {
   isActive: true,
   startsAt: '',
   expiresAt: '',
+  applicableProducts: [],
 }
 
 type PromoMailForm = {
@@ -447,8 +454,14 @@ export function AdminPage() {
       minSubtotal: String(item.minSubtotal ?? 0),
       maxDiscount: item.maxDiscount == null ? '' : String(item.maxDiscount),
       isActive: Boolean(item.isActive),
-      startsAt: item.startsAt || '',
-      expiresAt: item.expiresAt || '',
+      startsAt: item.startsAt ? item.startsAt.slice(0, 16) : '',
+      expiresAt: item.expiresAt ? item.expiresAt.slice(0, 16) : '',
+      applicableProducts: Array.isArray(item.applicableProducts)
+        ? item.applicableProducts.map((p) => ({
+            productId: typeof p.product === 'object' && p.product?._id ? p.product._id : String(p.product),
+            maxCount: p.maxCount != null ? String(p.maxCount) : '',
+          }))
+        : [],
     })
   }
 
@@ -466,6 +479,12 @@ export function AdminPage() {
         isActive: promoForm.isActive,
         startsAt: promoForm.startsAt || null,
         expiresAt: promoForm.expiresAt || null,
+        applicableProducts: promoForm.applicableProducts
+          .filter((ap) => ap.productId)
+          .map((ap) => ({
+            product: ap.productId,
+            maxCount: ap.maxCount.trim() ? Math.max(1, parseInt(ap.maxCount, 10)) : null,
+          })),
       }
       if (editingPromoId) {
         await updateAdminPromo(editingPromoId, payload)
@@ -825,6 +844,110 @@ export function AdminPage() {
                 <label className="flex items-center gap-2 rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm"><input type="checkbox" checked={promoForm.isActive} onChange={(e) => setPromoForm((s) => ({ ...s, isActive: e.target.checked }))} />Active</label>
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" type="datetime-local" value={promoForm.startsAt || ''} onChange={(e) => setPromoForm((s) => ({ ...s, startsAt: e.target.value }))} />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" type="datetime-local" value={promoForm.expiresAt || ''} onChange={(e) => setPromoForm((s) => ({ ...s, expiresAt: e.target.value }))} />
+
+                {/* Product Eligibility & Count Limits */}
+                <div className="md:col-span-2 rounded-xl border border-scnt-border/60 bg-scnt-bg/60 p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h4 className="text-sm font-semibold text-scnt-text">Product Eligibility & Count Limits</h4>
+                      <p className="text-xs text-scnt-text-muted">
+                        Specify eligible products and their max unit limits (e.g. Azure Code twice, Deep Horizon once). Leave empty for storewide promo.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="text-xs py-1 px-3"
+                      onClick={() => {
+                        setPromoForm((s) => ({
+                          ...s,
+                          applicableProducts: [
+                            ...s.applicableProducts,
+                            { productId: products[0]?._id || '', maxCount: '1' },
+                          ],
+                        }))
+                      }}
+                    >
+                      + Add Product Rule
+                    </Button>
+                  </div>
+
+                  {promoForm.applicableProducts.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-scnt-border/60 p-3 text-center text-xs text-scnt-text-muted">
+                      🌐 <strong>Storewide:</strong> This promo applies to all products in cart. Click "+ Add Product Rule" to limit eligibility to specific products and quantities.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {promoForm.applicableProducts.map((rule, idx) => (
+                        <div
+                          key={idx}
+                          className="flex flex-wrap items-center gap-2 rounded-lg bg-scnt-bg-elevated/40 p-2.5 border border-scnt-border/40"
+                        >
+                          <div className="flex-1 min-w-[200px]">
+                            <label className="block text-[10px] text-scnt-text-muted mb-0.5">Product</label>
+                            <select
+                              className="w-full rounded-md border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
+                              value={rule.productId}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setPromoForm((s) => {
+                                  const copy = [...s.applicableProducts]
+                                  copy[idx] = { ...copy[idx], productId: val }
+                                  return { ...s, applicableProducts: copy }
+                                })
+                              }}
+                              required
+                            >
+                              <option value="" disabled>Select Product</option>
+                              {products.map((p) => (
+                                <option key={p._id} value={p._id}>
+                                  {p.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="w-36">
+                            <label className="block text-[10px] text-scnt-text-muted mb-0.5">Max Eligible Count</label>
+                            <input
+                              type="number"
+                              min="1"
+                              placeholder="e.g. 2 (blank=unlimited)"
+                              className="w-full rounded-md border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
+                              value={rule.maxCount}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setPromoForm((s) => {
+                                  const copy = [...s.applicableProducts]
+                                  copy[idx] = { ...copy[idx], maxCount: val }
+                                  return { ...s, applicableProducts: copy }
+                                })
+                              }}
+                            />
+                          </div>
+                          <div className="flex items-center gap-2 pt-4">
+                            <span className="text-[11px] text-scnt-text-muted whitespace-nowrap">
+                              {rule.maxCount ? `up to ${rule.maxCount} unit${Number(rule.maxCount) > 1 ? 's' : ''}` : 'unlimited'}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="text-xs py-1 px-2 text-rose-400 hover:text-rose-300 border-rose-500/30"
+                              onClick={() => {
+                                setPromoForm((s) => ({
+                                  ...s,
+                                  applicableProducts: s.applicableProducts.filter((_, i) => i !== idx),
+                                }))
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-2 md:col-span-2">
                   <Button type="submit" disabled={busy}>{editingPromoId ? 'Update promo' : 'Create promo'}</Button>
                   {editingPromoId ? <Button variant="outline" onClick={() => { setEditingPromoId(null); setPromoForm(emptyPromoForm) }}>Cancel edit</Button> : null}
@@ -889,6 +1012,33 @@ export function AdminPage() {
                             </>
                           ) : null}
                         </div>
+
+                        {/* Product Eligibility */}
+                        {item.applicableProducts && item.applicableProducts.length > 0 ? (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-scnt-text">
+                            <span className="rounded bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky-400 border border-sky-500/30">
+                              🎯 Eligible Items:
+                            </span>
+                            {item.applicableProducts.map((ap, apIdx) => {
+                              const prodName =
+                                typeof ap.product === 'object' && ap.product?.name
+                                  ? ap.product.name
+                                  : products.find((p) => p._id === String(ap.product))?.name || 'Product'
+                              return (
+                                <span
+                                  key={apIdx}
+                                  className="rounded bg-scnt-bg-elevated px-2 py-0.5 text-[11px] text-scnt-text-muted"
+                                >
+                                  {prodName} {ap.maxCount ? `(max ${ap.maxCount})` : '(unlimited)'}
+                                </span>
+                              )
+                            })}
+                          </div>
+                        ) : (
+                          <div className="pt-1 text-[11px] text-scnt-text-muted">
+                            🌐 Storewide (all products eligible)
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">

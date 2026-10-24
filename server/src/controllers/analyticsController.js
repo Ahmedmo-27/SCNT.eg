@@ -920,7 +920,10 @@ const getActiveCarts = asyncHandler(async (req, res) => {
  */
 const getCouponAnalytics = asyncHandler(async (_req, res) => {
   const [promos, orders, activeCarts] = await Promise.all([
-    PromoCode.find({}).sort({ createdAt: -1 }).lean(),
+    PromoCode.find({})
+      .populate("applicableProducts.product", "name price")
+      .sort({ createdAt: -1 })
+      .lean(),
     Order.find({ promoCode: { $ne: "" } })
       .populate("user", "full_name email phone")
       .sort({ createdAt: -1 })
@@ -995,6 +998,7 @@ const getCouponAnalytics = asyncHandler(async (_req, res) => {
       isActive: promo.isActive,
       startsAt: promo.startsAt,
       expiresAt: promo.expiresAt,
+      applicableProducts: promo.applicableProducts || [],
       totalRedemptions,
       totalRevenueDriven,
       totalDiscountGiven,

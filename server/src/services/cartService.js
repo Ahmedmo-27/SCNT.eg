@@ -5,6 +5,14 @@ const PromoCode = require("../models/PromoCode");
 const Order = require("../models/Order");
 const ApiError = require("../utils/ApiError");
 const { getCache, setCache, deleteCache } = require("../utils/cache");
+const {
+  normalizePromoCode,
+  getItemProductId,
+  getProductPriceForSize,
+  isPromoApplicableToCart,
+  getPromoIfValid,
+  calculateDiscount,
+} = require("../utils/promoHelper");
 
 const SHIPPING_FEE_EGP = 80;
 
@@ -28,20 +36,6 @@ const getCacheKey = (owner) => {
   return null;
 };
 
-const getProductPriceForSize = (product, size) => {
-  const normSize = String(size || "").toLowerCase().replace(/\s+/g, "");
-  if (normSize === "50ml") {
-    const opt = product?.sizes?.find(
-      (s) => String(s.size).toLowerCase().replace(/\s+/g, "") === "50ml"
-    );
-    return opt ? Number(opt.price) : 500;
-  }
-  const opt = product?.sizes?.find(
-    (s) => String(s.size).toLowerCase().replace(/\s+/g, "") === "100ml"
-  );
-  return opt ? Number(opt.price) : Number(product?.price || 750);
-};
-
 const ensureProductExists = async (productId) => {
   if (!mongoose.isValidObjectId(productId)) {
     throw new ApiError(400, "Invalid product id");
@@ -50,53 +44,10 @@ const ensureProductExists = async (productId) => {
   if (!product) throw new ApiError(404, "Product not found");
 };
 
-const normalizePromoCode = (code = "") => String(code).trim().toUpperCase();
-
 const formatMoney = (value) => {
   const n = Number(value || 0);
   if (!Number.isFinite(n)) return "0";
   return n.toFixed(0);
-};
-
-const getItemProductId = (item) => {
-  const raw = item?.product;
-  if (!raw) return "";
-  if (typeof raw === "string") return raw;
-  if (typeof raw === "object" && raw._id) return raw._id.toString();
-  return raw.toString();
-};
-
-const getPromoIfValid = async (promoCode, subtotal) => {
-  const normalized = normalizePromoCode(promoCode);
-  if (!normalized) return null;
-
-  const promo = await PromoCode.findOne({ code: normalized, isActive: true });
-  if (!promo) return null;
-
-  const now = Date.now();
-  if (promo.startsAt && new Date(promo.startsAt).getTime() > now) return null;
-  if (promo.expiresAt && new Date(promo.expiresAt).getTime() < now) return null;
-  if (subtotal < Number(promo.minSubtotal || 0)) return null;
-  return promo;
-};
-
-const calculateDiscount = (promo, subtotal) => {
-  if (!promo || subtotal <= 0) return 0;
-  let discount = 0;
-
-  if (promo.discountType === "PERCENTAGE") {
-    discount = (subtotal * Number(promo.discountValue || 0)) / 100;
-  } else {
-    discount = Number(promo.discountValue || 0);
-  }
-
-  const maxDiscount = promo.maxDiscount == null ? null : Number(promo.maxDiscount);
-  if (maxDiscount != null && Number.isFinite(maxDiscount)) {
-    discount = Math.min(discount, maxDiscount);
-  }
-
-  discount = Math.max(0, discount);
-  return Math.min(discount, subtotal);
 };
 
 const buildCartResponse = async (owner, items, promoCode) => {
@@ -112,8 +63,8 @@ const buildCartResponse = async (owner, items, promoCode) => {
     return sum + price * Number(item.quantity || 0);
   }, 0);
 
-  const promo = await getPromoIfValid(promoCode, subtotal);
-  const discount = calculateDiscount(promo, subtotal);
+  const promo = await getPromoIfValid(promoCode, subtotal, items);
+  const discount = calculateDiscount(promo, subtotal, items, productMap);
   const shipping = items.length > 0 ? SHIPPING_FEE_EGP : 0;
   const total = Math.max(0, subtotal + shipping - discount);
 
@@ -154,6 +105,12 @@ const buildCartResponse = async (owner, items, promoCode) => {
           minSubtotal: Number(promo.minSubtotal || 0),
           maxDiscount: promo.maxDiscount == null ? null : Number(promo.maxDiscount),
           discountAmount: discount,
+          applicableProducts: Array.isArray(promo.applicableProducts)
+            ? promo.applicableProducts.map((ap) => ({
+                product: (ap.product?._id || ap.product).toString(),
+                maxCount: ap.maxCount != null ? Number(ap.maxCount) : null,
+              }))
+            : [],
         }
       : null,
   };
@@ -326,6 +283,12 @@ const applyPromoCode = async (ownerArg, code) => {
     });
     if (usedBefore) {
       rejectionReasons.push("You have already used this promo code before.");
+    }
+  }
+
+  if (promo.applicableProducts && promo.applicableProducts.length > 0) {
+    if (!isPromoApplicableToCart(promo, cart.items)) {
+      rejectionReasons.push("None of the items in your cart are eligible for this promo code.");
     }
   }
 
