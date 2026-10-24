@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
@@ -20,6 +20,8 @@ const step1InputClass =
 export function RegisterPage() {
   const { t } = useI18n()
   const navigate = useNavigate()
+  const location = useLocation()
+  const returnTo = (location.state as { from?: string } | null)?.from
   const [step, setStep] = useState<1 | 2>(1)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -68,7 +70,9 @@ export function RegisterPage() {
     try {
       const { token } = await registerAccount(buildPayload(includeAddressFields))
       setStoredAuthToken(token)
-      navigate('/profile', { replace: true })
+      const destination =
+        returnTo && typeof returnTo === 'string' && returnTo.startsWith('/') ? returnTo : '/profile'
+      navigate(destination, { replace: true })
     } catch (e) {
       setError(e instanceof Error ? e.message : t('reg.fail'))
     } finally {
@@ -288,7 +292,7 @@ export function RegisterPage() {
 
           <p className="mt-6 text-center text-sm text-scnt-text-muted">
             {t('reg.have')}{' '}
-            <Link to="/login" className="text-scnt-text underline-offset-4 hover:underline">
+            <Link to="/login" state={location.state} className="text-scnt-text underline-offset-4 hover:underline">
               {t('reg.loginHere')}
             </Link>
           </p>

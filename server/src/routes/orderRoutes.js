@@ -5,7 +5,7 @@ const optionalAuthMiddleware = require("../middleware/optionalAuthMiddleware");
 
 const router = express.Router();
 
-router.post("/", optionalAuthMiddleware, orderController.createOrder);
+router.post("/", authMiddleware, orderController.createOrder);
 router.get("/my-orders", authMiddleware, orderController.getMyOrders);
 router.get("/:id", optionalAuthMiddleware, orderController.getOrderById);
 

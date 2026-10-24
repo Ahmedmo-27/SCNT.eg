@@ -46,23 +46,22 @@ const createOrderFromCart = async (ownerArg, address, customerEmail = "") => {
   validateAddress(address);
 
   const owner = normalizeOrderOwner(ownerArg);
-  let user = null;
-  let customerName = address.fullName;
-  let recipientEmail = String(customerEmail || address.email || "").trim();
+  if (!owner.userId) {
+    throw new ApiError(401, "An account is required to place an order. Please register or log in.");
+  }
 
-  let cart = null;
-  if (owner.userId) {
-    user = await userRepository.findById(owner.userId).select("email full_name");
-    if (!user) {
-      throw new ApiError(404, "User not found");
-    }
-    customerName = user.full_name || address.fullName;
-    recipientEmail = user.email || recipientEmail;
+  const user = await userRepository.findById(owner.userId).select("email full_name");
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const customerName = user.full_name || address.fullName;
+  const recipientEmail = user.email || String(customerEmail || address.email || "").trim();
+
+  let cart = await cartRepository.findRawByUserId(owner.userId);
+  if ((!cart || cart.items.length === 0) && owner.visitorId) {
+    await cartRepository.mergeGuestCartIntoUserCart(owner.visitorId, owner.userId);
     cart = await cartRepository.findRawByUserId(owner.userId);
-  } else if (owner.visitorId) {
-    cart = await cartRepository.findRawByOwner({ visitorId: owner.visitorId });
-  } else {
-    throw new ApiError(400, "Authentication or visitor session required to place order");
   }
 
   if (!cart || cart.items.length === 0) {
@@ -118,8 +117,8 @@ const createOrderFromCart = async (ownerArg, address, customerEmail = "") => {
   const total = Math.max(0, subtotal + SHIPPING_FEE_EGP - discount);
 
   const orderPayload = {
-    user: owner.userId || null,
-    isGuest: !owner.userId,
+    user: owner.userId,
+    isGuest: false,
     visitorId: owner.visitorId || null,
     customerEmail: recipientEmail,
     customerPhone: address.phone,
@@ -134,10 +133,9 @@ const createOrderFromCart = async (ownerArg, address, customerEmail = "") => {
 
   const order = await orderRepository.createOrder(orderPayload);
 
-  if (owner.userId) {
-    await cartRepository.upsertByUserId(owner.userId, [], "");
-    await deleteCache(`cart:user:${owner.userId}`);
-  } else if (owner.visitorId) {
+  await cartRepository.upsertByUserId(owner.userId, [], "");
+  await deleteCache(`cart:user:${owner.userId}`);
+  if (owner.visitorId) {
     await cartRepository.upsertByOwner({ visitorId: owner.visitorId }, [], "");
     await deleteCache(`cart:guest:${owner.visitorId}`);
   }

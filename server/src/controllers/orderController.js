@@ -5,6 +5,10 @@ const ApiError = require("../utils/ApiError");
 
 const resolveOrderOwner = (req) => {
   const userId = req.user?.userId || null;
+  if (!userId) {
+    throw new ApiError(401, "You must create an account or sign in to place an order");
+  }
+
   const visitorId =
     req.headers["x-visitor-id"] ||
     req.body?.visitorId ||
@@ -15,10 +19,6 @@ const resolveOrderOwner = (req) => {
     req.body?.sessionId ||
     req.query?.sessionId ||
     null;
-
-  if (!userId && !visitorId) {
-    throw new ApiError(400, "Missing user authentication or visitor identifier");
-  }
 
   return {
     userId,

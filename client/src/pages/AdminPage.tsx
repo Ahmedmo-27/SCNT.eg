@@ -39,6 +39,7 @@ import { JourneysTab } from '../components/admin/JourneysTab'
 import { ActiveCartsTab } from '../components/admin/ActiveCartsTab'
 import { ExpensesTab } from '../components/admin/ExpensesTab'
 import { OfflineSalesTab } from '../components/admin/OfflineSalesTab'
+import { OnlineOrdersTab } from '../components/admin/OnlineOrdersTab'
 import {
   fetchAnalyticsOverview,
   fetchAdminLogStats,
@@ -803,24 +804,12 @@ export function AdminPage() {
         ) : null}
 
         {activeTab === 'orders' ? (
-          <Card asMotion={false} className="p-5">
-            <ul className="space-y-2">
-              {orders.map((item) => (
-                <li key={item._id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-scnt-border/60 px-3 py-2">
-                  <div>
-                    <p className="text-sm">{item.user?.full_name || item.user?.email || 'User'} · {formatMoney(item.total)}</p>
-                    <p className="text-xs text-scnt-text-muted">{new Date(item.createdAt).toLocaleString('en-EG')} · {item.promoCode || 'No promo'}</p>
-                  </div>
-                  <select className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" value={item.status} onChange={(e) => void changeOrderStatus(item._id, e.target.value as AdminOrder['status'])} disabled={busy}>
-                    <option value="PENDING">PENDING</option>
-                    <option value="CONFIRMED">CONFIRMED</option>
-                    <option value="PAID">PAID</option>
-                    <option value="SHIPPED">SHIPPED</option>
-                  </select>
-                </li>
-              ))}
-            </ul>
-          </Card>
+          <OnlineOrdersTab
+            orders={orders}
+            onStatusChange={changeOrderStatus}
+            busy={busy}
+            onRefresh={loadAll}
+          />
         ) : null}
 
         {activeTab === 'promos' ? (

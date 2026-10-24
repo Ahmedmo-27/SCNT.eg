@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
+import { EightPointStar } from '../components/ui/EightPointStar'
 import { EGYPT_GOVERNORATES, getCitiesForGovernorate } from '../data/egyptLocations'
 import { getStoredAuthToken } from '../lib/authStorage'
 import { fetchProfile, type AuthUser } from '../services/authApi'
@@ -209,6 +210,11 @@ export function CheckoutPage() {
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
+    if (!authed) {
+      setError(t('checkout.errLogin'))
+      return
+    }
+
     if (items.length === 0) {
       setError(t('checkout.errEmpty'))
       return
@@ -262,6 +268,62 @@ export function CheckoutPage() {
     }
   }
 
+  const orderSummaryAside = (
+    <aside className="h-fit rounded-2xl border border-scnt-border bg-scnt-bg-elevated/55 p-6 sm:p-8">
+      <h2 className="font-serif text-2xl text-scnt-text">{t('checkout.summary')}</h2>
+      <ul className="mt-6 space-y-4 border-b border-scnt-border pb-6">
+        {items.map((i) => (
+          <li key={`${i.productId}-${i.size || '100ml'}`} className="flex items-center gap-3">
+            <picture>
+              <source srcSet={i.image} type="image/png" />
+              <img
+                src={i.image}
+                alt={i.name}
+                className="h-12 w-12 rounded-md object-cover ring-1 ring-scnt-border"
+                loading="lazy"
+              />
+            </picture>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm text-scnt-text">{i.name}</p>
+              <p className="text-xs text-scnt-text-muted">
+                {locale === 'ar' ? (i.size === '50ml' ? '50 مل' : '100 مل') : (i.size || '100ml')} · {i.quantity} × {formatEgp(i.price, locale)}
+              </p>
+            </div>
+            <p className="text-sm text-scnt-text">{formatEgp(i.quantity * i.price, locale)}</p>
+          </li>
+        ))}
+      </ul>
+      <dl className="mt-6 space-y-3 text-sm">
+        <div className="flex items-center justify-between text-scnt-text-muted">
+          <dt>{t('cart.subtotal')}</dt>
+          <dd>{formatEgp(subtotal, locale)}</dd>
+        </div>
+        <div className="flex items-center justify-between text-scnt-text-muted">
+          <dt>{t('cart.shipping')}</dt>
+          <dd>{formatEgp(shipping, locale)}</dd>
+        </div>
+        {discount > 0 ? (
+          <div className="flex items-center justify-between text-green-700">
+            <dt>
+              {promo ? t('checkout.discountPromo', { code: promo.code }) : t('cart.discount')}
+            </dt>
+            <dd>-{formatEgp(discount, locale)}</dd>
+          </div>
+        ) : null}
+        {discount > 0 ? (
+          <div className="flex items-center justify-between text-scnt-text-muted">
+            <dt>{t('cart.oldTotal')}</dt>
+            <dd className="line-through">{formatEgp(subtotal + shipping, locale)}</dd>
+          </div>
+        ) : null}
+        <div className="flex items-center justify-between border-t border-scnt-border pt-3 font-medium text-scnt-text">
+          <dt>{discount > 0 ? t('cart.newTotal') : t('cart.total')}</dt>
+          <dd>{formatEgp(total, locale)}</dd>
+        </div>
+      </dl>
+    </aside>
+  )
+
   return (
     <Layout>
       <div className="mx-auto max-w-6xl px-5 py-14 sm:px-8">
@@ -290,24 +352,6 @@ export function CheckoutPage() {
                 {t('checkout.backHome')}
               </Button>
             </div>
-
-            {!authed ? (
-              <div className="mt-8 border-t border-scnt-border/60 pt-6">
-                <p className="text-sm font-medium text-scnt-text">
-                  {locale === 'ar' ? 'هل تود حفظ بياناتك وتتبع طلباتك بسهولة؟' : 'Want to save your details and track your orders?'}
-                </p>
-                <p className="mt-1 text-xs text-scnt-text-muted">
-                  {locale === 'ar'
-                    ? 'أنشئ حساباً الآن لحفظ عنوان التوصيل وتسريع عملية الشراء القادمة.'
-                    : 'Create an account to save your delivery address and enjoy faster checkouts.'}
-                </p>
-                <div className="mt-4">
-                  <Button to="/register" variant="outline" className="text-xs">
-                    {locale === 'ar' ? 'إنشاء حساب جديد' : 'Create Account'}
-                  </Button>
-                </div>
-              </div>
-            ) : null}
           </div>
         ) : items.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-scnt-border bg-scnt-bg-elevated/50 p-8">
@@ -319,29 +363,57 @@ export function CheckoutPage() {
               </Button>
             </div>
           </div>
+        ) : !authed ? (
+          <div className="mt-10 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="rounded-2xl border border-scnt-border bg-scnt-bg-elevated/50 p-6 sm:p-8 flex flex-col justify-center">
+              <div className="max-w-md">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-scnt-text/10 text-scnt-text mb-5">
+                  <EightPointStar className="h-6 w-6" />
+                </div>
+                <h2 className="font-serif text-2xl sm:text-3xl text-scnt-text">
+                  {t('checkout.needAccount')}
+                </h2>
+                <p className="mt-3 text-sm leading-relaxed text-scnt-text-muted">
+                  {t('checkout.needAccountSub')}
+                </p>
+
+                <div className="mt-8 flex flex-col sm:flex-row gap-3">
+                  <Button
+                    to="/login"
+                    linkState={{ from: '/checkout' }}
+                    className="flex-1 text-center justify-center"
+                  >
+                    {t('checkout.login')}
+                  </Button>
+                  <Button
+                    to="/register"
+                    linkState={{ from: '/checkout' }}
+                    variant="outline"
+                    className="flex-1 text-center justify-center"
+                  >
+                    {t('checkout.create')}
+                  </Button>
+                </div>
+
+                <div className="mt-6 border-t border-scnt-border/60 pt-4">
+                  <Link
+                    to="/cart"
+                    className="inline-flex items-center text-xs text-scnt-text-muted hover:text-scnt-text underline underline-offset-4"
+                  >
+                    ← {t('checkout.backCart')}
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {orderSummaryAside}
+          </div>
         ) : (
           <div className="mt-10 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
             <form
               onSubmit={onSubmit}
               className="rounded-2xl border border-scnt-border bg-scnt-bg-elevated/50 p-6 sm:p-8"
             >
-              {!authed ? (
-                <div className="mb-6 rounded-xl border border-scnt-border/70 bg-scnt-bg/60 p-4 text-xs text-scnt-text-muted flex flex-wrap items-center justify-between gap-3">
-                  <span>
-                    {locale === 'ar'
-                      ? 'هل تملك حساباً في SCNT؟ سجّل الدخول لإكمال الطلب بعناوينك المحفوظة.'
-                      : 'Have an account with SCNT? Sign in to use saved addresses, or continue as guest.'}
-                  </span>
-                  <Link
-                    to="/login"
-                    state={{ from: '/checkout' }}
-                    className="font-medium text-scnt-text underline underline-offset-4 hover:opacity-80"
-                  >
-                    {t('checkout.login')}
-                  </Link>
-                </div>
-              ) : null}
-
               <h2 className="font-serif text-2xl text-scnt-text">{t('checkout.delivery')}</h2>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -507,59 +579,7 @@ export function CheckoutPage() {
               </div>
             </form>
 
-            <aside className="h-fit rounded-2xl border border-scnt-border bg-scnt-bg-elevated/55 p-6 sm:p-8">
-              <h2 className="font-serif text-2xl text-scnt-text">{t('checkout.summary')}</h2>
-              <ul className="mt-6 space-y-4 border-b border-scnt-border pb-6">
-                {items.map((i) => (
-                  <li key={`${i.productId}-${i.size || '100ml'}`} className="flex items-center gap-3">
-                    <picture>
-                      <source srcSet={i.image} type="image/png" />
-                      <img
-                        src={i.image}
-                        alt={i.name}
-                        className="h-12 w-12 rounded-md object-cover ring-1 ring-scnt-border"
-                        loading="lazy"
-                      />
-                    </picture>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-scnt-text">{i.name}</p>
-                      <p className="text-xs text-scnt-text-muted">
-                        {locale === 'ar' ? (i.size === '50ml' ? '50 مل' : '100 مل') : (i.size || '100ml')} · {i.quantity} × {formatEgp(i.price, locale)}
-                      </p>
-                    </div>
-                    <p className="text-sm text-scnt-text">{formatEgp(i.quantity * i.price, locale)}</p>
-                  </li>
-                ))}
-              </ul>
-              <dl className="mt-6 space-y-3 text-sm">
-                <div className="flex items-center justify-between text-scnt-text-muted">
-                  <dt>{t('cart.subtotal')}</dt>
-                  <dd>{formatEgp(subtotal, locale)}</dd>
-                </div>
-                <div className="flex items-center justify-between text-scnt-text-muted">
-                  <dt>{t('cart.shipping')}</dt>
-                  <dd>{formatEgp(shipping, locale)}</dd>
-                </div>
-                {discount > 0 ? (
-                  <div className="flex items-center justify-between text-green-700">
-                    <dt>
-                      {promo ? t('checkout.discountPromo', { code: promo.code }) : t('cart.discount')}
-                    </dt>
-                    <dd>-{formatEgp(discount, locale)}</dd>
-                  </div>
-                ) : null}
-                {discount > 0 ? (
-                  <div className="flex items-center justify-between text-scnt-text-muted">
-                    <dt>{t('cart.oldTotal')}</dt>
-                    <dd className="line-through">{formatEgp(subtotal + shipping, locale)}</dd>
-                  </div>
-                ) : null}
-                <div className="flex items-center justify-between border-t border-scnt-border pt-3 font-medium text-scnt-text">
-                  <dt>{discount > 0 ? t('cart.newTotal') : t('cart.total')}</dt>
-                  <dd>{formatEgp(total, locale)}</dd>
-                </div>
-              </dl>
-            </aside>
+            {orderSummaryAside}
           </div>
         )}
       </div>

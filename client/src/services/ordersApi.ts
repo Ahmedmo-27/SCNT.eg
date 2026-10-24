@@ -45,7 +45,7 @@ export function fetchMyOrders(): Promise<UserOrder[]> {
   return apiGetDataAuthed<UserOrder[]>('/orders/my-orders')
 }
 
-/** Creates an order from the current server cart (supports both authenticated users and guests). */
+/** Creates an order from the current server cart (requires an authenticated user account). */
 export function createOrder(address: CreateOrderAddress, customerEmail?: string): Promise<UserOrder> {
   return apiPostOrderData<UserOrder>('/orders', { address, customerEmail })
 }

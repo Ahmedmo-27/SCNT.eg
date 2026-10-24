@@ -20,12 +20,44 @@ export type AdminUser = {
   createdAt: string
 }
 
+export type AdminOrderItem = {
+  product: {
+    _id: string
+    name: string
+    slug?: string
+    images?: string[]
+    price?: number
+  } | string | null
+  size?: string
+  quantity: number
+  price: number
+}
+
+export type AdminOrderAddress = {
+  fullName: string
+  phone: string
+  city: string
+  addressLine1: string
+  addressLine2?: string
+  postalCode: string
+}
+
 export type AdminOrder = {
   _id: string
   total: number
+  subtotal?: number
+  shipping?: number
+  discount?: number
   status: 'PENDING' | 'CONFIRMED' | 'PAID' | 'SHIPPED'
   promoCode?: string
+  isGuest?: boolean
+  visitorId?: string
+  customerEmail?: string
+  customerPhone?: string
+  address?: AdminOrderAddress
+  items?: AdminOrderItem[]
   createdAt: string
+  updatedAt?: string
   user?: { _id: string; full_name?: string; email?: string }
 }
 

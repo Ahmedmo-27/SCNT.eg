@@ -103,7 +103,7 @@ export function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-scnt-text-muted">
             {t('login.new')}{' '}
-            <Link to="/register" className="text-scnt-text underline-offset-4 hover:underline">
+            <Link to="/register" state={location.state} className="text-scnt-text underline-offset-4 hover:underline">
               {t('login.create')}
             </Link>
           </p>
