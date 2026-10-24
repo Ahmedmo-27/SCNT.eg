@@ -998,6 +998,8 @@ const getCouponAnalytics = asyncHandler(async (_req, res) => {
       isActive: promo.isActive,
       startsAt: promo.startsAt,
       expiresAt: promo.expiresAt,
+      discountScope: promo.discountScope || "CERTAIN_PRODUCTS",
+      applicableSizes: promo.applicableSizes || [],
       applicableProducts: promo.applicableProducts || [],
       totalRedemptions,
       totalRevenueDriven,

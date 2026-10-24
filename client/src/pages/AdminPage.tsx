@@ -151,15 +151,37 @@ const emptyCollectionForm: CollectionForm = {
   description: '',
 }
 
+const toLocalDatetimeInput = (dateStr?: string | null) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const Y = d.getFullYear()
+  const M = pad(d.getMonth() + 1)
+  const D = pad(d.getDate())
+  const H = pad(d.getHours())
+  const m = pad(d.getMinutes())
+  return `${Y}-${M}-${D}T${H}:${m}`
+}
+
+const toIsoStringOrNull = (datetimeLocalVal?: string) => {
+  if (!datetimeLocalVal || !datetimeLocalVal.trim()) return null
+  const d = new Date(datetimeLocalVal)
+  return isNaN(d.getTime()) ? null : d.toISOString()
+}
+
 type PromoProductRule = {
   productId: string
   maxCount: string
+  size: string
 }
 
 type PromoForm = {
   code: string
   discountType: 'PERCENTAGE' | 'FIXED'
   discountValue: string
+  discountScope: 'CERTAIN_PRODUCTS' | 'WHOLE_CART'
+  globalSize: string
   minSubtotal: string
   maxDiscount: string
   isActive: boolean
@@ -171,6 +193,8 @@ const emptyPromoForm: PromoForm = {
   code: '',
   discountType: 'PERCENTAGE',
   discountValue: '0',
+  discountScope: 'CERTAIN_PRODUCTS',
+  globalSize: '',
   minSubtotal: '0',
   maxDiscount: '',
   isActive: true,
@@ -451,15 +475,18 @@ export function AdminPage() {
       code: item.code,
       discountType: item.discountType,
       discountValue: String(item.discountValue),
+      discountScope: item.discountScope || 'CERTAIN_PRODUCTS',
+      globalSize: Array.isArray(item.applicableSizes) && item.applicableSizes.length > 0 ? item.applicableSizes[0] : '',
       minSubtotal: String(item.minSubtotal ?? 0),
       maxDiscount: item.maxDiscount == null ? '' : String(item.maxDiscount),
       isActive: Boolean(item.isActive),
-      startsAt: item.startsAt ? item.startsAt.slice(0, 16) : '',
-      expiresAt: item.expiresAt ? item.expiresAt.slice(0, 16) : '',
+      startsAt: toLocalDatetimeInput(item.startsAt),
+      expiresAt: toLocalDatetimeInput(item.expiresAt),
       applicableProducts: Array.isArray(item.applicableProducts)
         ? item.applicableProducts.map((p) => ({
             productId: typeof p.product === 'object' && p.product?._id ? p.product._id : String(p.product),
             maxCount: p.maxCount != null ? String(p.maxCount) : '',
+            size: Array.isArray(p.sizes) && p.sizes.length > 0 ? p.sizes[0] : '',
           }))
         : [],
     })
@@ -474,16 +501,19 @@ export function AdminPage() {
         code: promoForm.code.trim().toUpperCase(),
         discountType: promoForm.discountType,
         discountValue: Number(promoForm.discountValue || 0),
+        discountScope: promoForm.discountScope,
+        applicableSizes: promoForm.globalSize ? [promoForm.globalSize] : [],
         minSubtotal: Number(promoForm.minSubtotal || 0),
         maxDiscount: promoForm.maxDiscount.trim() ? Number(promoForm.maxDiscount) : null,
         isActive: promoForm.isActive,
-        startsAt: promoForm.startsAt || null,
-        expiresAt: promoForm.expiresAt || null,
+        startsAt: toIsoStringOrNull(promoForm.startsAt),
+        expiresAt: toIsoStringOrNull(promoForm.expiresAt),
         applicableProducts: promoForm.applicableProducts
           .filter((ap) => ap.productId)
           .map((ap) => ({
             product: ap.productId,
             maxCount: ap.maxCount.trim() ? Math.max(1, parseInt(ap.maxCount, 10)) : null,
+            sizes: ap.size ? [ap.size] : [],
           })),
       }
       if (editingPromoId) {
@@ -842,16 +872,87 @@ export function AdminPage() {
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" type="number" placeholder="Min subtotal (EGP)" value={promoForm.minSubtotal} onChange={(e) => setPromoForm((s) => ({ ...s, minSubtotal: e.target.value }))} />
                 <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" type="number" placeholder="Max discount (optional)" value={promoForm.maxDiscount} onChange={(e) => setPromoForm((s) => ({ ...s, maxDiscount: e.target.value }))} />
                 <label className="flex items-center gap-2 rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm"><input type="checkbox" checked={promoForm.isActive} onChange={(e) => setPromoForm((s) => ({ ...s, isActive: e.target.checked }))} />Active</label>
-                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" type="datetime-local" value={promoForm.startsAt || ''} onChange={(e) => setPromoForm((s) => ({ ...s, startsAt: e.target.value }))} />
-                <input className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm" type="datetime-local" value={promoForm.expiresAt || ''} onChange={(e) => setPromoForm((s) => ({ ...s, expiresAt: e.target.value }))} />
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-scnt-text">Start Date & Time (Optional)</label>
+                    {promoForm.startsAt ? (
+                      <button
+                        type="button"
+                        className="text-[10px] text-scnt-accent-primary hover:underline"
+                        onClick={() => setPromoForm((s) => ({ ...s, startsAt: '' }))}
+                      >
+                        Clear (Active immediately)
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-emerald-400">Active immediately</span>
+                    )}
+                  </div>
+                  <input
+                    className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm text-scnt-text"
+                    type="datetime-local"
+                    value={promoForm.startsAt || ''}
+                    onChange={(e) => setPromoForm((s) => ({ ...s, startsAt: e.target.value }))}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-semibold text-scnt-text">End Date & Time (Optional)</label>
+                    {promoForm.expiresAt ? (
+                      <button
+                        type="button"
+                        className="text-[10px] text-scnt-accent-primary hover:underline"
+                        onClick={() => setPromoForm((s) => ({ ...s, expiresAt: '' }))}
+                      >
+                        Clear (No expiration)
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-scnt-text-muted">No expiration</span>
+                    )}
+                  </div>
+                  <input
+                    className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-2 text-sm text-scnt-text"
+                    type="datetime-local"
+                    value={promoForm.expiresAt || ''}
+                    onChange={(e) => setPromoForm((s) => ({ ...s, expiresAt: e.target.value }))}
+                  />
+                </div>
+
+                {/* Discount Scope & Global Size Settings */}
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl border border-scnt-border/80 bg-scnt-bg/80 p-3.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-scnt-text mb-1">Discount Application Target</label>
+                    <select
+                      className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
+                      value={promoForm.discountScope}
+                      onChange={(e) => setPromoForm((s) => ({ ...s, discountScope: e.target.value as 'CERTAIN_PRODUCTS' | 'WHOLE_CART' }))}
+                    >
+                      <option value="CERTAIN_PRODUCTS">Certain Products / Sizes Only (Only eligible items get discount)</option>
+                      <option value="WHOLE_CART">Whole Cart (Applies to full cart if eligible item is present)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-scnt-text mb-1">Storewide Size Filter (Optional)</label>
+                    <select
+                      className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
+                      value={promoForm.globalSize}
+                      onChange={(e) => setPromoForm((s) => ({ ...s, globalSize: e.target.value }))}
+                    >
+                      <option value="">All bottle sizes eligible</option>
+                      <option value="100ml">100ml bottles only</option>
+                      <option value="50ml">50ml bottles only</option>
+                    </select>
+                  </div>
+                </div>
 
                 {/* Product Eligibility & Count Limits */}
                 <div className="md:col-span-2 rounded-xl border border-scnt-border/60 bg-scnt-bg/60 p-4 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <h4 className="text-sm font-semibold text-scnt-text">Product Eligibility & Count Limits</h4>
+                      <h4 className="text-sm font-semibold text-scnt-text">Product Eligibility, Sizes & Count Limits</h4>
                       <p className="text-xs text-scnt-text-muted">
-                        Specify eligible products and their max unit limits (e.g. Azure Code twice, Deep Horizon once). Leave empty for storewide promo.
+                        Specify eligible products, allowed sizes, and max unit limits (e.g. Azure Code 100ml twice, Deep Horizon once). Leave empty for storewide promo.
                       </p>
                     </div>
                     <Button
@@ -863,7 +964,7 @@ export function AdminPage() {
                           ...s,
                           applicableProducts: [
                             ...s.applicableProducts,
-                            { productId: products[0]?._id || '', maxCount: '1' },
+                            { productId: products[0]?._id || '', maxCount: '1', size: '' },
                           ],
                         }))
                       }}
@@ -874,7 +975,7 @@ export function AdminPage() {
 
                   {promoForm.applicableProducts.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-scnt-border/60 p-3 text-center text-xs text-scnt-text-muted">
-                      🌐 <strong>Storewide:</strong> This promo applies to all products in cart. Click "+ Add Product Rule" to limit eligibility to specific products and quantities.
+                      🌐 <strong>Storewide:</strong> This promo applies to all products in cart. Click "+ Add Product Rule" to limit eligibility to specific products, sizes, and quantities.
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -883,7 +984,7 @@ export function AdminPage() {
                           key={idx}
                           className="flex flex-wrap items-center gap-2 rounded-lg bg-scnt-bg-elevated/40 p-2.5 border border-scnt-border/40"
                         >
-                          <div className="flex-1 min-w-[200px]">
+                          <div className="flex-1 min-w-[180px]">
                             <label className="block text-[10px] text-scnt-text-muted mb-0.5">Product</label>
                             <select
                               className="w-full rounded-md border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
@@ -906,12 +1007,31 @@ export function AdminPage() {
                               ))}
                             </select>
                           </div>
-                          <div className="w-36">
-                            <label className="block text-[10px] text-scnt-text-muted mb-0.5">Max Eligible Count</label>
+                          <div className="w-28">
+                            <label className="block text-[10px] text-scnt-text-muted mb-0.5">Size Limit</label>
+                            <select
+                              className="w-full rounded-md border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
+                              value={rule.size}
+                              onChange={(e) => {
+                                const val = e.target.value
+                                setPromoForm((s) => {
+                                  const copy = [...s.applicableProducts]
+                                  copy[idx] = { ...copy[idx], size: val }
+                                  return { ...s, applicableProducts: copy }
+                                })
+                              }}
+                            >
+                              <option value="">Any size</option>
+                              <option value="100ml">100ml only</option>
+                              <option value="50ml">50ml only</option>
+                            </select>
+                          </div>
+                          <div className="w-32">
+                            <label className="block text-[10px] text-scnt-text-muted mb-0.5">Max Count</label>
                             <input
                               type="number"
                               min="1"
-                              placeholder="e.g. 2 (blank=unlimited)"
+                              placeholder="e.g. 2 (blank=∞)"
                               className="w-full rounded-md border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
                               value={rule.maxCount}
                               onChange={(e) => {
@@ -1013,32 +1133,45 @@ export function AdminPage() {
                           ) : null}
                         </div>
 
-                        {/* Product Eligibility */}
-                        {item.applicableProducts && item.applicableProducts.length > 0 ? (
-                          <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-scnt-text">
-                            <span className="rounded bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky-400 border border-sky-500/30">
-                              🎯 Eligible Items:
+                        {/* Product Eligibility & Scope */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs text-scnt-text">
+                          <span
+                            className={`rounded px-2 py-0.5 text-[10px] font-semibold border ${
+                              item.discountScope === 'WHOLE_CART'
+                                ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+                                : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+                            }`}
+                          >
+                            {item.discountScope === 'WHOLE_CART' ? '🛒 Whole Cart Discount' : '🎯 Certain Items Only'}
+                          </span>
+
+                          {item.applicableSizes && item.applicableSizes.length > 0 ? (
+                            <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-300 border border-amber-500/30">
+                              📏 {item.applicableSizes.join(', ')} only
                             </span>
-                            {item.applicableProducts.map((ap, apIdx) => {
+                          ) : null}
+
+                          {item.applicableProducts && item.applicableProducts.length > 0 ? (
+                            item.applicableProducts.map((ap, apIdx) => {
                               const prodName =
                                 typeof ap.product === 'object' && ap.product?.name
                                   ? ap.product.name
                                   : products.find((p) => p._id === String(ap.product))?.name || 'Product'
+                              const sizeNote = Array.isArray(ap.sizes) && ap.sizes.length > 0 ? ` [${ap.sizes.join(', ')}]` : ''
+                              const countNote = ap.maxCount ? ` (max ${ap.maxCount})` : ' (unlimited)'
                               return (
                                 <span
                                   key={apIdx}
-                                  className="rounded bg-scnt-bg-elevated px-2 py-0.5 text-[11px] text-scnt-text-muted"
+                                  className="rounded bg-scnt-bg-elevated px-2 py-0.5 text-[11px] text-scnt-text-muted border border-scnt-border/40"
                                 >
-                                  {prodName} {ap.maxCount ? `(max ${ap.maxCount})` : '(unlimited)'}
+                                  {prodName}{sizeNote}{countNote}
                                 </span>
                               )
-                            })}
-                          </div>
-                        ) : (
-                          <div className="pt-1 text-[11px] text-scnt-text-muted">
-                            🌐 Storewide (all products eligible)
-                          </div>
-                        )}
+                            })
+                          ) : (
+                            <span className="text-[11px] text-scnt-text-muted">🌐 Storewide</span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2">

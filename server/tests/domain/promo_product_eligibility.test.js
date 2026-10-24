@@ -6,7 +6,7 @@ const {
   hasProductRestrictions,
 } = require("../../src/utils/promoHelper");
 
-describe("Product-Specific Promo Codes with Count Limits", () => {
+describe("Product and Size Specific Promo Codes with Count Limits & Scopes", () => {
   const azureCodeId = new mongoose.Types.ObjectId().toString();
   const deepHorizonId = new mongoose.Types.ObjectId().toString();
   const otherProductId = new mongoose.Types.ObjectId().toString();
@@ -66,6 +66,10 @@ describe("Product-Specific Promo Codes with Count Limits", () => {
       expect(hasProductRestrictions(targetPromo)).toBe(true);
       expect(hasProductRestrictions({ code: "ALL", applicableProducts: [] })).toBe(false);
       expect(hasProductRestrictions({ code: "ALL" })).toBe(false);
+    });
+
+    it("recognizes size-restricted promos", () => {
+      expect(hasProductRestrictions({ code: "SIZEONLY", applicableSizes: ["50ml"] })).toBe(true);
     });
   });
 
@@ -198,6 +202,148 @@ describe("Product-Specific Promo Codes with Count Limits", () => {
 
       const discount = calculateDiscount(unlimitedPromo, 4000, items, productMap);
       expect(discount).toBe(400); // 10% of 4000
+    });
+  });
+
+  describe("Size-Specific Restrictions", () => {
+    it("restricts eligibility to specific size for a product (e.g. Azure Code 100ml only)", () => {
+      const sizeRestrictedPromo = {
+        code: "AZURE100ONLY",
+        discountType: "PERCENTAGE",
+        discountValue: 20,
+        applicableProducts: [
+          { product: azureCodeId, sizes: ["100ml"], maxCount: 2 },
+        ],
+      };
+
+      // Cart with 1x 100ml Azure Code (@ 800) and 2x 50ml Azure Code (@ 500)
+      const items = [
+        { product: azureCodeId, quantity: 1, size: "100ml" },
+        { product: azureCodeId, quantity: 2, size: "50ml" },
+      ];
+
+      // Only the 100ml unit qualifies, 50ml units are excluded!
+      const eligible = calculateEligibleSubtotal(sizeRestrictedPromo, items, productMap);
+      expect(eligible).toBe(800);
+
+      const discount = calculateDiscount(sizeRestrictedPromo, 1800, items, productMap);
+      expect(discount).toBe(160); // 20% of 800
+    });
+
+    it("rejects promo when cart only contains non-qualifying size of eligible product", () => {
+      const sizeRestrictedPromo = {
+        code: "AZURE100ONLY",
+        discountType: "PERCENTAGE",
+        discountValue: 20,
+        applicableProducts: [
+          { product: azureCodeId, sizes: ["100ml"], maxCount: 2 },
+        ],
+      };
+
+      const items = [{ product: azureCodeId, quantity: 2, size: "50ml" }];
+      expect(isPromoApplicableToCart(sizeRestrictedPromo, items)).toBe(false);
+
+      const eligible = calculateEligibleSubtotal(sizeRestrictedPromo, items, productMap);
+      expect(eligible).toBe(0);
+    });
+
+    it("applies storewide size filter across all products (e.g. 50ml only)", () => {
+      const storewide50mlPromo = {
+        code: "50MLONLY",
+        discountType: "PERCENTAGE",
+        discountValue: 15,
+        applicableSizes: ["50ml"],
+      };
+
+      const items = [
+        { product: azureCodeId, quantity: 1, size: "100ml" }, // 800 (excluded)
+        { product: deepHorizonId, quantity: 1, size: "50ml" }, // 450 (eligible)
+        { product: otherProductId, quantity: 1, size: "50ml" }, // 400 (eligible)
+      ];
+
+      // Eligible: 450 + 400 = 850
+      const eligible = calculateEligibleSubtotal(storewide50mlPromo, items, productMap);
+      expect(eligible).toBe(850);
+
+      const discount = calculateDiscount(storewide50mlPromo, 1650, items, productMap);
+      expect(discount).toBe((850 * 15) / 100); // 127.5
+    });
+  });
+
+  describe("Whole Cart vs Certain Products Scope", () => {
+    it("applies discount to WHOLE CART subtotal once eligible item is present", () => {
+      const wholeCartPromo = {
+        code: "BUYAZURE_SAVECART",
+        discountType: "PERCENTAGE",
+        discountValue: 10, // 10%
+        discountScope: "WHOLE_CART",
+        applicableProducts: [
+          { product: azureCodeId, maxCount: 1, sizes: ["100ml"] },
+        ],
+      };
+
+      // Cart with 1 Azure Code 100ml (@ 800) + 1 Deep Horizon 100ml (@ 750) + 1 Noir (@ 600) = 2150
+      const items = [
+        { product: azureCodeId, quantity: 1, size: "100ml" },
+        { product: deepHorizonId, quantity: 1, size: "100ml" },
+        { product: otherProductId, quantity: 1, size: "100ml" },
+      ];
+
+      // Because discountScope is WHOLE_CART, entire subtotal (2150) is discounted!
+      const eligible = calculateEligibleSubtotal(wholeCartPromo, items, productMap);
+      expect(eligible).toBe(2150);
+
+      const discount = calculateDiscount(wholeCartPromo, 2150, items, productMap);
+      expect(discount).toBe(215); // 10% of 2150
+    });
+
+    it("restricts discount to CERTAIN PRODUCTS only when discountScope is CERTAIN_PRODUCTS", () => {
+      const certainProductsPromo = {
+        code: "BUYAZURE_SAVEAZURE",
+        discountType: "PERCENTAGE",
+        discountValue: 10, // 10%
+        discountScope: "CERTAIN_PRODUCTS",
+        applicableProducts: [
+          { product: azureCodeId, maxCount: 1, sizes: ["100ml"] },
+        ],
+      };
+
+      const items = [
+        { product: azureCodeId, quantity: 1, size: "100ml" }, // 800 (eligible)
+        { product: deepHorizonId, quantity: 1, size: "100ml" }, // 750 (not eligible)
+        { product: otherProductId, quantity: 1, size: "100ml" }, // 600 (not eligible)
+      ];
+
+      // Only Azure Code 100ml (800) is discounted
+      const eligible = calculateEligibleSubtotal(certainProductsPromo, items, productMap);
+      expect(eligible).toBe(800);
+
+      const discount = calculateDiscount(certainProductsPromo, 2150, items, productMap);
+      expect(discount).toBe(80); // 10% of 800
+    });
+
+    it("gives 0 discount for WHOLE_CART promo if required item is absent", () => {
+      const wholeCartPromo = {
+        code: "BUYAZURE_SAVECART",
+        discountType: "PERCENTAGE",
+        discountValue: 10,
+        discountScope: "WHOLE_CART",
+        applicableProducts: [
+          { product: azureCodeId, maxCount: 1, sizes: ["100ml"] },
+        ],
+      };
+
+      const items = [
+        { product: deepHorizonId, quantity: 1, size: "100ml" },
+        { product: otherProductId, quantity: 1, size: "100ml" },
+      ];
+
+      expect(isPromoApplicableToCart(wholeCartPromo, items)).toBe(false);
+      const eligible = calculateEligibleSubtotal(wholeCartPromo, items, productMap);
+      expect(eligible).toBe(0);
+
+      const discount = calculateDiscount(wholeCartPromo, 1350, items, productMap);
+      expect(discount).toBe(0);
     });
   });
 });

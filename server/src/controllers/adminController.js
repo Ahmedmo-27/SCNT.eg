@@ -47,6 +47,13 @@ const updateOrderStatus = asyncHandler(async (req, res) => {
   res.status(200).json(successResponse(order, "Order status updated"));
 });
 
+const normalizeSizes = (val) => {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.map((s) => String(s).trim()).filter(Boolean);
+  if (typeof val === "string") return val.split(",").map((s) => s.trim()).filter(Boolean);
+  return [];
+};
+
 const normalizeApplicableProducts = (list) => {
   if (!Array.isArray(list)) return [];
   return list
@@ -55,7 +62,12 @@ const normalizeApplicableProducts = (list) => {
       const product = item.product?._id || item.product || item.productId;
       const rawCount = item.maxCount != null && item.maxCount !== "" ? Number(item.maxCount) : null;
       const maxCount = Number.isFinite(rawCount) && rawCount > 0 ? rawCount : null;
-      return { product, maxCount };
+      const rawSizes = Array.isArray(item.sizes)
+        ? item.sizes
+        : typeof item.sizes === "string" && item.sizes.trim()
+        ? item.sizes.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+      return { product, maxCount, sizes: rawSizes };
     });
 };
 
@@ -83,6 +95,8 @@ const createPromoCode = asyncHandler(async (req, res) => {
     code: req.body?.code,
     discountType: req.body?.discountType,
     discountValue: req.body?.discountValue,
+    discountScope: req.body?.discountScope === "WHOLE_CART" ? "WHOLE_CART" : "CERTAIN_PRODUCTS",
+    applicableSizes: normalizeSizes(req.body?.applicableSizes),
     minSubtotal: req.body?.minSubtotal,
     maxDiscount: req.body?.maxDiscount,
     isActive: req.body?.isActive,
@@ -107,6 +121,8 @@ const createPromoCode = asyncHandler(async (req, res) => {
       code: promo.code,
       discountType: promo.discountType,
       discountValue: promo.discountValue,
+      discountScope: promo.discountScope,
+      applicableSizes: promo.applicableSizes,
       applicableProducts: promo.applicableProducts,
     },
   });
@@ -119,12 +135,16 @@ const updatePromoCode = asyncHandler(async (req, res) => {
     code: req.body?.code,
     discountType: req.body?.discountType,
     discountValue: req.body?.discountValue,
+    discountScope: req.body?.discountScope === "WHOLE_CART" ? "WHOLE_CART" : "CERTAIN_PRODUCTS",
     minSubtotal: req.body?.minSubtotal,
     maxDiscount: req.body?.maxDiscount,
     isActive: req.body?.isActive,
     startsAt: req.body?.startsAt,
     expiresAt: req.body?.expiresAt,
   };
+  if (req.body?.applicableSizes !== undefined) {
+    updateData.applicableSizes = normalizeSizes(req.body?.applicableSizes);
+  }
   if (req.body?.applicableProducts !== undefined) {
     updateData.applicableProducts = normalizeApplicableProducts(req.body?.applicableProducts);
   }

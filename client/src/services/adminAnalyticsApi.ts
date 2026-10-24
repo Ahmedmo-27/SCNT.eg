@@ -320,6 +320,8 @@ export type CouponPerformance = {
   code: string
   discountType: 'PERCENTAGE' | 'FIXED' | 'CUSTOM'
   discountValue: number
+  discountScope?: 'CERTAIN_PRODUCTS' | 'WHOLE_CART'
+  applicableSizes?: string[]
   minSubtotal: number
   maxDiscount: number | null
   isActive: boolean
@@ -328,6 +330,7 @@ export type CouponPerformance = {
   applicableProducts?: Array<{
     product: string | { _id: string; name: string; price?: number; slug?: string }
     maxCount?: number | null
+    sizes?: string[]
   }>
   totalRedemptions: number
   totalRevenueDriven: number

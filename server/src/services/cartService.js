@@ -9,6 +9,7 @@ const {
   normalizePromoCode,
   getItemProductId,
   getProductPriceForSize,
+  hasProductRestrictions,
   isPromoApplicableToCart,
   getPromoIfValid,
   calculateDiscount,
@@ -102,6 +103,8 @@ const buildCartResponse = async (owner, items, promoCode) => {
           code: promo.code,
           discountType: promo.discountType,
           discountValue: Number(promo.discountValue),
+          discountScope: promo.discountScope || "CERTAIN_PRODUCTS",
+          applicableSizes: promo.applicableSizes || [],
           minSubtotal: Number(promo.minSubtotal || 0),
           maxDiscount: promo.maxDiscount == null ? null : Number(promo.maxDiscount),
           discountAmount: discount,
@@ -109,6 +112,7 @@ const buildCartResponse = async (owner, items, promoCode) => {
             ? promo.applicableProducts.map((ap) => ({
                 product: (ap.product?._id || ap.product).toString(),
                 maxCount: ap.maxCount != null ? Number(ap.maxCount) : null,
+                sizes: ap.sizes || [],
               }))
             : [],
         }
@@ -261,7 +265,7 @@ const applyPromoCode = async (ownerArg, code) => {
   if (!promo.isActive) rejectionReasons.push("This promo code is inactive.");
 
   const now = Date.now();
-  if (promo.startsAt && new Date(promo.startsAt).getTime() > now) {
+  if (promo.startsAt && new Date(promo.startsAt).getTime() > now + 60000) {
     rejectionReasons.push("This promo code is not active yet.");
   }
   if (promo.expiresAt && new Date(promo.expiresAt).getTime() < now) {
@@ -286,7 +290,7 @@ const applyPromoCode = async (ownerArg, code) => {
     }
   }
 
-  if (promo.applicableProducts && promo.applicableProducts.length > 0) {
+  if (hasProductRestrictions(promo)) {
     if (!isPromoApplicableToCart(promo, cart.items)) {
       rejectionReasons.push("None of the items in your cart are eligible for this promo code.");
     }

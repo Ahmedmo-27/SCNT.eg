@@ -4,12 +4,15 @@ export type CartPromo = {
   code: string
   discountType: 'PERCENTAGE' | 'FIXED'
   discountValue: number
+  discountScope?: 'CERTAIN_PRODUCTS' | 'WHOLE_CART'
+  applicableSizes?: string[]
   minSubtotal: number
   maxDiscount: number | null
   discountAmount: number
   applicableProducts?: Array<{
     product: string
     maxCount?: number | null
+    sizes?: string[]
   }>
 }
 

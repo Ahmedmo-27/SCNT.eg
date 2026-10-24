@@ -42,8 +42,9 @@ export type AdminCollection = {
 }
 
 export type PromoApplicableProduct = {
-  product: string | { _id: string; name: string; price?: number; slug?: string }
+  product: string | { _id: string; name: string; price?: number; slug?: string; sizes?: Array<{ size: string; price: number }> }
   maxCount?: number | null
+  sizes?: string[]
 }
 
 export type AdminPromo = {
@@ -51,6 +52,8 @@ export type AdminPromo = {
   code: string
   discountType: 'PERCENTAGE' | 'FIXED'
   discountValue: number
+  discountScope?: 'CERTAIN_PRODUCTS' | 'WHOLE_CART'
+  applicableSizes?: string[]
   minSubtotal?: number
   maxDiscount?: number | null
   isActive: boolean

@@ -282,6 +282,15 @@ export function CartPage() {
                           ? t('cart.pctOff', { n: String(promo.discountValue) })
                           : t('cart.amtOff', { price: formatEgp(promo.discountValue, locale) })}
                       </p>
+                      {promo.discountScope === 'WHOLE_CART' ? (
+                        <p className="mt-0.5 text-[11px] text-purple-400">
+                          Applied to entire cart
+                        </p>
+                      ) : (promo.applicableProducts && promo.applicableProducts.length > 0) || (promo.applicableSizes && promo.applicableSizes.length > 0) ? (
+                        <p className="mt-0.5 text-[11px] text-sky-400">
+                          Applied to eligible items only
+                        </p>
+                      ) : null}
                     </div>
                     <Button
                       type="button"

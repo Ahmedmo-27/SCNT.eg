@@ -12,6 +12,10 @@ const applicableProductSchema = new mongoose.Schema(
       default: null,
       min: 1,
     },
+    sizes: {
+      type: [String],
+      default: [], // e.g. ["50ml"], ["100ml"], or [] for all sizes
+    },
   },
   { _id: false }
 );
@@ -26,6 +30,15 @@ const promoCodeSchema = new mongoose.Schema(
       default: "PERCENTAGE",
     },
     discountValue: { type: Number, required: true, min: 0 },
+    discountScope: {
+      type: String,
+      enum: ["CERTAIN_PRODUCTS", "WHOLE_CART"],
+      default: "CERTAIN_PRODUCTS",
+    },
+    applicableSizes: {
+      type: [String],
+      default: [], // Global size restriction: e.g. ["50ml"]
+    },
     minSubtotal: { type: Number, default: 0, min: 0 },
     maxDiscount: { type: Number, default: null, min: 0 },
     applicableProducts: {

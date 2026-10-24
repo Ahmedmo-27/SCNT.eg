@@ -2,6 +2,14 @@ const PromoCode = require("../models/PromoCode");
 
 const normalizePromoCode = (code = "") => String(code || "").trim().toUpperCase();
 
+const normalizeSize = (size = "") => String(size || "").toLowerCase().replace(/\s+/g, "");
+
+const matchesSizes = (itemSize, allowedSizes) => {
+  if (!Array.isArray(allowedSizes) || allowedSizes.length === 0) return true;
+  const normItem = normalizeSize(itemSize);
+  return allowedSizes.some((s) => normalizeSize(s) === normItem);
+};
+
 const getItemProductId = (item) => {
   const raw = item?.product;
   if (!raw) return "";
@@ -11,68 +19,123 @@ const getItemProductId = (item) => {
 };
 
 const getProductPriceForSize = (product, size) => {
-  const normSize = String(size || "").toLowerCase().replace(/\s+/g, "");
+  const normSize = normalizeSize(size);
   if (normSize === "50ml") {
     const opt = product?.sizes?.find(
-      (s) => String(s.size).toLowerCase().replace(/\s+/g, "") === "50ml"
+      (s) => normalizeSize(s.size) === "50ml"
     );
     return opt ? Number(opt.price) : 500;
   }
   const opt = product?.sizes?.find(
-    (s) => String(s.size).toLowerCase().replace(/\s+/g, "") === "100ml"
+    (s) => normalizeSize(s.size) === "100ml"
   );
   return opt ? Number(opt.price) : Number(product?.price || 750);
 };
 
 /**
- * Checks if a promo code has specific product restrictions.
+ * Checks if a promo code has specific product or size restrictions.
  */
 const hasProductRestrictions = (promo) => {
-  return Array.isArray(promo?.applicableProducts) && promo.applicableProducts.length > 0;
+  const hasProducts = Array.isArray(promo?.applicableProducts) && promo.applicableProducts.length > 0;
+  const hasSizes = Array.isArray(promo?.applicableSizes) && promo.applicableSizes.length > 0;
+  return hasProducts || hasSizes;
+};
+
+/**
+ * Checks whether a single cart item matches the promo's product and size constraints.
+ */
+const isItemEligible = (promo, item) => {
+  const itemSize = item.size || "100ml";
+
+  // Check promo-level size restrictions (e.g. 50ml only storewide)
+  if (!matchesSizes(itemSize, promo.applicableSizes)) {
+    return false;
+  }
+
+  // Check product-level rules
+  if (Array.isArray(promo.applicableProducts) && promo.applicableProducts.length > 0) {
+    const pid = getItemProductId(item);
+    const rule = promo.applicableProducts.find(
+      (r) => (r.product?._id || r.product || r.productId)?.toString() === pid
+    );
+    if (!rule) return false;
+
+    // Check product rule size restrictions (e.g. Azure Code 100ml only)
+    if (!matchesSizes(itemSize, rule.sizes)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+/**
+ * Checks whether the cart has at least one item eligible for the promo.
+ */
+const isPromoApplicableToCart = (promo, items = []) => {
+  if (!hasProductRestrictions(promo)) return true;
+  if (!Array.isArray(items) || items.length === 0) return false;
+
+  return items.some((item) => isItemEligible(promo, item) && Number(item.quantity || 0) > 0);
 };
 
 /**
  * Computes the eligible subtotal for a given promo code.
- * If promo has no applicable products specified, the entire subtotal is eligible.
- * If promo restricts products and counts:
- * - Only items matching applicableProducts are considered.
- * - Units are capped at each product's maxCount (higher-priced units prioritized).
+ * - If promo has no restrictions, the entire subtotal is eligible.
+ * - If discountScope is "WHOLE_CART", the entire cart subtotal is eligible as long as
+ *   at least one required item/size is present.
+ * - If discountScope is "CERTAIN_PRODUCTS" (default):
+ *   Only eligible items and quantities (up to maxCount) contribute to the eligible subtotal.
  */
 const calculateEligibleSubtotal = (promo, items = [], productMap = new Map()) => {
+  const totalSubtotal = items.reduce((sum, item) => {
+    const pid = getItemProductId(item);
+    const product = productMap.get(pid);
+    const price = item.price != null ? Number(item.price) : getProductPriceForSize(product, item.size);
+    return sum + price * Number(item.quantity || 0);
+  }, 0);
+
   if (!hasProductRestrictions(promo)) {
-    return items.reduce((sum, item) => {
-      const pid = getItemProductId(item);
-      const product = productMap.get(pid);
-      const price = item.price != null ? Number(item.price) : getProductPriceForSize(product, item.size);
-      return sum + price * Number(item.quantity || 0);
-    }, 0);
+    return totalSubtotal;
   }
 
-  // Build rule map: productId -> maxCount (null/undefined or <= 0 means unlimited)
+  // If the discount is configured to apply to the whole cart when eligible items are present:
+  if (promo.discountScope === "WHOLE_CART") {
+    return isPromoApplicableToCart(promo, items) ? totalSubtotal : 0;
+  }
+
+  // Specific products/sizes only
+  const hasProducts = Array.isArray(promo.applicableProducts) && promo.applicableProducts.length > 0;
   const ruleMap = new Map();
-  for (const rule of promo.applicableProducts) {
-    const rawPid = rule.product?._id || rule.product || rule.productId;
-    if (rawPid) {
-      const pid = rawPid.toString();
-      const count = rule.maxCount != null ? Number(rule.maxCount) : null;
-      ruleMap.set(pid, Number.isFinite(count) && count > 0 ? count : Infinity);
+  if (hasProducts) {
+    for (const rule of promo.applicableProducts) {
+      const rawPid = rule.product?._id || rule.product || rule.productId;
+      if (rawPid) {
+        const pid = rawPid.toString();
+        const count = rule.maxCount != null ? Number(rule.maxCount) : null;
+        ruleMap.set(pid, {
+          maxCount: Number.isFinite(count) && count > 0 ? count : Infinity,
+          sizes: Array.isArray(rule.sizes) ? rule.sizes : [],
+        });
+      }
     }
   }
 
-  // Expand matching items into individual units grouped by product
+  // Group eligible units by product (or single pool if size-only restriction)
   const unitsByProduct = new Map();
   for (const item of items) {
-    const pid = getItemProductId(item);
-    if (!ruleMap.has(pid)) continue;
+    if (!isItemEligible(promo, item)) continue;
 
+    const pid = getItemProductId(item);
     const product = productMap.get(pid);
     const unitPrice = item.price != null ? Number(item.price) : getProductPriceForSize(product, item.size);
     const qty = Number(item.quantity || 0);
 
-    if (!unitsByProduct.has(pid)) {
-      unitsByProduct.set(pid, []);
+    const groupKey = hasProducts ? pid : "__all__";
+    if (!unitsByProduct.has(groupKey)) {
+      unitsByProduct.set(groupKey, []);
     }
-    const unitList = unitsByProduct.get(pid);
+    const unitList = unitsByProduct.get(groupKey);
     for (let i = 0; i < qty; i++) {
       unitList.push(unitPrice);
     }
@@ -80,8 +143,8 @@ const calculateEligibleSubtotal = (promo, items = [], productMap = new Map()) =>
 
   // For each product, sort units descending by price and take up to maxCount
   let eligibleSubtotal = 0;
-  for (const [pid, units] of unitsByProduct.entries()) {
-    const maxCount = ruleMap.get(pid) ?? Infinity;
+  for (const [groupKey, units] of unitsByProduct.entries()) {
+    const maxCount = hasProducts ? (ruleMap.get(groupKey)?.maxCount ?? Infinity) : Infinity;
     units.sort((a, b) => b - a);
     const selectedUnits = units.slice(0, maxCount);
     for (const p of selectedUnits) {
@@ -93,27 +156,8 @@ const calculateEligibleSubtotal = (promo, items = [], productMap = new Map()) =>
 };
 
 /**
- * Checks whether the cart has at least one item eligible for the promo.
- */
-const isPromoApplicableToCart = (promo, items = []) => {
-  if (!hasProductRestrictions(promo)) return true;
-  if (!Array.isArray(items) || items.length === 0) return false;
-
-  const ruleIds = new Set(
-    promo.applicableProducts
-      .map((r) => (r.product?._id || r.product || r.productId)?.toString())
-      .filter(Boolean)
-  );
-
-  return items.some((item) => {
-    const pid = getItemProductId(item);
-    return ruleIds.has(pid) && Number(item.quantity || 0) > 0;
-  });
-};
-
-/**
  * Retrieves promo code if active, non-expired, meets minSubtotal,
- * and matches cart items (if product restrictions exist).
+ * and matches cart items (if product/size restrictions exist).
  */
 const getPromoIfValid = async (promoCode, subtotal, items = []) => {
   const normalized = normalizePromoCode(promoCode);
@@ -123,7 +167,7 @@ const getPromoIfValid = async (promoCode, subtotal, items = []) => {
   if (!promo) return null;
 
   const now = Date.now();
-  if (promo.startsAt && new Date(promo.startsAt).getTime() > now) return null;
+  if (promo.startsAt && new Date(promo.startsAt).getTime() > now + 60000) return null;
   if (promo.expiresAt && new Date(promo.expiresAt).getTime() < now) return null;
   if (subtotal < Number(promo.minSubtotal || 0)) return null;
 
@@ -135,7 +179,7 @@ const getPromoIfValid = async (promoCode, subtotal, items = []) => {
 };
 
 /**
- * Calculates discount amount considering product restrictions, counts, and caps.
+ * Calculates discount amount considering product/size restrictions, counts, scopes, and caps.
  */
 const calculateDiscount = (promo, subtotal, items = [], productMap = new Map()) => {
   if (!promo || subtotal <= 0) return 0;
@@ -161,11 +205,14 @@ const calculateDiscount = (promo, subtotal, items = [], productMap = new Map()) 
 
 module.exports = {
   normalizePromoCode,
+  normalizeSize,
+  matchesSizes,
   getItemProductId,
   getProductPriceForSize,
   hasProductRestrictions,
-  calculateEligibleSubtotal,
+  isItemEligible,
   isPromoApplicableToCart,
+  calculateEligibleSubtotal,
   getPromoIfValid,
   calculateDiscount,
 };
