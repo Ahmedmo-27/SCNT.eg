@@ -108,6 +108,7 @@ export function CheckoutPage() {
           serverCart.lines?.map((line) => ({
             productId: line.productId,
             name: line.name,
+            size: line.size || '100ml',
             price: Number(line.unitPrice || 0),
             quantity: Number(line.quantity || 0),
             image: line.image || '',

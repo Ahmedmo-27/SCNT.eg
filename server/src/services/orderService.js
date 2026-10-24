@@ -108,11 +108,18 @@ const createOrderFromCart = async (ownerArg, address, customerEmail = "") => {
     subtotal += unitPrice * quantity;
   }
 
+  const promo = await getPromoIfValid(cart.promoCode, subtotal, cart.items);
+  if (cart.promoCode && String(cart.promoCode).trim() && !promo) {
+    throw new ApiError(
+      400,
+      `The promo code "${cart.promoCode}" is no longer valid or applicable to the items in your cart. Please remove or update it before completing checkout.`
+    );
+  }
+
   for (const item of cart.items) {
     await productRepository.updateProduct(item.product, { $inc: { stock: -item.quantity } });
   }
 
-  const promo = await getPromoIfValid(cart.promoCode, subtotal, cart.items);
   const discount = calculateDiscount(promo, subtotal, cart.items, productMap);
   const total = Math.max(0, subtotal + SHIPPING_FEE_EGP - discount);
 

@@ -92,5 +92,54 @@ describe("Online Orders Account Enforcement & Details Unit Tests", () => {
         ).rejects.toThrow(/Invalid status/i);
       }
     });
+
+    it("rejects order placement if a promo code was attached to cart but is no longer valid or eligible", async () => {
+      const userRepository = require("../../src/repositories/userRepository");
+      const cartRepository = require("../../src/repositories/cartRepository");
+      const productRepository = require("../../src/repositories/productRepository");
+      const promoHelper = require("../../src/utils/promoHelper");
+
+      const userSpy = jest.spyOn(userRepository, "findById").mockReturnValue({
+        select: jest.fn().mockResolvedValue({
+          _id: "507f1f77bcf86cd799439011",
+          email: "user@scnt.eg",
+          full_name: "Test User",
+        }),
+      });
+
+      const cartSpy = jest.spyOn(cartRepository, "findRawByUserId").mockResolvedValue({
+        items: [{ product: "507f1f77bcf86cd799439011", size: "100ml", quantity: 1 }],
+        promoCode: "EXPIRED_OR_INELIGIBLE",
+      });
+
+      const prodSpy = jest.spyOn(productRepository, "findByIds").mockResolvedValue([
+        {
+          _id: "507f1f77bcf86cd799439011",
+          name: "Azure Code",
+          stock: 10,
+          price: 750,
+        },
+      ]);
+
+      const PromoCode = require("../../src/models/PromoCode");
+      const promoSpy = jest.spyOn(PromoCode, "findOne").mockResolvedValue(null);
+
+      const address = {
+        fullName: "Test User",
+        phone: "01000000000",
+        city: "Cairo",
+        addressLine1: "123 Nile St",
+        postalCode: "11511",
+      };
+
+      await expect(
+        orderService.createOrderFromCart({ userId: "507f1f77bcf86cd799439011" }, address)
+      ).rejects.toThrow(/promo code .* is no longer valid/i);
+
+      userSpy.mockRestore();
+      cartSpy.mockRestore();
+      prodSpy.mockRestore();
+      promoSpy.mockRestore();
+    });
   });
 });
