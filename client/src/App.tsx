@@ -31,6 +31,13 @@ const VerifyEmailPage = lazy(
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })))
 const ReviewPage = lazy(() => import('./pages/ReviewPage').then((m) => ({ default: m.ReviewPage })))
+const TermsPage = lazy(() => import('./pages/LegalPolicyPage').then((m) => ({ default: m.TermsPage })))
+const RefundPolicyPage = lazy(() =>
+  import('./pages/LegalPolicyPage').then((m) => ({ default: m.RefundPolicyPage })),
+)
+const PrivacyPolicyPage = lazy(() =>
+  import('./pages/LegalPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })),
+)
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
 function RouteSeo() {
@@ -87,6 +94,27 @@ function RouteSeo() {
       description: {
         en: 'Read common SCNT.eg perfume FAQs about scent longevity, notes, shipping, and choosing fragrances for your identity and routine.',
         ar: 'اقرأ أكثر الأسئلة شيوعاً عن ثبات العطر والمكونات والشحن وكيفية اختيار العطر المناسب لك.',
+      },
+    },
+    '/terms-of-service': {
+      title: { en: 'Terms of Service', ar: 'شروط الاستخدام' },
+      description: {
+        en: 'Read the SCNT.eg terms of service covering orders, payments, account use, and the rights and responsibilities of customers.',
+        ar: 'اقرأ شروط استخدام SCNT.eg التي تغطي الطلبات والدفع واستخدام الحساب وحقوق ومسؤوليات العملاء.',
+      },
+    },
+    '/refund-policy': {
+      title: { en: 'Refund Policy', ar: 'سياسة الاسترجاع' },
+      description: {
+        en: 'Learn SCNT.eg refund terms, return conditions, and how eligible products are reviewed and credited.',
+        ar: 'تعرف على شروط استرجاع SCNT.eg وظروف الإرجاع وكيفية مراجعة المنتجات المؤهلة واسترداد قيمتها.',
+      },
+    },
+    '/privacy-policy': {
+      title: { en: 'Privacy Policy', ar: 'سياسة الخصوصية' },
+      description: {
+        en: 'Understand how SCNT.eg collects, uses, and protects personal information when you visit and shop on our website.',
+        ar: 'افهم كيف تجمع SCNT.eg المعلومات الشخصية وتستخدمها وتحميها عند زيارة الموقع والتسوق فيه.',
       },
     },
     '/cart': {
@@ -220,6 +248,9 @@ export default function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/review" element={<ReviewPage />} />
+          <Route path="/terms-of-service" element={<TermsPage />} />
+          <Route path="/refund-policy" element={<RefundPolicyPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

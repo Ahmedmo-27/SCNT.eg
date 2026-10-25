@@ -4,7 +4,12 @@ import { EightPointStar } from '../ui/EightPointStar'
 import { Logo } from '../brand/Logo'
 
 export function Footer() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const legalLabel = locale === 'ar' ? 'القانونية' : 'Legal'
+  const termsLabel = locale === 'ar' ? 'شروط الاستخدام' : 'Terms of Service'
+  const refundLabel = locale === 'ar' ? 'سياسة الاسترجاع' : 'Refund Policy'
+  const privacyLabel = locale === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'
+
   return (
     <footer className="relative mt-28 border-t border-scnt-border/80 bg-gradient-to-b from-scnt-bg-muted/40 via-scnt-bg-muted/55 to-scnt-bg-muted/65">
       <div
@@ -54,6 +59,27 @@ export function Footer() {
               <li>
                 <Link className="transition-colors hover:text-scnt-text" to="/faqs">
                   {t('nav.faqs')}
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div className="space-y-3">
+            <p className="font-medium text-scnt-text">{legalLabel}</p>
+            <ul className="space-y-2">
+              <li>
+                <Link className="transition-colors hover:text-scnt-text" to="/terms-of-service">
+                  {termsLabel}
+                </Link>
+              </li>
+              <li>
+                <Link className="transition-colors hover:text-scnt-text" to="/refund-policy">
+                  {refundLabel}
+                </Link>
+              </li>
+              <li>
+                <Link className="transition-colors hover:text-scnt-text" to="/privacy-policy">
+                  {privacyLabel}
                 </Link>
               </li>
             </ul>
