@@ -342,6 +342,7 @@ const updateContact = async (ownerArg, contactData) => {
   if (contactData.email !== undefined) update["contact.email"] = String(contactData.email).trim().toLowerCase();
   if (contactData.governorate !== undefined) update["contact.governorate"] = String(contactData.governorate).trim();
   if (contactData.city !== undefined) update["contact.city"] = String(contactData.city).trim();
+  if (contactData.address !== undefined) update["contact.address"] = String(contactData.address).trim();
 
   await CartModel.updateOne({ _id: cart._id }, { $set: update });
   return getCart(owner);
@@ -372,7 +373,7 @@ const sendCartRecoveryEmail = async (cartId) => {
 
   const cart = await CartModel.findById(cartId)
     .populate("user", "email full_name")
-    .populate("items.product", "name price images")
+    .populate("items.product", "name price sizes images")
     .lean();
 
   if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) {

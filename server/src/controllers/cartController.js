@@ -82,8 +82,8 @@ const clearCart = asyncHandler(async (req, res) => {
 
 const updateCartContact = asyncHandler(async (req, res) => {
   const owner = resolveOwner(req);
-  const { fullName, phone, email, governorate, city } = req.body || {};
-  const cart = await cartService.updateContact(owner, { fullName, phone, email, governorate, city });
+  const { fullName, phone, email, governorate, city, address } = req.body || {};
+  const cart = await cartService.updateContact(owner, { fullName, phone, email, governorate, city, address });
   res.status(200).json(successResponse(cart, "Contact updated"));
 });
 

@@ -84,6 +84,7 @@ export async function updateCartContact(contact: {
   email?: string
   governorate?: string
   city?: string
+  address?: string
 }): Promise<ServerCart> {
   return apiPostCartData<ServerCart>('/cart/contact', contact)
 }

@@ -16,6 +16,7 @@ const guestContactSchema = new mongoose.Schema(
     email: { type: String, default: "", trim: true, lowercase: true },
     governorate: { type: String, default: "", trim: true },
     city: { type: String, default: "", trim: true },
+    address: { type: String, default: "", trim: true },
   },
   { _id: false }
 );

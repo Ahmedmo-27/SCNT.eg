@@ -12,6 +12,11 @@ const {
   parseUserAgent,
   normalizeReferrerDomain,
 } = require("../utils/userAgentParser");
+const {
+  getProductPriceForSize,
+  getPromoIfValid,
+  calculateDiscount,
+} = require("../utils/promoHelper");
 
 /**
  * Helper to build common date & admin filters
@@ -835,7 +840,8 @@ const getActiveCarts = asyncHandler(async (req, res) => {
       let subtotal = 0;
       const lines = (cart.items || []).map((item) => {
         const product = item.product || {};
-        const price = Number(product.price || 0);
+        const size = item.size || "100ml";
+        const price = getProductPriceForSize(product, size);
         const quantity = Number(item.quantity || 1);
         const lineTotal = price * quantity;
         subtotal += lineTotal;
@@ -844,7 +850,7 @@ const getActiveCarts = asyncHandler(async (req, res) => {
           productId: product._id,
           name: product.name || "Unknown Fragrance",
           slug: product.slug,
-          size: item.size || "100ml",
+          size,
           unitPrice: price,
           quantity,
           lineTotal,
@@ -853,8 +859,198 @@ const getActiveCarts = asyncHandler(async (req, res) => {
         };
       });
 
+      // Calculate discount if promoCode exists
+      let discount = 0;
+      if (cart.promoCode && subtotal > 0) {
+        try {
+          const promo = await getPromoIfValid(cart.promoCode, subtotal, cart.items || []);
+          if (promo) {
+            const productMap = new Map();
+            for (const item of cart.items || []) {
+              if (item.product && item.product._id) {
+                productMap.set(item.product._id.toString(), item.product);
+              }
+            }
+            discount = calculateDiscount(promo, subtotal, cart.items || [], productMap);
+          }
+        } catch {
+          // ignore promo calculation failure
+        }
+      }
+      const total = Math.max(0, subtotal - discount);
+
+      // Contact information from user account or captured checkout form
+      const contactInfo = {
+        fullName: cart.user?.full_name || cart.contact?.fullName || "",
+        phone: cart.user?.phone || cart.user?.address?.phone || cart.contact?.phone || "",
+        email: cart.user?.email || cart.contact?.email || "",
+        governorate: cart.user?.address?.addressLine2 || cart.contact?.governorate || "",
+        city: cart.user?.address?.city || cart.contact?.city || "",
+        address: cart.user?.address?.addressLine1 || cart.contact?.address || "",
+      };
+
+      // Check visit history for checkout navigation and funnel activity
+      const visitQuery = cart.user
+        ? { $or: [{ userId: cart.user._id }, { visitorId: cart.visitorId }] }
+        : { visitorId: cart.visitorId };
+
+      let hasVisitedCheckout = false;
+      let recentVisits = [];
+      if (cart.visitorId || cart.user) {
+        recentVisits = await Visit.find(visitQuery)
+          .sort({ createdAt: -1 })
+          .limit(15)
+          .select("path stage action metadata createdAt")
+          .lean();
+
+        hasVisitedCheckout = recentVisits.some(
+          (v) =>
+            v.stage === "checkout_start" ||
+            v.action === "checkout_start" ||
+            (v.path && v.path.toLowerCase().includes("/checkout"))
+        );
+      }
+
+      // If any checkout field was captured, customer definitely reached checkout
+      const hasCheckoutFields = Boolean(
+        contactInfo.fullName ||
+        contactInfo.phone ||
+        contactInfo.email ||
+        contactInfo.governorate ||
+        contactInfo.city ||
+        contactInfo.address
+      );
+      if (hasCheckoutFields) {
+        hasVisitedCheckout = true;
+      }
+
       const lastActiveTime = new Date(cart.lastActiveAt || cart.updatedAt).getTime();
       const isAbandoned = lastActiveTime < twoHoursAgo;
+
+      // Stage identification
+      let stageKey = "cart";
+      let stageLabel = "Cart Active (Viewing Items)";
+      let stageProgress = 20;
+
+      if (hasVisitedCheckout) {
+        if (contactInfo.phone && (contactInfo.governorate || contactInfo.city) && contactInfo.address) {
+          stageKey = "checkout_ready";
+          stageLabel = "Checkout: Shipping & Contact Complete (Ready to Place)";
+          stageProgress = 85;
+        } else if (contactInfo.phone || contactInfo.fullName || contactInfo.email) {
+          stageKey = "checkout_partial";
+          stageLabel = "Checkout: Contact Partially Entered";
+          stageProgress = 60;
+        } else {
+          stageKey = "checkout_view";
+          stageLabel = "Checkout: Form Opened (No Details Entered)";
+          stageProgress = 40;
+        }
+      } else if (cart.promoCode) {
+        stageKey = "cart_coupon";
+        stageLabel = "Cart: Items & Coupon Applied";
+        stageProgress = 30;
+      }
+
+      // Completed vs pending steps
+      const steps = [
+        {
+          id: "cart_items",
+          label: "Cart Items Selected",
+          status: lines.length > 0 ? "completed" : "missing",
+          detail: lines.map((l) => `${l.quantity}x ${l.name} (${l.size})`).join(", "),
+        },
+        {
+          id: "coupon",
+          label: "Discount Coupon",
+          status: cart.promoCode ? "completed" : "skipped",
+          detail: cart.promoCode ? `Applied: ${cart.promoCode}` : "None entered (optional)",
+        },
+        {
+          id: "checkout_entry",
+          label: "Navigated to Checkout",
+          status: hasVisitedCheckout ? "completed" : "missing",
+          detail: hasVisitedCheckout ? "Visited /checkout page" : "Never navigated to checkout",
+        },
+        {
+          id: "contact_identity",
+          label: "Customer Contact",
+          status: contactInfo.phone ? "completed" : (contactInfo.fullName || contactInfo.email) ? "partial" : "missing",
+          detail: [
+            contactInfo.fullName ? `Name: ${contactInfo.fullName}` : null,
+            contactInfo.phone ? `Phone: ${contactInfo.phone}` : "Phone: Missing",
+            contactInfo.email ? `Email: ${contactInfo.email}` : "Email: Missing",
+          ].filter(Boolean).join(" · "),
+        },
+        {
+          id: "shipping_destination",
+          label: "Shipping Destination",
+          status: (contactInfo.governorate && contactInfo.city) ? "completed" : (contactInfo.governorate || contactInfo.city) ? "partial" : "missing",
+          detail: contactInfo.governorate ? `${contactInfo.governorate} — ${contactInfo.city || "City missing"}` : "Governorate & City missing",
+        },
+        {
+          id: "street_address",
+          label: "Street Address",
+          status: contactInfo.address ? "completed" : "missing",
+          detail: contactInfo.address || "Street address not provided",
+        },
+        {
+          id: "order_confirmation",
+          label: "Order Confirmation",
+          status: "missing",
+          detail: isAbandoned ? "Abandoned before placing order" : "In progress / actively browsing",
+        },
+      ];
+
+      // Missing requirements list
+      const missingFields = [];
+      if (!hasVisitedCheckout) {
+        missingFields.push({
+          field: "Checkout Navigation",
+          severity: "high",
+          message: "Customer remained on the cart page and never clicked 'Proceed to Checkout'.",
+        });
+      }
+      if (!contactInfo.phone) {
+        missingFields.push({
+          field: "Phone Number",
+          severity: "critical",
+          message: "Required for courier dispatch and Cash-on-Delivery confirmation.",
+        });
+      }
+      if (!contactInfo.fullName) {
+        missingFields.push({
+          field: "Full Name",
+          severity: "medium",
+          message: "Customer full name is missing.",
+        });
+      }
+      if (!contactInfo.governorate || !contactInfo.city) {
+        missingFields.push({
+          field: "Governorate & City",
+          severity: "high",
+          message: "Shipping destination (Governorate & City) not selected.",
+        });
+      }
+      if (!contactInfo.address) {
+        missingFields.push({
+          field: "Street Address",
+          severity: "medium",
+          message: "Doorstep delivery street address not entered.",
+        });
+      }
+      if (!contactInfo.email && isGuest) {
+        missingFields.push({
+          field: "Email Address",
+          severity: "medium",
+          message: "No email address captured; recovery email cannot be sent automatically.",
+        });
+      }
+      missingFields.push({
+        field: "Final Order Submission",
+        severity: "critical",
+        message: "Customer did not click 'Confirm Order' on checkout.",
+      });
 
       return {
         _id: cart._id,
@@ -879,7 +1075,14 @@ const getActiveCarts = asyncHandler(async (req, res) => {
               isCapturedLead: true,
             }
           : null,
-        contact: cart.contact || null,
+        contact: {
+          fullName: contactInfo.fullName,
+          phone: contactInfo.phone,
+          email: contactInfo.email,
+          governorate: contactInfo.governorate,
+          city: contactInfo.city,
+          address: contactInfo.address,
+        },
         recoverySentAt: cart.recoverySentAt || null,
         recoveryCount: cart.recoveryCount || 0,
         visitorId: cart.visitorId,
@@ -895,9 +1098,26 @@ const getActiveCarts = asyncHandler(async (req, res) => {
         items: lines,
         itemCount: lines.reduce((sum, l) => sum + l.quantity, 0),
         subtotal,
+        discount,
+        total,
         promoCode: cart.promoCode || "",
         lastActiveAt: cart.lastActiveAt || cart.updatedAt,
         isAbandoned,
+        orderProgress: {
+          stageKey,
+          stageLabel,
+          stageProgress,
+          hasVisitedCheckout,
+          contactInfo,
+          steps,
+          missingFields,
+          recentVisits: recentVisits.map((v) => ({
+            path: v.path || "",
+            stage: v.stage || "browse",
+            action: v.action || "pageview",
+            time: v.createdAt,
+          })),
+        },
       };
     })
   );

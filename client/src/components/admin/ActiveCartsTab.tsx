@@ -38,6 +38,22 @@ export function ActiveCartsTab() {
   const [error, setError] = useState<string | null>(null)
   const [actionFeedback, setActionFeedback] = useState<Record<string, string>>({})
   const [sendingEmailCartId, setSendingEmailCartId] = useState<string | null>(null)
+  const [expandedCartIds, setExpandedCartIds] = useState<Record<string, boolean>>({})
+
+  const toggleDetails = (cartId: string) => {
+    setExpandedCartIds((prev) => ({
+      ...prev,
+      [cartId]: !prev[cartId],
+    }))
+  }
+
+  const getWhatsAppUrl = (phone: string, cartId: string) => {
+    const cleanPhone = phone.replace(/[^\d+]/g, '')
+    const intlPhone = cleanPhone.startsWith('0') ? `20${cleanPhone.slice(1)}` : cleanPhone.replace(/^\+/, '')
+    const cartUrl = `${window.location.origin}/cart?restore=${cartId}`
+    const msg = encodeURIComponent(`Hello! We noticed you left some items in your SCNT cart. You can complete your order here: ${cartUrl}`)
+    return `https://wa.me/${intlPhone}?text=${msg}`
+  }
 
   const handleCopyRecoveryLink = async (cartId: string) => {
     try {
@@ -344,8 +360,13 @@ export function ActiveCartsTab() {
 
                   <div className="text-right">
                     <p className="font-mono text-lg font-bold text-scnt-text">
-                      {formatEgp(cart.subtotal)}
+                      {formatEgp(cart.total != null && cart.discount ? cart.total : cart.subtotal)}
                     </p>
+                    {cart.discount ? (
+                      <p className="text-[11px] text-emerald-400 font-mono">
+                        Coupon discount: -{formatEgp(cart.discount)}
+                      </p>
+                    ) : null}
                     <p className="text-[11px] text-scnt-text-muted">
                       Last active: {timeAgo(cart.lastActiveAt)}
                     </p>
@@ -389,9 +410,242 @@ export function ActiveCartsTab() {
                   </div>
                 </div>
 
+                {/* Expanded Order Progress & Diagnostic Details */}
+                {expandedCartIds[cart._id] ? (
+                  <div className="rounded-xl border border-scnt-border/70 bg-scnt-bg-elevated/40 p-4 space-y-4 animate-in fade-in duration-200">
+                    {/* Stage Header with Progress Bar */}
+                    <div className="rounded-lg border border-scnt-border/60 bg-scnt-bg/80 p-3.5 space-y-2.5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-scnt-text-muted">
+                            Current Order Funnel Stage
+                          </span>
+                          <h4 className="text-sm font-semibold text-scnt-text mt-0.5">
+                            {cart.orderProgress?.stageLabel || (cart.isAbandoned ? 'Abandoned in Cart' : 'Active Cart')}
+                          </h4>
+                        </div>
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-xs font-mono font-bold border ${
+                            (cart.orderProgress?.stageProgress || 0) >= 80
+                              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                              : (cart.orderProgress?.stageProgress || 0) >= 50
+                              ? 'bg-sky-500/15 text-sky-300 border-sky-500/30'
+                              : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                          }`}
+                        >
+                          {cart.orderProgress?.stageProgress || 20}% Reached
+                        </span>
+                      </div>
+
+                      {/* Progress Bar */}
+                      <div className="h-2 w-full rounded-full bg-scnt-bg-elevated overflow-hidden border border-scnt-border/40">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            (cart.orderProgress?.stageProgress || 0) >= 80
+                              ? 'bg-emerald-500'
+                              : (cart.orderProgress?.stageProgress || 0) >= 50
+                              ? 'bg-sky-500'
+                              : 'bg-amber-500'
+                          }`}
+                          style={{ width: `${cart.orderProgress?.stageProgress || 20}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* What's Still Missing Alert Box */}
+                    <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3.5 space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">⚠️</span>
+                        <h4 className="text-xs font-semibold uppercase tracking-wider text-rose-300">
+                          What's Still Missing to Complete Order ({cart.orderProgress?.missingFields?.length || 0} items)
+                        </h4>
+                      </div>
+
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {cart.orderProgress?.missingFields?.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="rounded-md border border-rose-500/20 bg-scnt-bg/70 p-2.5 text-xs space-y-1"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-rose-300">❌ {item.field}</span>
+                              <span
+                                className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                                  item.severity === 'critical'
+                                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                }`}
+                              >
+                                {item.severity}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-scnt-text-muted leading-relaxed">
+                              {item.message}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Funnel Stage Checklist */}
+                    <div className="rounded-lg border border-scnt-border/50 bg-scnt-bg/60 p-3.5 space-y-2.5">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-scnt-text-muted">
+                        Stage Milestones & Requirements Checklist
+                      </h4>
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {cart.orderProgress?.steps?.map((step) => (
+                          <div
+                            key={step.id}
+                            className="rounded-lg border border-scnt-border/40 bg-scnt-bg-elevated/20 p-2.5 text-xs space-y-1"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-scnt-text">{step.label}</span>
+                              {step.status === 'completed' ? (
+                                <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 border border-emerald-500/30">
+                                  ✓ Done
+                                </span>
+                              ) : step.status === 'partial' ? (
+                                <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-300 border border-amber-500/30">
+                                  ⏳ Partial
+                                </span>
+                              ) : step.status === 'skipped' ? (
+                                <span className="rounded bg-zinc-500/15 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400 border border-zinc-500/30">
+                                  — Optional
+                                </span>
+                              ) : (
+                                <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-medium text-rose-300 border border-rose-500/30">
+                                  ✗ Missing
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-scnt-text-muted truncate" title={step.detail}>
+                              {step.detail}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Captured Customer & Delivery Details */}
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg border border-scnt-border/50 bg-scnt-bg/60 p-3 space-y-2 text-xs">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-scnt-text-muted">
+                          Customer Contact Details
+                        </span>
+                        <div className="space-y-1.5">
+                          <p>
+                            <span className="text-scnt-text-muted">Name:</span>{' '}
+                            <span className="font-medium text-scnt-text">
+                              {cart.orderProgress?.contactInfo.fullName || (
+                                <span className="text-rose-400/80 italic font-normal">Not entered</span>
+                              )}
+                            </span>
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <p>
+                              <span className="text-scnt-text-muted">Phone:</span>{' '}
+                              <span className="font-mono font-medium text-scnt-text">
+                                {cart.orderProgress?.contactInfo.phone || (
+                                  <span className="text-rose-400/80 italic font-normal">Not entered</span>
+                                )}
+                              </span>
+                            </p>
+                            {cart.orderProgress?.contactInfo.phone ? (
+                              <div className="flex gap-1.5">
+                                <a
+                                  href={`tel:${cart.orderProgress.contactInfo.phone}`}
+                                  className="rounded border border-scnt-border/60 bg-scnt-bg-elevated px-2 py-0.5 text-[10px] text-scnt-text hover:border-scnt-text/40"
+                                >
+                                  📞 Call
+                                </a>
+                                <a
+                                  href={getWhatsAppUrl(cart.orderProgress.contactInfo.phone, cart._id)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400 hover:bg-emerald-500/20"
+                                >
+                                  💬 WhatsApp
+                                </a>
+                              </div>
+                            ) : null}
+                          </div>
+                          <p>
+                            <span className="text-scnt-text-muted">Email:</span>{' '}
+                            <span className="font-mono font-medium text-scnt-text">
+                              {cart.orderProgress?.contactInfo.email || (
+                                <span className="text-rose-400/80 italic font-normal">Not entered</span>
+                              )}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-scnt-border/50 bg-scnt-bg/60 p-3 space-y-2 text-xs">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-scnt-text-muted">
+                          Shipping & Delivery Address
+                        </span>
+                        <div className="space-y-1.5">
+                          <p>
+                            <span className="text-scnt-text-muted">Governorate:</span>{' '}
+                            <span className="font-medium text-scnt-text">
+                              {cart.orderProgress?.contactInfo.governorate || (
+                                <span className="text-rose-400/80 italic font-normal">Not selected</span>
+                              )}
+                            </span>
+                          </p>
+                          <p>
+                            <span className="text-scnt-text-muted">City:</span>{' '}
+                            <span className="font-medium text-scnt-text">
+                              {cart.orderProgress?.contactInfo.city || (
+                                <span className="text-rose-400/80 italic font-normal">Not selected</span>
+                              )}
+                            </span>
+                          </p>
+                          <p>
+                            <span className="text-scnt-text-muted">Street Address:</span>{' '}
+                            <span className="font-medium text-scnt-text">
+                              {cart.orderProgress?.contactInfo.address || (
+                                <span className="text-rose-400/80 italic font-normal">Not provided</span>
+                              )}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Visitor Session Activity Timeline */}
+                    {cart.orderProgress?.recentVisits && cart.orderProgress.recentVisits.length > 0 ? (
+                      <div className="rounded-lg border border-scnt-border/50 bg-scnt-bg/60 p-3 space-y-2 text-xs">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-scnt-text-muted">
+                          Activity Trail Before Leaving
+                        </span>
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {cart.orderProgress.recentVisits.slice(0, 8).map((visit, vIdx) => (
+                            <span
+                              key={vIdx}
+                              className="inline-flex items-center gap-1 rounded border border-scnt-border/40 bg-scnt-bg-elevated/40 px-2 py-1 text-[11px] text-scnt-text-muted"
+                            >
+                              <span className="font-mono text-scnt-text">{visit.path || '/'}</span>
+                              <span className="text-[10px] text-scnt-text-muted/70">({timeAgo(visit.time)})</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 {/* Recovery Actions Toolbar */}
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-scnt-border/30 pt-3">
                   <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="outline"
+                      className="text-[11px] py-1 px-3 border-scnt-border/80 text-scnt-text hover:bg-scnt-bg-elevated"
+                      onClick={() => toggleDetails(cart._id)}
+                    >
+                      👁️ {expandedCartIds[cart._id] ? 'Hide Details' : 'Show Details'}
+                    </Button>
+
                     <Button
                       variant="outline"
                       className="text-[11px] py-1 px-3"
@@ -409,6 +663,17 @@ export function ActiveCartsTab() {
                       >
                         ✉️ {sendingEmailCartId === cart._id ? 'Sending...' : 'Send Recovery Email'}
                       </Button>
+                    ) : null}
+
+                    {cart.orderProgress?.contactInfo?.phone ? (
+                      <a
+                        href={getWhatsAppUrl(cart.orderProgress.contactInfo.phone, cart._id)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                      >
+                        💬 WhatsApp
+                      </a>
                     ) : null}
                   </div>
 

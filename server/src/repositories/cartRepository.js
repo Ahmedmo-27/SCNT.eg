@@ -246,7 +246,7 @@ const findAllCartsWithItems = async ({
       .skip(skip)
       .limit(limit)
       .populate("user", "full_name email phone address")
-      .populate("items.product", "name price images coverImage stock is_active slug SCNTcollection")
+      .populate("items.product", "name price sizes images coverImage stock is_active slug SCNTcollection")
       .lean(),
     Cart.countDocuments(filter),
   ]);

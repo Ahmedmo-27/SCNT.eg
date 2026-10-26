@@ -155,7 +155,8 @@ export function CheckoutPage() {
       form.phone.trim() ||
       form.email.trim() ||
       form.governorate.trim() ||
-      form.city.trim()
+      form.city.trim() ||
+      form.address.trim()
 
     if (!hasAnyContact) return
 
@@ -166,11 +167,12 @@ export function CheckoutPage() {
         email: form.email.trim(),
         governorate: form.governorate.trim(),
         city: form.city.trim(),
+        address: form.address.trim(),
       }).catch(() => {})
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [form.fullName, form.phone, form.email, form.governorate, form.city, placedOrder])
+  }, [form.fullName, form.phone, form.email, form.governorate, form.city, form.address, placedOrder])
 
   const cityOptions = useMemo(
     () => getCitiesForGovernorate(form.governorate),

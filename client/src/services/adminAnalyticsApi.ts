@@ -235,6 +235,42 @@ export type AdminCartLine = {
   stock: number
 }
 
+export type OrderProgressStep = {
+  id: string
+  label: string
+  status: 'completed' | 'partial' | 'missing' | 'skipped'
+  detail: string
+}
+
+export type MissingOrderField = {
+  field: string
+  severity: 'critical' | 'high' | 'medium'
+  message: string
+}
+
+export type OrderProgress = {
+  stageKey: string
+  stageLabel: string
+  stageProgress: number
+  hasVisitedCheckout: boolean
+  contactInfo: {
+    fullName: string
+    phone: string
+    email: string
+    governorate: string
+    city: string
+    address: string
+  }
+  steps: OrderProgressStep[]
+  missingFields: MissingOrderField[]
+  recentVisits: Array<{
+    path: string
+    stage: string
+    action: string
+    time: string
+  }>
+}
+
 export type AdminCartItem = {
   _id: string
   isGuest: boolean
@@ -253,6 +289,7 @@ export type AdminCartItem = {
     email?: string
     governorate?: string
     city?: string
+    address?: string
   } | null
   visitorId?: string
   visitorMeta?: {
@@ -265,11 +302,14 @@ export type AdminCartItem = {
   items: AdminCartLine[]
   itemCount: number
   subtotal: number
+  discount?: number
+  total?: number
   promoCode: string
   recoverySentAt?: string | null
   recoveryCount?: number
   lastActiveAt: string
   isAbandoned: boolean
+  orderProgress?: OrderProgress
 }
 
 export type ActiveCartsResponse = {
