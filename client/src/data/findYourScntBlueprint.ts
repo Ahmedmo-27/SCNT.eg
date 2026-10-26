@@ -11,14 +11,18 @@ export type QuizBlueprintChoice = {
 
 export type QuizBlueprintQuestion = {
   id: string
+  phase: 'top' | 'heart' | 'base'
   promptKey: string
   detailKey: string
   choices: QuizBlueprintChoice[]
 }
 
+export const EXPRESS_QUESTION_IDS: readonly string[] = ['entrance', 'night', 'notes']
+
 export const FIND_YOUR_SCNT_BLUEPRINT: QuizBlueprintQuestion[] = [
   {
     id: 'entrance',
+    phase: 'top',
     promptKey: 'fz.q1.p',
     detailKey: 'fz.q1.d',
     choices: [
@@ -58,6 +62,7 @@ export const FIND_YOUR_SCNT_BLUEPRINT: QuizBlueprintQuestion[] = [
   },
   {
     id: 'schedule',
+    phase: 'top',
     promptKey: 'fz.q2.p',
     detailKey: 'fz.q2.d',
     choices: [
@@ -97,6 +102,7 @@ export const FIND_YOUR_SCNT_BLUEPRINT: QuizBlueprintQuestion[] = [
   },
   {
     id: 'vacation',
+    phase: 'top',
     promptKey: 'fz.q3.p',
     detailKey: 'fz.q3.d',
     choices: [
@@ -136,6 +142,7 @@ export const FIND_YOUR_SCNT_BLUEPRINT: QuizBlueprintQuestion[] = [
   },
   {
     id: 'fabric',
+    phase: 'heart',
     promptKey: 'fz.q4.p',
     detailKey: 'fz.q4.d',
     choices: [
@@ -175,6 +182,7 @@ export const FIND_YOUR_SCNT_BLUEPRINT: QuizBlueprintQuestion[] = [
   },
   {
     id: 'social',
+    phase: 'heart',
     promptKey: 'fz.q5.p',
     detailKey: 'fz.q5.d',
     choices: [
@@ -214,6 +222,7 @@ export const FIND_YOUR_SCNT_BLUEPRINT: QuizBlueprintQuestion[] = [
   },
   {
     id: 'night',
+    phase: 'heart',
     promptKey: 'fz.q6.p',
     detailKey: 'fz.q6.d',
     choices: [
@@ -253,6 +262,7 @@ export const FIND_YOUR_SCNT_BLUEPRINT: QuizBlueprintQuestion[] = [
   },
   {
     id: 'notes',
+    phase: 'base',
     promptKey: 'fz.q7.p',
     detailKey: 'fz.q7.d',
     choices: [
@@ -292,6 +302,7 @@ export const FIND_YOUR_SCNT_BLUEPRINT: QuizBlueprintQuestion[] = [
   },
   {
     id: 'signature',
+    phase: 'base',
     promptKey: 'fz.q8.p',
     detailKey: 'fz.q8.d',
     choices: [

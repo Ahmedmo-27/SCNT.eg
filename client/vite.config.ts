@@ -11,7 +11,7 @@ function ensureAbsoluteUrl(value: string, origin: string): string {
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:5000'
+  const apiTarget = env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:5000'
   const siteUrl = (env.VITE_SITE_URL || 'https://www.scnt-eg.me').replace(/\/$/, '')
 
   return {
@@ -43,6 +43,7 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: apiTarget,
           changeOrigin: true,
+          secure: false,
         },
       },
     },

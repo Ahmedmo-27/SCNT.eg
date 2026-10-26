@@ -24,7 +24,7 @@ process.on("unhandledRejection", (reason) => {
 const bootstrap = async () => {
   await connectDb();
   await initializeCache();
-  app.listen(env.port, () => {
+  app.listen(env.port, '0.0.0.0', () => {
     logger.info(`SCNT.eg API running on port ${env.port} [env=${env.nodeEnv}]`, {
       context: "server",
     });
