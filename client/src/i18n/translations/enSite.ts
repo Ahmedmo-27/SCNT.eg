@@ -539,7 +539,7 @@ export const enSite: Record<string, string> = {
   'review.followIgDesc': 'Join @scnt.eg for new fragrance releases, layering secrets, and community updates.',
   'review.followIgBtn': 'Follow @scnt.eg',
   'review.writeReviewTitle': 'Review & Get 20% Off',
-  'review.writeReviewDesc': 'Rate your fragrance sample and receive code REVIEW20 for your next order.',
+  'review.writeReviewDesc': 'Rate your fragrance sample and receive a promo code for your next order.',
   'review.writeReviewBtn': 'Rate Your Sample',
   'review.thankYouIgPrompt': 'Stay connected with our fragrance house on Instagram:',
   'review.thankYouIgBtn': 'Follow @scnt.eg on Instagram',

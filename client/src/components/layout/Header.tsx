@@ -461,7 +461,7 @@ export function Header() {
               ) : null}
             </button>
             <Link
-              to="/wishlist"
+              to="/wishlist" rel="nofollow"
               className={`${iconBtnClass} !hidden lg:!inline-flex ${topTransparent ? 'gap-2 px-3 py-2' : 'relative'}`}
               aria-label={t('nav.wishlist')}
             >
@@ -478,7 +478,7 @@ export function Header() {
               ) : null}
             </Link>
             <Link
-              to="/cart"
+              to="/cart" rel="nofollow"
               className={`${iconBtnClass} ${topTransparent ? 'lg:gap-2 lg:px-3 lg:py-2' : 'relative'}`}
               aria-label={t('nav.cart')}
             >
@@ -795,15 +795,15 @@ export function Header() {
               {t('nav.faqs')}
             </Link>
             <Link
-              to={getStoredAuthToken() ? '/profile' : '/login'}
+              to={getStoredAuthToken() ? '/profile' : '/login'} rel="nofollow"
               className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30"
             >
               {t('nav.profile')}
             </Link>
-            <Link to="/wishlist" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
+            <Link to="/wishlist" rel="nofollow" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               {t('nav.wishlist')}
             </Link>
-            <Link to="/cart" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
+            <Link to="/cart" rel="nofollow" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
               {t('nav.cart')}
             </Link>
             <Link to="/contact" className="rounded-md bg-scnt-bg-muted/70 px-3 py-2.5 leading-6 text-scnt-text hover:bg-scnt-border/30">
@@ -835,3 +835,4 @@ export function Header() {
     </div>
   )
 }
+

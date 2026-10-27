@@ -37,7 +37,7 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link className="transition-colors hover:text-scnt-text" to="/cart">
+                <Link className="transition-colors hover:text-scnt-text" to="/cart" rel="nofollow">
                   {t('nav.cart')}
                 </Link>
               </li>
@@ -98,3 +98,4 @@ export function Footer() {
     </footer>
   )
 }
+

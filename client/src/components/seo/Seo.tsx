@@ -17,6 +17,42 @@ function titleWithBrand(value: string): string {
   return `${value} | SCNT.eg`
 }
 
+function upsertMeta(attrName: 'name' | 'property', attrVal: string, content: string): HTMLMetaElement {
+  const selector = `meta[${attrName}="${attrVal}"]`
+  const existing = Array.from(document.head.querySelectorAll(selector))
+  let el = existing[0] as HTMLMetaElement | undefined
+  for (let i = 1; i < existing.length; i++) {
+    existing[i].remove()
+  }
+  if (!el) {
+    el = document.createElement('meta')
+    el.setAttribute(attrName, attrVal)
+    document.head.appendChild(el)
+  }
+  el.setAttribute('content', content)
+  el.setAttribute('data-scnt-seo', 'true')
+  return el
+}
+
+function upsertLink(rel: string, href: string, attrs?: Record<string, string>): HTMLLinkElement {
+  const existing = Array.from(document.head.querySelectorAll(`link[rel="${rel}"]`))
+  let el = existing[0] as HTMLLinkElement | undefined
+  for (let i = 1; i < existing.length; i++) {
+    existing[i].remove()
+  }
+  if (!el) {
+    el = document.createElement('link')
+    el.setAttribute('rel', rel)
+    document.head.appendChild(el)
+  }
+  el.setAttribute('href', href)
+  if (attrs) {
+    Object.entries(attrs).forEach(([k, v]) => el!.setAttribute(k, v))
+  }
+  el.setAttribute('data-scnt-seo', 'true')
+  return el
+}
+
 export function Seo({
   title,
   description,
@@ -40,71 +76,43 @@ export function Seo({
 
     document.title = cleanTitle
 
-    const created: HTMLElement[] = []
-
-    function addMetaByName(name: string, content: string) {
-      const el = document.createElement('meta')
-      el.setAttribute('name', name)
-      el.setAttribute('content', content)
-      el.setAttribute('data-scnt-seo', 'true')
-      document.head.appendChild(el)
-      created.push(el)
-    }
-
-    function addMetaByProperty(property: string, content: string) {
-      const el = document.createElement('meta')
-      el.setAttribute('property', property)
-      el.setAttribute('content', content)
-      el.setAttribute('data-scnt-seo', 'true')
-      document.head.appendChild(el)
-      created.push(el)
-    }
-
-    function addLink(rel: string, href: string, attrs?: Record<string, string>) {
-      const el = document.createElement('link')
-      el.setAttribute('rel', rel)
-      el.setAttribute('href', href)
-      if (attrs) {
-        Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v))
-      }
-      el.setAttribute('data-scnt-seo', 'true')
-      document.head.appendChild(el)
-      created.push(el)
-    }
-
-    addMetaByName('description', cleanDescription)
-    addMetaByName('robots', robots)
-    addMetaByName('googlebot', robots)
-    addLink('canonical', canonical)
-    addMetaByProperty('og:locale', localeOg)
-    addMetaByProperty('og:locale:alternate', localeAlt)
-    addMetaByProperty('og:type', type)
-    addMetaByProperty('og:site_name', 'SCNT.eg')
-    addMetaByProperty('og:title', cleanTitle)
-    addMetaByProperty('og:description', cleanDescription)
-    addMetaByProperty('og:url', canonical)
-    addMetaByProperty('og:image', ogImage)
-    addMetaByProperty('og:image:secure_url', ogImage)
-    addMetaByProperty('og:image:type', 'image/png')
-    addMetaByName('twitter:card', 'summary_large_image')
-    addMetaByName('twitter:title', cleanTitle)
-    addMetaByName('twitter:description', cleanDescription)
-    addMetaByName('twitter:image', ogImage)
-    addMetaByName('twitter:image:alt', 'SCNT.eg fragrance showcase')
-    addLink('icon', absoluteUrl('/SCNT.eg_Monogram.png'))
-    addLink('apple-touch-icon', absoluteUrl('/SCNT.eg_Monogram.png'))
+    upsertMeta('name', 'description', cleanDescription)
+    upsertMeta('name', 'robots', robots)
+    upsertMeta('name', 'googlebot', robots)
+    upsertLink('canonical', canonical)
+    upsertMeta('property', 'og:locale', localeOg)
+    upsertMeta('property', 'og:locale:alternate', localeAlt)
+    upsertMeta('property', 'og:type', type)
+    upsertMeta('property', 'og:site_name', 'SCNT.eg')
+    upsertMeta('property', 'og:title', cleanTitle)
+    upsertMeta('property', 'og:description', cleanDescription)
+    upsertMeta('property', 'og:url', canonical)
+    upsertMeta('property', 'og:image', ogImage)
+    upsertMeta('property', 'og:image:secure_url', ogImage)
+    upsertMeta('property', 'og:image:type', 'image/png')
+    upsertMeta('name', 'twitter:card', 'summary_large_image')
+    upsertMeta('name', 'twitter:title', cleanTitle)
+    upsertMeta('name', 'twitter:description', cleanDescription)
+    upsertMeta('name', 'twitter:image', ogImage)
+    upsertMeta('name', 'twitter:image:alt', 'SCNT.eg fragrance showcase')
+    upsertLink('icon', absoluteUrl('/SCNT.eg_Monogram.png'))
+    upsertLink('apple-touch-icon', absoluteUrl('/SCNT.eg_Monogram.png'))
 
     if (import.meta.env.VITE_GSC_VERIFICATION) {
-      addMetaByName('google-site-verification', import.meta.env.VITE_GSC_VERIFICATION)
+      upsertMeta('name', 'google-site-verification', import.meta.env.VITE_GSC_VERIFICATION)
     }
+
+    // Clean up old LD+JSON scripts created by SCNT SEO
+    const oldScripts = Array.from(document.head.querySelectorAll('script[data-scnt-seo-jsonld="true"]'))
+    oldScripts.forEach((s) => s.remove())
 
     jsonLd.forEach((entry) => {
       const script = document.createElement('script')
       script.type = 'application/ld+json'
       script.setAttribute('data-scnt-seo', 'true')
+      script.setAttribute('data-scnt-seo-jsonld', 'true')
       script.textContent = JSON.stringify(entry)
       document.head.appendChild(script)
-      created.push(script)
     })
 
     if (import.meta.env.VITE_GA_MEASUREMENT_ID && !window.__scntGtagLoaded) {
@@ -122,10 +130,6 @@ export function Seo({
       window.__scntGtagLoaded = true
     } else if (import.meta.env.VITE_GA_MEASUREMENT_ID && typeof window.gtag === 'function') {
       window.gtag('config', import.meta.env.VITE_GA_MEASUREMENT_ID, { page_path: normalizedPath })
-    }
-
-    return () => {
-      created.forEach((el) => el.remove())
     }
   }, [title, description, path, image, type, noindex, jsonLd, locale])
 

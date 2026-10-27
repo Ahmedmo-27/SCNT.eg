@@ -532,7 +532,7 @@ export const arSite: Record<string, string> = {
   'review.followIgDesc': 'انضم إلينا على @scnt.eg لمتابعة أحدث إصدارات العطور، أسرار دمج النوتات، وتحديثات مجتمعنا.',
   'review.followIgBtn': 'متابعة @scnt.eg',
   'review.writeReviewTitle': 'قيّم عينتك واحصل على خصم ٢٠٪',
-  'review.writeReviewDesc': 'شاركنا رأيك في العينة التي جربتها لتحصل فوراً على كود الخصم REVIEW20 لطلبك القادم.',
+  'review.writeReviewDesc': 'شاركنا رأيك في العينة التي قمت بتجربتها لتحصل فوراً على كود الخصم لطلبك القادم.',
   'review.writeReviewBtn': 'تقييم العينة الآن',
   'review.thankYouIgPrompt': 'تواصل معنا وتابع أحدث إصداراتنا عبر إنستجرام:',
   'review.thankYouIgBtn': 'متابعة @scnt.eg على إنستجرام',

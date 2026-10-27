@@ -2,6 +2,7 @@ import { useLocation } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
 import { EightPointStar } from '../components/ui/EightPointStar'
+import { Seo } from '../components/seo/Seo'
 import { useI18n } from '../i18n/I18nContext'
 
 export function NotFoundPage() {
@@ -10,6 +11,12 @@ export function NotFoundPage() {
 
   return (
     <Layout>
+      <Seo
+        title={t('notFound.title') || 'Page Not Found'}
+        description="The page you requested could not be found on SCNT.eg."
+        path={pathname}
+        noindex={true}
+      />
       <div className="mx-auto flex w-full max-w-2xl flex-col items-center px-5 py-20 text-center sm:px-8 sm:py-28">
         <p className="mb-4 inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-scnt-text-muted">
           <EightPointStar size={9} className="opacity-45" />

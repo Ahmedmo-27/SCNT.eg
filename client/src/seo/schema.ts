@@ -14,7 +14,7 @@ export function buildOrganizationSchema(): JsonLd {
     '@type': 'Organization',
     name: SITE_NAME,
     url: getSiteOrigin(),
-    logo: absoluteUrl('/collections/covers/executive-cover.png'),
+    logo: absoluteUrl('/SCNT.eg_Monogram.png'),
     sameAs: [getSiteOrigin()],
   }
 }
@@ -57,13 +57,32 @@ export function buildProductSchema(args: {
   currency?: string
 }): JsonLd {
   const { product, collectionName, description, image, path, currency = 'EGP' } = args
+
+  // Collect images and ensure all URLs are fully qualified absolute URLs
+  const rawImages =
+    product.galleryImages && product.galleryImages.length > 0
+      ? product.galleryImages
+      : [image || '/SCNT.eg_Monogram.png']
+  const absoluteImages = rawImages.map((img) => absoluteUrl(img))
+
+  // Calculate price bounds from sizes or fallback product price
+  const sizes = product.sizes && product.sizes.length > 0 ? product.sizes : []
+  const prices = sizes
+    .map((s) => Number(s.price))
+    .filter((p) => !Number.isNaN(p) && p > 0)
+  const lowPrice = prices.length > 0 ? Math.min(...prices) : Number(product.price || 500)
+  const highPrice = prices.length > 0 ? Math.max(...prices) : Number(product.price || 750)
+
+  const fullProductUrl = absoluteUrl(path)
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
     description,
-    image: [image],
-    sku: product.apiId,
+    image: absoluteImages,
+    sku: product.apiId || product.id,
+    mpn: product.id,
     brand: {
       '@type': 'Brand',
       name: SITE_NAME,
@@ -71,13 +90,50 @@ export function buildProductSchema(args: {
     category: `Fragrance > ${collectionName}`,
     offers: {
       '@type': 'AggregateOffer',
-      url: absoluteUrl(path),
+      url: fullProductUrl,
       priceCurrency: currency,
-      lowPrice: 500,
-      highPrice: product.price || 750,
-      offerCount: product.sizes?.length || 2,
+      lowPrice,
+      highPrice,
+      offerCount: Math.max(sizes.length, 1),
+      priceValidUntil: '2027-12-31',
       availability: 'https://schema.org/InStock',
       itemCondition: 'https://schema.org/NewCondition',
+      hasMerchantReturnPolicy: {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'EG',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnPeriod',
+        merchantReturnDays: 14,
+        returnMethod: 'https://schema.org/ReturnByMail',
+        returnFees: 'https://schema.org/FreeReturn',
+        url: absoluteUrl('/refund-policy'),
+      },
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingRate: {
+          '@type': 'MonetaryAmount',
+          value: 80,
+          currency,
+        },
+        shippingDestination: {
+          '@type': 'DefinedRegion',
+          addressCountry: 'EG',
+        },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: {
+            '@type': 'QuantitativeValue',
+            minValue: 1,
+            maxValue: 2,
+            unitCode: 'd',
+          },
+          transitTime: {
+            '@type': 'QuantitativeValue',
+            minValue: 1,
+            maxValue: 3,
+            unitCode: 'd',
+          },
+        },
+      },
     },
     additionalProperty: [
       {
