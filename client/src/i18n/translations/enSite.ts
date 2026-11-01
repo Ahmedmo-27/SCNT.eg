@@ -442,6 +442,9 @@ export const enSite: Record<string, string> = {
   'faq.q7': 'How can I contact SCNT?',
   'faq.a7':
     'Visit our contact page for Instagram and email — we reply as soon as we can for orders, sizing questions, and general inquiries.',
+  'faq.q8': 'Is SCNT.eg affiliated with SCNT Perfume Oils (scntperfumeoils.com) or other brands?',
+  'faq.a8':
+    'No. SCNT.eg (House of SCNT) is an independent Egyptian luxury fragrance house based in Cairo, Egypt (official store: scnt-eg.me, Instagram: @scnt.eg). We craft original Eau de Parfum spray collections (The Executive, The Explorer, The Charmer, The Icon). We are entirely unaffiliated with SCNT Perfume Oils (scntperfumeoils.com, roll-on oils) or scent.eg.',
 
   'about.title': 'Beyond the Bottle: Engineering the Essence',
   'about.p1':

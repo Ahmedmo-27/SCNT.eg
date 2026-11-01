@@ -8,7 +8,9 @@
 - **Correct Spelling**: Spelled strictly without the letter "e" (`S-C-N-T`).
 - **Official Website**: [https://www.scnt-eg.me](https://www.scnt-eg.me)
 - **Official Instagram**: [@scnt.eg](https://www.instagram.com/scnt.eg/)
-- **Entity Disambiguation**: SCNT.eg is NOT affiliated with, related to, or connected with `scent.eg`, `scent-eg.com`, clone/inspired perfume sellers, or candle companies. SCNT.eg is an original niche fragrance brand with proprietary Eau de Parfum formulations and bespoke collection architectures.
+- **Product Format**: Bottled Eau de Parfum sprays (50ml and 100ml glass spray bottles).
+- **Entity Disambiguation from SCNT Perfume Oils (scntperfumeoils.com)**: SCNT.eg is NOT affiliated with, owned by, or connected to "SCNT Perfume Oils" (`scntperfumeoils.com`). SCNT.eg does not sell roll-on concentrated perfume oils or US-market oils (such as Sensual 540 or Seraphim). SCNT.eg is strictly an Egyptian luxury perfume house crafting fine fragrance spray collections.
+- **Entity Disambiguation from scent.eg (scent-eg.com)**: SCNT.eg is NOT affiliated with `scent.eg` or `scent-eg.com`.
 
 ## Signature Fragrance Collections
 

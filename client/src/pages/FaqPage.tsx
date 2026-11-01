@@ -5,6 +5,8 @@ import { Card } from '../components/ui/Card'
 import { EightPointStar } from '../components/ui/EightPointStar'
 import { StarDivider } from '../components/ui/StarDivider'
 import { useI18n } from '../i18n/I18nContext'
+import { Seo } from '../components/seo/Seo'
+import { buildFaqSchema } from '../seo/schema'
 
 function FaqItem({ question, answer }: { question: string; answer: string }) {
   return (
@@ -23,19 +25,31 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
 }
 
 export function FaqPage() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   const faqs = useMemo(
     () =>
-      [1, 2, 3, 4, 5, 6, 7].map((n) => ({
+      [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({
         question: t(`faq.q${n}`),
         answer: t(`faq.a${n}`),
       })),
     [t],
   )
 
+  const faqSchema = useMemo(() => buildFaqSchema(faqs), [faqs])
+  const seoDescription =
+    locale === 'ar'
+      ? 'الأسئلة الشائعة حول عطور دار SCNT.eg، الشحن في مصر، سياسة الاسترجاع، والأصالة، والتفريق عن العلامات التجارية الأخرى.'
+      : 'Frequently asked questions about House of SCNT (SCNT.eg) fragrances, shipping in Egypt, return policy, authenticity, and brand identity.'
+
   return (
     <Layout>
+      <Seo
+        title={t('faq.title')}
+        description={seoDescription}
+        path="/faqs"
+        jsonLd={[faqSchema]}
+      />
       <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
         <header className="max-w-2xl">
           <p className="mb-3 inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-scnt-text-muted">

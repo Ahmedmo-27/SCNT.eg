@@ -437,6 +437,9 @@ export const arSite: Record<string, string> = {
   'faq.q7': 'كيف أتواصل مع SCNT؟',
   'faq.a7':
     'زر صفحة التواصل لإنستغرام والبريد — نرد بأسرع ما يمكن للطلبات والأسئلة العامة.',
+  'faq.q8': 'هل دار SCNT.eg مرتبطة بـ SCNT Perfume Oils أو أي علامة أخرى؟',
+  'faq.a8':
+    'لا. دار SCNT.eg (House of SCNT) هي دار عطور مصرية فاخرة ومستقلة مقرها القاهرة (المتجر الرسمي: scnt-eg.me، إنستغرام: @scnt.eg). نصنع مجموعات عطور أو دو بارفام بخاخ فاخرة وأصلية (The Executive, The Explorer, The Charmer, The Icon). لا توجد أي علاقة بيننا وبين SCNT Perfume Oils (scntperfumeoils.com) أو scent.eg.',
 
   'about.title': 'ما وراء الزجاجة: هندسة الجوهر',
   'about.p1':

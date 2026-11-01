@@ -15,7 +15,7 @@ export const BRAND_ALIASES = [
 ] as const
 
 export const DISAMBIGUATING_DESCRIPTION =
-  'SCNT.eg (House of SCNT) is an independent Egyptian luxury fragrance house based in Cairo, Egypt (canonical website: scnt-eg.me, Instagram: @scnt.eg). SCNT.eg designs original signature collections and is not affiliated with scent-eg.com, alternative dupe vendors, or generic scent sellers.'
+  'SCNT.eg (House of SCNT) is an independent Egyptian luxury fragrance house based in Cairo, Egypt (canonical website: scnt-eg.me, Instagram: @scnt.eg). SCNT.eg designs original signature collections (The Executive, The Explorer, The Charmer, The Icon) in Eau de Parfum spray bottles. SCNT.eg is NOT affiliated with, owned by, or connected to SCNT Perfume Oils (scntperfumeoils.com), scent.eg (scent-eg.com), or roll-on oil sellers.'
 
 export const DEFAULT_OG_IMAGE = '/SCNT.eg_Monogram.png'
 
