@@ -39,6 +39,11 @@ export const arSite: Record<string, string> = {
   'header.contactUs': 'تواصل معنا',
   'header.language': 'اللغة',
 
+  'transition.badge': 'دار SCNT',
+  'transition.tagline': 'الحضور قبل الكلمات.',
+  'transition.skip': 'تخطي',
+  'transition.enter': 'دخول',
+
   'footer.blurb':
     'عطور فاخرة مختارة — أربع شخصيات، دار واحدة. حسٌ قاهري بهدوء عالمي.',
   'footer.shop': 'تسوق',

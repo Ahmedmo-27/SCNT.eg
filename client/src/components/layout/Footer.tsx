@@ -20,6 +20,18 @@ export function Footer() {
         <div className="max-w-sm space-y-4">
           <Logo to="/" />
           <p className="text-sm leading-relaxed text-scnt-text-muted">{t('footer.blurb')}</p>
+          <div className="pt-1">
+            <a
+              href="https://www.instagram.com/scnt.eg/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-xs font-medium tracking-wide text-scnt-text/75 transition-colors hover:text-scnt-text"
+              aria-label="Official House of SCNT Instagram @scnt.eg"
+            >
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500/80" />
+              <span>{locale === 'ar' ? 'الدار الرسمية: @scnt.eg' : 'Official House: @scnt.eg'}</span>
+            </a>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-10 text-sm text-scnt-text-muted">
@@ -98,4 +110,3 @@ export function Footer() {
     </footer>
   )
 }
-

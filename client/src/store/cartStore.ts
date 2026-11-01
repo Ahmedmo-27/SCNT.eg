@@ -10,6 +10,14 @@ import {
 } from '../services/cartApi'
 import { trackFunnelAction } from '../components/analytics/VisitTracker'
 
+export type CartLineMetadata = {
+  primary_tester_vial?: string
+  complimentary_second_vial?: string
+  matched_outing?: string
+  bundle_type?: string
+  [key: string]: string | undefined
+}
+
 export type CartLine = {
   productId: string
   name: string
@@ -17,13 +25,39 @@ export type CartLine = {
   price: number
   quantity: number
   image: string
+  metadata?: CartLineMetadata
 }
 
 function isSameCartLine(
-  a: { productId: string; size?: string },
-  b: { productId: string; size?: string }
+  a: { productId: string; size?: string; metadata?: CartLineMetadata },
+  b: { productId: string; size?: string; metadata?: CartLineMetadata }
 ): boolean {
-  return a.productId === b.productId && (a.size || '100ml') === (b.size || '100ml')
+  const sameProduct = a.productId === b.productId
+  const sameSize = (a.size || '100ml') === (b.size || '100ml')
+  const metaA = a.metadata ? JSON.stringify(a.metadata) : ''
+  const metaB = b.metadata ? JSON.stringify(b.metadata) : ''
+  return sameProduct && sameSize && metaA === metaB
+}
+
+const CART_LOCAL_STORAGE_KEY = 'scnt_local_cart_items_v2'
+
+function loadSavedCart(): CartLine[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(CART_LOCAL_STORAGE_KEY)
+    return raw ? (JSON.parse(raw) as CartLine[]) : []
+  } catch {
+    return []
+  }
+}
+
+function persistCart(items: CartLine[]) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(CART_LOCAL_STORAGE_KEY, JSON.stringify(items))
+  } catch {
+    /* quota / private mode */
+  }
 }
 
 type CartState = {
@@ -38,12 +72,12 @@ type CartState = {
   }) => void
   applyPromo: (code: string) => Promise<void>
   removePromo: () => Promise<void>
-  removeItem: (productId: string, size?: string) => Promise<void>
+  removeItem: (productId: string, size?: string, metadata?: CartLineMetadata) => Promise<void>
   clear: () => void
 }
 
 export const useCartStore = create<CartState>((set) => ({
-  items: [],
+  items: loadSavedCart(),
   promo: null,
   summary: null,
   addItem: (line) => {
@@ -53,17 +87,18 @@ export const useCartStore = create<CartState>((set) => ({
     }
     set((s) => {
       const existing = s.items.find((i) => isSameCartLine(i, itemWithDefaults))
+      let nextItems: CartLine[]
       if (existing) {
-        return {
-          items: s.items.map((i) =>
-            isSameCartLine(i, itemWithDefaults)
-              ? { ...i, quantity: i.quantity + itemWithDefaults.quantity }
-              : i
-          ),
-          summary: null,
-        }
+        nextItems = s.items.map((i) =>
+          isSameCartLine(i, itemWithDefaults)
+            ? { ...i, quantity: i.quantity + itemWithDefaults.quantity }
+            : i
+        )
+      } else {
+        nextItems = [...s.items, itemWithDefaults]
       }
-      return { items: [...s.items, itemWithDefaults], summary: null }
+      persistCart(nextItems)
+      return { items: nextItems, summary: null }
     })
 
     // Track funnel milestone
@@ -85,7 +120,21 @@ export const useCartStore = create<CartState>((set) => ({
     })
   },
   hydrateFromServer: ({ items, promo, summary }) => {
-    set({ items, promo, summary })
+    set((s) => {
+      const existingMeta = new Map<string, CartLineMetadata>()
+      s.items.forEach((item) => {
+        if (item.metadata) {
+          existingMeta.set(`${item.productId}-${item.size || '100ml'}`, item.metadata)
+        }
+      })
+      const mergedItems = items.map((item) => {
+        const key = `${item.productId}-${item.size || '100ml'}`
+        const meta = item.metadata ?? existingMeta.get(key)
+        return meta ? { ...item, metadata: meta } : item
+      })
+      persistCart(mergedItems)
+      return { items: mergedItems, promo, summary }
+    })
   },
   applyPromo: async (code) => {
     const cart = await applyPromoCode(code)
@@ -100,13 +149,18 @@ export const useCartStore = create<CartState>((set) => ({
       set({ promo: null, summary: null })
     }
   },
-  removeItem: async (productId, size) => {
-    set((s) => ({
-      items: s.items.filter((i) =>
-        size ? !isSameCartLine(i, { productId, size }) : i.productId !== productId
-      ),
-      summary: null,
-    }))
+  removeItem: async (productId, size, metadata) => {
+    set((s) => {
+      const nextItems = s.items.filter((i) =>
+        metadata
+          ? !isSameCartLine(i, { productId, size, metadata })
+          : size
+            ? (i.size || '100ml') !== (size || '100ml') || i.productId !== productId
+            : i.productId !== productId
+      )
+      persistCart(nextItems)
+      return { items: nextItems, summary: null }
+    })
 
     try {
       const cart = await removeFromServerCart(productId, size)
@@ -119,12 +173,27 @@ export const useCartStore = create<CartState>((set) => ({
           quantity: Number(line.quantity || 0),
           image: line.image || '',
         })) ?? []
-      set({ items: mapped, promo: cart.appliedPromo, summary: cart.summary ?? null })
+      set((s) => {
+        const existingMeta = new Map<string, CartLineMetadata>()
+        s.items.forEach((item) => {
+          if (item.metadata) {
+            existingMeta.set(`${item.productId}-${item.size || '100ml'}`, item.metadata)
+          }
+        })
+        const merged: CartLine[] = mapped.map((item) => {
+          const key = `${item.productId}-${item.size || '100ml'}`
+          const meta = existingMeta.get(key)
+          return meta ? { ...item, metadata: meta } : item
+        })
+        persistCart(merged)
+        return { items: merged, promo: cart.appliedPromo, summary: cart.summary ?? null }
+      })
     } catch {
       // Keep optimistic local update
     }
   },
   clear: () => {
+    persistCart([])
     set({ items: [], promo: null, summary: null })
     void clearServerCart().catch(() => {})
   },

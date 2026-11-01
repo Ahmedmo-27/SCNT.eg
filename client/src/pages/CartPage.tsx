@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
+import { EightPointStar } from '../components/ui/EightPointStar'
 import { StarDivider } from '../components/ui/StarDivider'
 import { ExitIntentModal } from '../components/cart/ExitIntentModal'
 import { useI18n } from '../i18n/I18nContext'
@@ -188,7 +189,7 @@ export function CartPage() {
               <ul className="mt-5 space-y-4">
                 {items.map((i) => (
                   <li
-                    key={`${i.productId}-${i.size || '100ml'}`}
+                    key={`${i.productId}-${i.size || '100ml'}-${i.metadata ? JSON.stringify(i.metadata) : ''}`}
                     className="rounded-xl border border-scnt-border/75 bg-scnt-bg/55 p-4 backdrop-blur-sm sm:p-5"
                   >
                     <div className="flex items-center justify-between gap-4">
@@ -248,7 +249,7 @@ export function CartPage() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => void removeItem(i.productId, i.size)}
+                          onClick={() => void removeItem(i.productId, i.size, i.metadata)}
                           className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-scnt-border/80 text-scnt-text-muted transition hover:border-scnt-text/40 hover:text-scnt-text"
                           aria-label={t('pc.rmCart', { name: i.name })}
                           title={t('pc.rmItem')}
@@ -257,6 +258,28 @@ export function CartPage() {
                         </button>
                       </div>
                     </div>
+
+                    {i.metadata?.primary_tester_vial && (
+                      <div className="mt-3 rounded-lg border border-scnt-border/60 bg-scnt-bg-elevated/75 p-2.5 text-xs">
+                        <div className="flex items-center gap-1.5 font-medium text-scnt-text">
+                          <EightPointStar size={10} className="text-scnt-text opacity-70" />
+                          <span>{locale === 'ar' ? 'تجربة منسقة خصيصاً لك' : 'Curated Concierge Experience'}</span>
+                          {i.metadata.matched_outing && (
+                            <span className="text-scnt-text-muted">· {i.metadata.matched_outing}</span>
+                          )}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-scnt-text-muted">
+                          <span>
+                            {locale === 'ar' ? 'عينة العطر الأساسي:' : "Tester for your SCNT:"}{' '}
+                            <strong className="font-semibold text-scnt-text">{i.metadata.primary_tester_vial}</strong>
+                          </span>
+                          <span>
+                            {locale === 'ar' ? 'عينة استكشافية مجانية:' : 'Complimentary decant:'}{' '}
+                            <strong className="font-semibold text-scnt-text">{i.metadata.complimentary_second_vial}</strong>
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="mt-4 flex items-center justify-between border-t border-scnt-border/70 pt-3">
                       <p className="text-xs uppercase tracking-[0.14em] text-scnt-text-muted">{t('cart.qty')}</p>

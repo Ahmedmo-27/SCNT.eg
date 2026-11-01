@@ -9,6 +9,9 @@ const STATIC_ROUTES = [
   { path: '/about', changefreq: 'monthly', priority: '0.7' },
   { path: '/contact', changefreq: 'monthly', priority: '0.7' },
   { path: '/faqs', changefreq: 'monthly', priority: '0.6' },
+  { path: '/terms-of-service', changefreq: 'yearly', priority: '0.3' },
+  { path: '/refund-policy', changefreq: 'yearly', priority: '0.3' },
+  { path: '/privacy-policy', changefreq: 'yearly', priority: '0.3' },
 ];
 
 function safeBaseUrl(value) {
@@ -92,6 +95,19 @@ function buildRobotsTxt(baseUrl) {
     'Disallow: /profile',
     'Disallow: /login',
     'Disallow: /register',
+    '',
+    '# AI Crawlers & Grounding Agents',
+    'User-agent: GPTBot',
+    'Allow: /',
+    '',
+    'User-agent: PerplexityBot',
+    'Allow: /',
+    '',
+    'User-agent: ClaudeBot',
+    'Allow: /',
+    '',
+    'User-agent: Google-Extended',
+    'Allow: /',
     '',
     `Sitemap: ${baseUrl}/sitemap.xml`,
   ].join('\n');

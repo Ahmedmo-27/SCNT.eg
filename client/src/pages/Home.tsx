@@ -4,6 +4,7 @@ import { FeaturedCollections } from '../components/home/FeaturedCollections'
 import { BrandHeritage } from '../components/home/BrandHeritage'
 import { ShopByGender } from '../components/home/ShopByGender'
 import { BestSellers } from '../components/home/BestSellers'
+import { FindYourScent } from '../components/home/FindYourScent'
 import { HowItWorks } from '../components/home/HowItWorks'
 
 export function Home() {
@@ -14,6 +15,7 @@ export function Home() {
       <BrandHeritage />
       <ShopByGender />
       <BestSellers />
+      <FindYourScent />
       <HowItWorks />
     </Layout>
   )

@@ -1,187 +1,142 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useCatalog } from '../../context/CatalogContext'
-import type { CollectionId } from '../../types/catalog'
-import type { ProductSummary } from '../../types/catalog'
-import { Button } from '../ui/Button'
 import { EightPointStar } from '../ui/EightPointStar'
-
-type Step = 0 | 1 | 2
-
-const questions: {
-  prompt: string
-  options: { label: string; collection: CollectionId }[]
-}[] = [
-  {
-    prompt: 'When you walk into a room, what should linger?',
-    options: [
-      { label: 'Quiet authority — linen, steel, calm', collection: 'executive' },
-      { label: 'Salt air and open sky', collection: 'explorer' },
-      { label: 'Warmth people lean toward', collection: 'charmer' },
-      { label: 'Gold and gravity — unforgettable', collection: 'icon' },
-    ],
-  },
-  {
-    prompt: 'Your ideal evening looks like…',
-    options: [
-      { label: 'Early night, clear head, one perfect drink', collection: 'executive' },
-      { label: 'Somewhere new — windows open', collection: 'explorer' },
-      { label: 'Low light, long table, slow time', collection: 'charmer' },
-      { label: 'The kind of night that becomes a story', collection: 'icon' },
-    ],
-  },
-]
-
-function pickSpotlight(collection: CollectionId, products: ProductSummary[]) {
-  const line = products.filter((p) => p.collection === collection)
-  return line[0] ?? products[0]
-}
+import { Button } from '../ui/Button'
+import { ScntMatcher } from '../matcher/ScntMatcher'
+import { useI18n } from '../../i18n/I18nContext'
 
 export function FindYourScent() {
-  const { collections, products, loading } = useCatalog()
-  const [step, setStep] = useState<Step>(0)
-  const [scores, setScores] = useState<Record<CollectionId, number>>({
-    executive: 0,
-    explorer: 0,
-    charmer: 0,
-    icon: 0,
-  })
-
-  const result = useMemo(() => {
-    let best: CollectionId = 'executive'
-    let max = -1
-    ;(Object.keys(scores) as CollectionId[]).forEach((k) => {
-      if (scores[k] > max) {
-        max = scores[k]
-        best = k
-      }
-    })
-    const product = products.length ? pickSpotlight(best, products) : undefined
-    return { collectionId: best, product }
-  }, [scores, products])
-
-  const col = collections.find((c) => c.id === result.collectionId)
-
-  function choose(collection: CollectionId) {
-    setScores((s) => ({ ...s, [collection]: s[collection] + 1 }))
-    if (step === 0) setStep(1)
-    else setStep(2)
-  }
-
-  function reset() {
-    setStep(0)
-    setScores({
-      executive: 0,
-      explorer: 0,
-      charmer: 0,
-      icon: 0,
-    })
-  }
-
-  if (loading) {
-    return (
-      <section
-        id="find-your-scent"
-        className="relative scroll-mt-24 border-t border-scnt-border/80 bg-gradient-to-b from-scnt-bg-muted/20 via-transparent to-scnt-bg px-5 py-24 sm:px-8 sm:py-28"
-      >
-        <p className="text-center text-sm text-scnt-text-muted">Loading…</p>
-      </section>
-    )
-  }
+  const { locale } = useI18n()
+  const isAr = locale === 'ar'
+  const [inlineOpen, setInlineOpen] = useState(false)
 
   return (
     <section
       id="find-your-scent"
-      className="relative scroll-mt-24 border-t border-scnt-border/80 bg-gradient-to-b from-scnt-bg-muted/20 via-transparent to-scnt-bg px-5 py-24 sm:px-8 sm:py-28"
+      className="relative scroll-mt-24 border-t border-scnt-border/80 bg-gradient-to-b from-scnt-bg-muted/20 via-transparent to-scnt-bg px-5 py-20 sm:px-8 sm:py-24"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-scnt-border/80 to-transparent" />
 
-      <div className="mx-auto max-w-2xl text-center">
+      {/* Header */}
+      <div className="mx-auto max-w-3xl text-center">
         <p className="mb-3 inline-flex items-center justify-center gap-2 text-xs uppercase tracking-[0.3em] text-scnt-text-muted">
-          <EightPointStar size={9} className="opacity-45" />
-          Find your scent
+          <EightPointStar size={10} className="text-scnt-text" />
+          <span>{isAr ? 'العثور على عطرك المثالي' : 'Dual-Mode Fragrance Finder'}</span>
         </p>
-        <h2 className="font-serif text-3xl font-medium text-scnt-text sm:text-4xl">
-          Three questions. No wrong answers.
+        <h2 className="font-serif text-3xl font-medium tracking-tight text-scnt-text sm:text-5xl">
+          {isAr ? 'مساران لاختيار عطرك. دون أي تردد.' : 'Two paths to lock in your scent. Zero guesswork.'}
         </h2>
-        <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-scnt-text-muted">
-          A gentle nudge toward a line that fits — not a test, a mirror.
+        <p className="mx-auto mt-4 max-w-xl text-xs sm:text-sm leading-relaxed text-scnt-text-muted">
+          {isAr
+            ? 'سواء كنت تريد مطابقة عطرك لمناسبة محددة في ١٥ ثانية، أو ترغب في رحلة استشارية عميقة تكشف هويتك العطرية عبر المجموعات الأربع.'
+            : 'Whether you want a 15-second outing match for your exact moment, or a bespoke atelier journey mapping your identity archetype across our four collections.'}
         </p>
       </div>
 
-      <div className="mx-auto mt-14 max-w-lg">
-        <AnimatePresence mode="wait">
-          {step < 2 ? (
-            <motion.div
-              key={step}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-              className="space-y-6"
+      {/* Dual Entry Cards */}
+      <div className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
+        {/* Path 1: THE SCNT MATCHER */}
+        <article className="group relative overflow-hidden rounded-3xl border border-scnt-border/90 bg-scnt-bg-elevated/70 p-6 sm:p-8 backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_20px_50px_-25px_rgba(42,38,34,0.3)] flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="rounded-full border border-scnt-border/80 bg-scnt-bg/80 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wider text-scnt-text">
+                {isAr ? '⚡ ١٥ ثانية · حسب المناسبة' : '⚡ 15s · Outing & Scene Finder'}
+              </span>
+              <span className="text-xs font-semibold text-scnt-text-muted">Mode 01</span>
+            </div>
+
+            <h3 className="mt-5 font-serif text-2xl font-medium text-scnt-text sm:text-3xl">
+              {isAr ? 'أين وجهتك اليوم؟ (THE SCNT MATCHER)' : 'Where Are You Headed? (THE SCNT MATCHER)'}
+            </h3>
+
+            <p className="mt-3 text-xs sm:text-sm leading-relaxed text-scnt-text-muted">
+              {isAr
+                ? 'صالة الألعاب، موعد عشاء، قيادة ساحلية بالساحل أو السخنة، أو زفاف رسمي. ٣ نقرات دون أي كتابة — نحدد زجاجتك الكاملة مع عينة استكشافية إضافية مجاناً.'
+                : 'Gym sessions, client boardrooms, coastal drives, or candlelit dates. 3 taps, zero typing. Locks in your full bottle plus complimentary discovery decants.'}
+            </p>
+          </div>
+
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Button
+              to="/find-your-scnt?mode=matcher"
+              variant="primary"
+              className="w-full py-3 text-xs sm:text-sm font-semibold sm:w-auto"
             >
-              <p className="text-center font-serif text-xl text-scnt-text">
-                {questions[step].prompt}
-              </p>
-              <ul className="flex flex-col gap-3">
-                {questions[step].options.map((o) => (
-                  <li key={o.label}>
-                    <button
-                      type="button"
-                      onClick={() => choose(o.collection)}
-                      className="w-full rounded-2xl border border-scnt-border bg-scnt-bg-elevated/45 px-5 py-4 text-left text-sm text-scnt-text transition-[transform,box-shadow,background-color] duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:bg-scnt-bg-elevated/80 hover:shadow-[0_20px_50px_-32px_rgba(42,38,34,0.12)]"
-                    >
-                      {o.label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="result"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-              className="rounded-2xl bg-scnt-bg-elevated/55 p-8 ring-1 ring-scnt-border/90"
+              <span>{isAr ? 'فتح المحرك التفاعلي' : 'Launch SCNT Matcher'}</span>
+              <span aria-hidden="true">{isAr ? '←' : '→'}</span>
+            </Button>
+            <Button
+              onClick={() => setInlineOpen((prev) => !prev)}
+              variant="outline"
+              className="w-full py-3 text-xs font-medium sm:w-auto"
             >
-              {col && result.product ? (
-                <>
-                  <p className="text-xs uppercase tracking-[0.28em] text-scnt-text-muted">
-                    We’d start you here
-                  </p>
-                  <h3 className="mt-3 font-serif text-2xl text-scnt-text">{col.name}</h3>
-                  {col.subTagline ? (
-                    <p className="mt-2 text-sm italic text-scnt-text-muted">{col.subTagline}</p>
-                  ) : null}
-                  <p className="mt-4 text-sm leading-relaxed text-scnt-text-muted">
-                    {col.tagline}
-                  </p>
-                  <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                  <Button to="/find-your-scnt" variant="ghost">
-                    Take the full quiz
-                  </Button>
-                    <Button to={`/collections/${col.id}`}>Explore the line</Button>
-                    <Button
-                      to={`/product/${result.product.id}`}
-                      variant="outline"
-                    >
-                      Open {result.product.name}
-                    </Button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={reset}
-                    className="mt-8 w-full text-center text-xs text-scnt-text-muted underline-offset-4 transition-colors hover:text-scnt-text"
-                  >
-                    Start again
-                  </button>
-                </>
-              ) : null}
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {inlineOpen
+                ? isAr ? 'إغلاق المعاينة' : 'Hide Live Preview'
+                : isAr ? 'تجربة سريعة هنا' : 'Try Live Here'}
+            </Button>
+          </div>
+        </article>
+
+        {/* Path 2: Identity Atelier */}
+        <article className="group relative overflow-hidden rounded-3xl border border-scnt-border/90 bg-scnt-bg-elevated/70 p-6 sm:p-8 backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_20px_50px_-25px_rgba(42,38,34,0.3)] flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="rounded-full border border-scnt-border/80 bg-scnt-bg/80 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wider text-scnt-text">
+                {isAr ? '💎 استشارة حسية متكاملة' : '💎 Bespoke · Identity Atelier'}
+              </span>
+              <span className="text-xs font-semibold text-scnt-text-muted">Mode 02</span>
+            </div>
+
+            <h3 className="mt-5 font-serif text-2xl font-medium text-scnt-text sm:text-3xl">
+              {isAr ? 'اكتشف هويتك العطرية الخاصة' : 'Find My Signature Identity'}
+            </h3>
+
+            <p className="mt-3 text-xs sm:text-sm leading-relaxed text-scnt-text-muted">
+              {isAr
+                ? 'رحلة استشارية تحلل حضورك الشخصي، وطاقتك، ونمط حياتك لتربطك بالمجموعة الأقرب إليك: إكزكتيف، إكسبلورر، تشارمر، أو آيكون مع تحليل دقيق لنوتات الهرم العطري.'
+                : 'Our comprehensive personality profiling engine. Decodes your presence across The Executive, The Explorer, The Charmer, and The Icon to pinpoint your enduring signature.'}
+            </p>
+          </div>
+
+          <div className="mt-8">
+            <Button
+              to="/find-your-scnt?mode=identity"
+              variant="outline"
+              className="w-full py-3 text-xs sm:text-sm font-semibold hover:bg-scnt-bg sm:w-auto"
+            >
+              <span>{isAr ? 'بدء استشارة الهوية' : 'Start Identity Atelier'}</span>
+              <span aria-hidden="true">{isAr ? '←' : '→'}</span>
+            </Button>
+          </div>
+        </article>
       </div>
+
+      {/* Optional Inline Live Matcher Drawer */}
+      <AnimatePresence>
+        {inlineOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            className="mx-auto mt-12 max-w-4xl overflow-hidden rounded-3xl border border-scnt-border/90 bg-scnt-bg-elevated/80 p-6 sm:p-8 backdrop-blur-md"
+          >
+            <div className="flex items-center justify-between border-b border-scnt-border/50 pb-4 mb-4">
+              <span className="text-xs font-semibold uppercase tracking-wider text-scnt-text-muted">
+                {isAr ? 'معاينة حية فورية' : 'Live Interactive Matcher'}
+              </span>
+              <button
+                type="button"
+                onClick={() => setInlineOpen(false)}
+                className="cursor-pointer text-xs text-scnt-text-muted hover:text-scnt-text underline"
+              >
+                {isAr ? 'إغلاق' : 'Close'}
+              </button>
+            </div>
+            <ScntMatcher embedded={true} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   )
 }

@@ -1,3 +1,4 @@
+const fs = require("fs");
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
@@ -39,12 +40,11 @@ function resolveSiteUrl(req) {
   const host = normalizeHost(req.get("host"));
   if (!host) return "";
 
-  const protocol = req.secure ? "https" : "http";
+  const forwardedProto = req.get("x-forwarded-proto");
+  const protocol = forwardedProto ? forwardedProto.split(",")[0].trim() : req.protocol || "https";
   return `${protocol}://${host}`;
 }
 
-// Redirect the bare apex domain to the canonical www host.
-// Keep the target fixed so the same request cannot bounce between protocol variants.
 app.use((req, res, next) => {
   const host = normalizeHost(req.get("host"));
 
@@ -52,7 +52,8 @@ app.use((req, res, next) => {
     return next();
   }
 
-  if (host === apexHost) {
+  // Redirect apex domain (scnt-eg.me) to canonical www host in production.
+  if (canonicalHost && apexHost && host === apexHost && host !== canonicalHost) {
     const target = buildCanonicalUrl(req);
     if (target) {
       return res.redirect(301, target);
@@ -66,12 +67,6 @@ app.use(
   helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
-    hsts: {
-      maxAge: 31536000,
-      includeSubDomains: true,
-      preload: true,
-    },
-    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   })
 );
 app.use(cors());
@@ -81,7 +76,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use(optionalAuthMiddleware);
 app.use(requestLogger);
 app.use(morgan("dev"));
-
 
 app.get("/robots.txt", (req, res) => {
   const siteUrl = resolveSiteUrl(req);
@@ -100,6 +94,33 @@ app.get("/sitemap.xml", async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+// AI Search Engine Grounding Documents (llms.txt standard)
+app.get("/llms.txt", (req, res) => {
+  const publicPath = path.resolve(__dirname, "../../client/public/llms.txt");
+  const distPath = path.resolve(__dirname, "../../client/dist/llms.txt");
+  const targetPath = fs.existsSync(publicPath) ? publicPath : distPath;
+
+  if (fs.existsSync(targetPath)) {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    return res.status(200).sendFile(targetPath);
+  }
+  return res.status(404).send("Not found");
+});
+
+app.get("/llms-full.txt", (req, res) => {
+  const publicPath = path.resolve(__dirname, "../../client/public/llms-full.txt");
+  const distPath = path.resolve(__dirname, "../../client/dist/llms-full.txt");
+  const targetPath = fs.existsSync(publicPath) ? publicPath : distPath;
+
+  if (fs.existsSync(targetPath)) {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    return res.status(200).sendFile(targetPath);
+  }
+  return res.status(404).send("Not found");
 });
 
 /** No DB — use this to verify the function is reachable when Atlas/network/env fails. */

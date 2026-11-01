@@ -1,5 +1,14 @@
 import type { ProductSummary } from '../types/catalog'
-import { absoluteUrl, getSiteOrigin, SITE_NAME } from './site'
+import {
+  absoluteUrl,
+  getSiteOrigin,
+  SITE_NAME,
+  HOUSE_NAME,
+  BRAND_TAGLINE,
+  BRAND_ALIASES,
+  DISAMBIGUATING_DESCRIPTION,
+  OFFICIAL_INSTAGRAM_URL,
+} from './site'
 
 export type JsonLd = Record<string, unknown>
 
@@ -9,25 +18,63 @@ export type FaqItem = {
 }
 
 export function buildOrganizationSchema(): JsonLd {
+  const origin = getSiteOrigin()
   return {
     '@context': 'https://schema.org',
     '@type': 'Organization',
+    '@id': `${origin}/#organization`,
     name: SITE_NAME,
-    url: getSiteOrigin(),
+    legalName: `${SITE_NAME} Fragrances`,
+    alternateName: [...BRAND_ALIASES],
+    description: DISAMBIGUATING_DESCRIPTION,
+    disambiguatingDescription: DISAMBIGUATING_DESCRIPTION,
+    url: origin,
     logo: absoluteUrl('/SCNT.eg_Monogram.png'),
-    sameAs: [getSiteOrigin()],
+    image: absoluteUrl('/SCNT.eg_Monogram.png'),
+    slogan: BRAND_TAGLINE,
+    sameAs: [OFFICIAL_INSTAGRAM_URL],
+    address: {
+      '@type': 'PostalAddress',
+      addressCountry: 'EG',
+      addressLocality: 'Cairo',
+    },
+    brand: {
+      '@type': 'Brand',
+      '@id': `${origin}/#brand`,
+      name: HOUSE_NAME,
+      alternateName: SITE_NAME,
+      url: origin,
+      logo: absoluteUrl('/SCNT.eg_Monogram.png'),
+      slogan: BRAND_TAGLINE,
+    },
+    knowsAbout: [
+      'Luxury Fragrance',
+      'Eau de Parfum',
+      'Egyptian Perfume House',
+      'Artisanal Perfumes',
+      'The Executive Collection',
+      'The Explorer Collection',
+      'The Charmer Collection',
+      'The Icon Collection',
+    ],
   }
 }
 
 export function buildWebsiteSchema(): JsonLd {
+  const origin = getSiteOrigin()
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: SITE_NAME,
-    url: getSiteOrigin(),
+    '@id': `${origin}/#website`,
+    name: `${HOUSE_NAME} (${SITE_NAME})`,
+    alternateName: [...BRAND_ALIASES],
+    url: origin,
+    publisher: {
+      '@id': `${origin}/#organization`,
+    },
     potentialAction: {
       '@type': 'SearchAction',
-      target: `${getSiteOrigin()}/shop?q={search_term_string}`,
+      target: `${origin}/shop?q={search_term_string}`,
       'query-input': 'required name=search_term_string',
     },
   }
@@ -57,6 +104,7 @@ export function buildProductSchema(args: {
   currency?: string
 }): JsonLd {
   const { product, collectionName, description, image, path, currency = 'EGP' } = args
+  const origin = getSiteOrigin()
 
   // Collect images and ensure all URLs are fully qualified absolute URLs
   const rawImages =
@@ -85,7 +133,10 @@ export function buildProductSchema(args: {
     mpn: product.id,
     brand: {
       '@type': 'Brand',
+      '@id': `${origin}/#brand`,
       name: SITE_NAME,
+      alternateName: HOUSE_NAME,
+      url: origin,
     },
     category: `Fragrance > ${collectionName}`,
     offers: {

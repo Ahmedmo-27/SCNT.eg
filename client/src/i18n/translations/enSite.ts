@@ -39,6 +39,11 @@ export const enSite: Record<string, string> = {
   'header.contactUs': 'Contact us',
   'header.language': 'Language',
 
+  'transition.badge': 'House of SCNT',
+  'transition.tagline': 'Presence before words.',
+  'transition.skip': 'Skip',
+  'transition.enter': 'Enter House',
+
   'footer.blurb':
     'Curated fragrances — four identities, one house. Cairo-born sensibility with a calm, global tone.',
   'footer.shop': 'Shop',

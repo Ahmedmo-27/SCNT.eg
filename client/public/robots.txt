@@ -8,4 +8,17 @@ Disallow: /profile
 Disallow: /login
 Disallow: /register
 
+# AI Crawlers & Grounding Agents
+User-agent: GPTBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
 Sitemap: https://www.scnt-eg.me/sitemap.xml

@@ -1,4 +1,22 @@
 export const SITE_NAME = 'SCNT.eg'
+export const HOUSE_NAME = 'House of SCNT'
+export const HOUSE_NAME_AR = 'دار SCNT'
+export const BRAND_TAGLINE = 'Leave a trail, not a memory.'
+export const BRAND_TAGLINE_AR = 'اترك أثرًا لا يُمحى.'
+export const OFFICIAL_INSTAGRAM_HANDLE = 'scnt.eg'
+export const OFFICIAL_INSTAGRAM_URL = 'https://www.instagram.com/scnt.eg/'
+
+export const BRAND_ALIASES = [
+  'House of SCNT',
+  'SCNT Egypt',
+  'SCNT Fragrances',
+  'دار SCNT',
+  'SCNT',
+] as const
+
+export const DISAMBIGUATING_DESCRIPTION =
+  'SCNT.eg (House of SCNT) is an independent Egyptian luxury fragrance house based in Cairo, Egypt (canonical website: scnt-eg.me, Instagram: @scnt.eg). SCNT.eg designs original signature collections and is not affiliated with scent-eg.com, alternative dupe vendors, or generic scent sellers.'
+
 export const DEFAULT_OG_IMAGE = '/SCNT.eg_Monogram.png'
 
 function normalizeOrigin(value: string): string {

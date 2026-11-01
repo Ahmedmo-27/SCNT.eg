@@ -1,5 +1,12 @@
 import { useEffect } from 'react'
-import { DEFAULT_OG_IMAGE, absoluteUrl, normalizeRoutePath, truncateText } from '../../seo/site'
+import {
+  DEFAULT_OG_IMAGE,
+  absoluteUrl,
+  normalizeRoutePath,
+  truncateText,
+  HOUSE_NAME,
+  SITE_NAME,
+} from '../../seo/site'
 import { useI18n } from '../../i18n/I18nContext'
 
 type SeoProps = {
@@ -13,8 +20,8 @@ type SeoProps = {
 }
 
 function titleWithBrand(value: string): string {
-  if (value.includes('SCNT.eg')) return value
-  return `${value} | SCNT.eg`
+  if (value.includes(SITE_NAME) || value.includes(HOUSE_NAME)) return value
+  return `${value} | ${HOUSE_NAME}`
 }
 
 function upsertMeta(attrName: 'name' | 'property', attrVal: string, content: string): HTMLMetaElement {
@@ -68,8 +75,8 @@ export function Seo({
     const normalizedPath = normalizeRoutePath(path)
     const canonical = absoluteUrl(normalizedPath)
     const ogImage = image ? absoluteUrl(image) : absoluteUrl(DEFAULT_OG_IMAGE)
-    const cleanTitle = truncateText(titleWithBrand(title), 60)
-    const cleanDescription = truncateText(description, 158)
+    const cleanTitle = truncateText(titleWithBrand(title), 65)
+    const cleanDescription = truncateText(description, 160)
     const robots = noindex ? 'noindex, nofollow' : 'index, follow, max-image-preview:large'
     const localeOg = locale === 'ar' ? 'ar_EG' : 'en_US'
     const localeAlt = locale === 'ar' ? 'en_US' : 'ar_EG'
@@ -83,7 +90,7 @@ export function Seo({
     upsertMeta('property', 'og:locale', localeOg)
     upsertMeta('property', 'og:locale:alternate', localeAlt)
     upsertMeta('property', 'og:type', type)
-    upsertMeta('property', 'og:site_name', 'SCNT.eg')
+    upsertMeta('property', 'og:site_name', `${HOUSE_NAME} (${SITE_NAME})`)
     upsertMeta('property', 'og:title', cleanTitle)
     upsertMeta('property', 'og:description', cleanDescription)
     upsertMeta('property', 'og:url', canonical)
@@ -94,7 +101,7 @@ export function Seo({
     upsertMeta('name', 'twitter:title', cleanTitle)
     upsertMeta('name', 'twitter:description', cleanDescription)
     upsertMeta('name', 'twitter:image', ogImage)
-    upsertMeta('name', 'twitter:image:alt', 'SCNT.eg fragrance showcase')
+    upsertMeta('name', 'twitter:image:alt', `${HOUSE_NAME} fragrance showcase`)
     upsertLink('icon', absoluteUrl('/SCNT.eg_Monogram.png'))
     upsertLink('apple-touch-icon', absoluteUrl('/SCNT.eg_Monogram.png'))
 

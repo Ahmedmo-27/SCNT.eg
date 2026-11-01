@@ -243,8 +243,19 @@ export function CheckoutPage() {
         items.map((i) => ({ productId: i.productId, quantity: i.quantity, size: i.size || '100ml' })),
       )
 
-      const addressLine1 = form.notes.trim()
-        ? `${form.address.trim()}\n\nNote: ${form.notes.trim()}`
+      const matcherNotes = items
+        .filter((i) => i.metadata?.primary_tester_vial)
+        .map(
+          (i) =>
+            `[SCNT Matcher] Primary Tester: ${i.metadata?.primary_tester_vial} | Complimentary Decant: ${i.metadata?.complimentary_second_vial}${i.metadata?.matched_outing ? ` (Outing: ${i.metadata.matched_outing})` : ''}`
+        )
+        .join('\n')
+
+      const userNotes = form.notes.trim()
+      const combinedNotes = [userNotes, matcherNotes].filter(Boolean).join('\n\n')
+
+      const addressLine1 = combinedNotes
+        ? `${form.address.trim()}\n\nNote: ${combinedNotes}`
         : form.address.trim()
 
       const order = await createOrder(
@@ -543,6 +554,16 @@ export function CheckoutPage() {
                     className="w-full resize-y rounded-xl border border-scnt-border bg-scnt-bg px-4 py-3 text-sm text-scnt-text outline-none ring-0 transition-colors placeholder:text-scnt-text-muted/65 focus:border-scnt-text/30"
                     placeholder={t('checkout.phNotes')}
                   />
+                  {items.some((i) => i.metadata?.primary_tester_vial) && (
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-scnt-text-muted">
+                      <EightPointStar size={9} className="text-scnt-text opacity-70" />
+                      <span>
+                        {locale === 'ar'
+                          ? 'سيتم تضمين عينات التجربة المجانية المنسقة تلقائياً مع طلبك.'
+                          : 'Your complimentary discovery testers are automatically attached to this order.'}
+                      </span>
+                    </p>
+                  )}
                 </label>
               </div>
 

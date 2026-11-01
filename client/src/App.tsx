@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useLayoutEffect } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { StarLoader } from './components/ui/StarLoader'
+import { BrandIntroTransition } from './components/transition/BrandIntroTransition'
 import { Seo } from './components/seo/Seo'
 import { buildOrganizationSchema, buildWebsiteSchema } from './seo/schema'
 import { useI18n } from './i18n/I18nContext'
@@ -227,6 +228,7 @@ export default function App() {
       <VisitTracker />
       <RouteScrollLock />
       <RouteSeo />
+      <BrandIntroTransition />
 
       <Suspense fallback={<StarLoader className="py-24" label="Loading page" />}>
         <Routes>
