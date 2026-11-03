@@ -37,6 +37,16 @@ export function FindYourScent() {
       <div className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
         {/* Path 1: THE SCNT MATCHER */}
         <article className="group relative overflow-hidden rounded-3xl border border-scnt-border/90 bg-scnt-bg-elevated/70 p-6 sm:p-8 backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_20px_50px_-25px_rgba(42,38,34,0.3)] flex flex-col justify-between">
+          <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+            <img
+              src="/matcher/categories/sweat-motion.webp"
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover opacity-15 filter brightness-90 contrast-110 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-108 group-hover:opacity-30"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-scnt-bg via-scnt-bg/85 to-transparent" />
+          </div>
           <div>
             <div className="flex items-center justify-between">
               <span className="rounded-full border border-scnt-border/80 bg-scnt-bg/80 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wider text-scnt-text">
@@ -79,6 +89,16 @@ export function FindYourScent() {
 
         {/* Path 2: Identity Atelier */}
         <article className="group relative overflow-hidden rounded-3xl border border-scnt-border/90 bg-scnt-bg-elevated/70 p-6 sm:p-8 backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_20px_50px_-25px_rgba(42,38,34,0.3)] flex flex-col justify-between">
+          <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+            <img
+              src="/matcher/categories/hustle-focus.webp"
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover opacity-15 filter brightness-90 contrast-110 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-108 group-hover:opacity-30"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-scnt-bg via-scnt-bg/85 to-transparent" />
+          </div>
           <div>
             <div className="flex items-center justify-between">
               <span className="rounded-full border border-scnt-border/80 bg-scnt-bg/80 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wider text-scnt-text">

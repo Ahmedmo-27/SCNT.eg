@@ -18,6 +18,9 @@ export interface MacroCategory {
   label: string
   subtext: string
   botReaction: string
+  imageUrl?: string
+  accentGlow?: string
+  badgeLabel?: string
 }
 
 export interface EventOption {
@@ -187,30 +190,54 @@ export const scntMatcherData: ScntMatcherData = {
       label: 'Sweat & High Output',
       subtext: 'Gym, courts, morning runs, 38°C heat',
       botReaction: 'High body heat amplifies everything. Heavy sugars will choke the room—you need high-velocity freshness.',
+      imageUrl: '/matcher/categories/sweat-motion.webp',
+      accentGlow: 'rgba(56, 189, 248, 0.28)',
+      badgeLabel: 'High Velocity',
     },
     {
       id: 'hustle-focus',
       label: 'Hustle, Campus & Boardroom',
       subtext: 'Lectures, client pitches, co-working, interviews',
       botReaction: 'Closed doors and sharp focus. Presence should arrive before you speak, without overwhelming the table.',
+      imageUrl: '/matcher/categories/hustle-focus.webp',
+      accentGlow: 'rgba(148, 163, 184, 0.28)',
+      badgeLabel: 'Sharp Focus',
     },
     {
       id: 'daylight-leisure',
       label: 'Daylight, Coast & Travel',
       subtext: 'Friday brunch, Sahel/Sokhna drives, errands, flights',
       botReaction: 'Sunlit air and motion. You want an effortless trail that catches the breeze as you move.',
+      imageUrl: '/matcher/categories/daylight-leisure.webp',
+      accentGlow: 'rgba(234, 179, 8, 0.28)',
+      badgeLabel: 'Sunlit Motion',
     },
     {
       id: 'after-hours',
       label: 'After Hours & Date Night',
       subtext: 'First dates, candlelit dinners, rooftops, winter nights',
       botReaction: 'Low light, close quarters. This is where sillage and skin-close warmth do the heavy lifting.',
+      imageUrl: '/matcher/categories/after-hours.webp',
+      accentGlow: 'rgba(249, 115, 22, 0.28)',
+      badgeLabel: 'Intimate Sillage',
     },
     {
       id: 'formal-signature',
       label: 'Black-Tie, Events & Daily Icon',
       subtext: 'Weddings, hosting, or locking in your 1-bottle signature',
       botReaction: "High stakes and lasting impressions. Let's pick the signature they'll associate with your name.",
+      imageUrl: '/matcher/categories/formal-signature.webp',
+      accentGlow: 'rgba(217, 119, 6, 0.32)',
+      badgeLabel: 'Timeless Presence',
+    },
+    {
+      id: 'weekend-retreat',
+      label: 'Weekend Retreat & Slow Living',
+      subtext: 'Slow mornings, coastal cabin, coffee & reading, late-night balcony',
+      botReaction: 'Low pulse, slow tempo, pure comfort. You want calming woods, creamy undertones, and an intimate aura that stays close to your skin.',
+      imageUrl: '/matcher/categories/weekend-retreat.webp',
+      accentGlow: 'rgba(180, 150, 120, 0.32)',
+      badgeLabel: 'Slow Sillage',
     },
   ],
   events: [
@@ -692,6 +719,102 @@ export const scntMatcherData: ScntMatcherData = {
         optionAPitch: 'Your everyday power signature—bright citrus and lavender over smooth vanilla.',
         optionBFragranceId: 'golden-bloom',
         optionBPitch: 'Your radiant signature—sweet floral gourmand warmth that becomes unmistakably yours.',
+      },
+    },
+    {
+      eventId: 'ev-21-slow-morning',
+      categoryId: 'weekend-retreat',
+      title: 'Saturday Slow Morning & Brew',
+      conciergePrompt: 'Late wake-up, warm sunlight through sheer linen, and fresh coffee on the terrace. How do you want to start the day?',
+      optionA: {
+        buttonLabel: 'Sunlit Fig & Green Mint',
+        vibeTag: 'THE SERENE BREEZE',
+        fragranceId: 'tropical-drift',
+        pitch: 'Fresh garden mint, ripe green fig, and creamy sandalwood. Clean, bright, and effortless for a relaxed morning.',
+      },
+      optionB: {
+        buttonLabel: 'Clean Citrus & Marine Drift',
+        vibeTag: 'THE CRISP ESCAPE',
+        fragranceId: 'azure-code',
+        pitch: 'Sparkling Italian citrus, cool sea spray, and light cedarwood. Crisp, uplifting, and quietly sophisticated.',
+      },
+      herOverride: {
+        optionAFragranceId: 'lumiere',
+        optionAPitch: 'Radiant mandarin blossom and French lavender. Airy, joyful, and effortlessly luminous for slow mornings.',
+        optionBFragranceId: 'golden-bloom',
+        optionBPitch: 'Dewy crisp pear and powdery iris with soft golden amber. Sun-drenched elegance for a peaceful weekend.',
+      },
+    },
+    {
+      eventId: 'ev-22-balcony-sunset',
+      categoryId: 'weekend-retreat',
+      title: 'Sunset Balcony & Sea Breeze',
+      conciergePrompt: 'Golden hour wind blowing across the veranda. The air cools down as dusk settles—what aura do you want in the air?',
+      optionA: {
+        buttonLabel: 'Cold Sea Salt & Mineral Rosemary',
+        vibeTag: 'THE OPEN HORIZON',
+        fragranceId: 'deep-horizon',
+        pitch: 'Crisp ocean salt, aromatic rosemary, and deep mineral woods. Pure fresh air that breathes with the coastal wind.',
+      },
+      optionB: {
+        buttonLabel: 'Zesty Ginger & Crisp Woods',
+        vibeTag: 'THE GOLDEN DUSK',
+        fragranceId: 'cobalt-drive',
+        pitch: 'Biting ginger, bergamot, and cedar. A clean invigorating modern spark as twilight arrives.',
+      },
+      herOverride: {
+        optionAFragranceId: 'lumiere',
+        optionAPitch: 'Soft ambergris and delicate lavender petals catching the evening breeze with crystalline radiance.',
+        optionBFragranceId: 'golden-bloom',
+        optionBPitch: 'Luminous jasmine and warm amber that mirrors the golden sunset glow on your skin.',
+      },
+    },
+    {
+      eventId: 'ev-23-rainy-sanctuary',
+      categoryId: 'weekend-retreat',
+      title: 'Rainy Day & Cozy Cashmere',
+      conciergePrompt: 'Cool rainy afternoon indoors. A soft cashmere blanket, a favorite book, and complete peace. Which warmth do you crave?',
+      optionA: {
+        buttonLabel: 'Molten Amber & Spiced Vanilla',
+        vibeTag: 'THE COZY EMBERS',
+        fragranceId: 'amber-rush',
+        pitch: 'Rich golden amber, pink pepper, and toasted vanilla. Enveloping, comforting warmth that makes the room feel cozy.',
+      },
+      optionB: {
+        buttonLabel: 'Powdery Iris & Smoked Cedar',
+        vibeTag: 'THE VELVET THROW',
+        fragranceId: 'noir-velvet',
+        pitch: 'Velvety violet iris, subtle ambrette, and smoked cedarwood. Intimate, gentle, and cocooning on cold skin.',
+      },
+      herOverride: {
+        optionAFragranceId: 'golden-bloom',
+        optionAPitch: 'Rich powdery iris and warm vanilla amber that wraps around you like a soft luxury knit.',
+        optionBFragranceId: 'lumiere',
+        optionBPitch: 'Clean orange blossom and tonka bean providing a soft, comforting sanctuary on grey days.',
+      },
+    },
+    {
+      eventId: 'ev-24-desert-cabin',
+      categoryId: 'weekend-retreat',
+      title: 'Desert Cabin & Stargazing',
+      conciergePrompt: 'Clear desert night, boundless stars, and a quiet fire pit outside. How do you want to scent the silence?',
+      optionA: {
+        buttonLabel: 'Smoked Woods & Iris Mystery',
+        vibeTag: 'THE MIDNIGHT SILENCE',
+        fragranceId: 'noir-velvet',
+        pitch: 'Dark cedar, mysterious iris, and earthy vetiver that blends seamlessly into the quiet expanse of the desert.',
+      },
+      optionB: {
+        buttonLabel: 'Cold Mineral Air & Cypress',
+        vibeTag: 'THE STARRY DRAFT',
+        fragranceId: 'deep-horizon',
+        pitch: 'Clean nocturnal air, green cypress, and mineral musk. Expansive and meditative under an open galaxy.',
+      },
+      herOverride: {
+        optionAFragranceId: 'golden-bloom',
+        optionAPitch: 'Deep golden amber and velvety petals that glow warmly beneath a blanket of desert stars.',
+        optionBFragranceId: 'lumiere',
+        optionBPitch: 'Luminous lavender and sparkling mandarin that mirrors the crisp clarity of desert night skies.',
       },
     },
   ],

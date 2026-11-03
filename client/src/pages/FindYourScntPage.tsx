@@ -171,8 +171,117 @@ function recomputeScores(sels: Record<string, string>, questions: QuizQuestion[]
   return next
 }
 
-function strongestIds(scores: Record<CollectionId, number>): [CollectionId, CollectionId] {
-  const ranked = (Object.keys(scores) as CollectionId[]).sort((a, b) => scores[b] - scores[a])
+function rankArchetypeIds(
+  scores: Record<CollectionId, number>,
+  sels: Record<string, string> = {},
+  questions: QuizQuestion[] = [],
+  matchedPrimaryId?: CollectionId,
+  matchedSecondaryId?: CollectionId,
+): CollectionId[] {
+  const ids: CollectionId[] = ['executive', 'explorer', 'charmer', 'icon']
+
+  // Count direct primary intent picks (+3 in choices) and recent question weighting
+  const primaryPicks: Record<CollectionId, number> = { executive: 0, explorer: 0, charmer: 0, icon: 0 }
+  const recentWeight: Record<CollectionId, number> = { executive: 0, explorer: 0, charmer: 0, icon: 0 }
+
+  questions.forEach((q, qIndex) => {
+    const choiceId = sels[q.id]
+    if (!choiceId) return
+    const choice = q.choices.find((c) => c.id === choiceId)
+    if (!choice) return
+    ids.forEach((id) => {
+      if (choice.score[id] >= 3) {
+        primaryPicks[id] += 1
+      }
+      // Later questions (base notes / evening / legacy) carry deeper lasting identity weight
+      recentWeight[id] += (choice.score[id] || 0) * (qIndex + 1)
+    })
+  })
+
+  return [...ids].sort((a, b) => {
+    // If explicit matched IDs exist from the result, anchor them at rank 1 and rank 2
+    if (matchedPrimaryId) {
+      if (a === matchedPrimaryId) return -1
+      if (b === matchedPrimaryId) return 1
+      if (matchedSecondaryId) {
+        if (a === matchedSecondaryId) return -1
+        if (b === matchedSecondaryId) return 1
+      }
+    }
+
+    // 1. Primary sort: raw score
+    const scoreDiff = (scores[b] || 0) - (scores[a] || 0)
+    if (scoreDiff !== 0) return scoreDiff
+
+    // 2. Tie breaker: primary intent picks (+3 direct choice selections)
+    const pickDiff = (primaryPicks[b] || 0) - (primaryPicks[a] || 0)
+    if (pickDiff !== 0) return pickDiff
+
+    // 3. Tie breaker: recent question weight (heart & base notes)
+    const recentDiff = (recentWeight[b] || 0) - (recentWeight[a] || 0)
+    if (recentDiff !== 0) return recentDiff
+
+    return 0
+  })
+}
+
+function computeDescendingPercentages(
+  rankedIds: CollectionId[],
+  scores: Record<CollectionId, number>,
+): Record<CollectionId, number> {
+  // Rank biases guaranteeing strict descending hierarchy even when raw scores tie
+  const rankBonuses = [3.5, 1.8, 0.7, 0.0]
+  const rawValues = rankedIds.map((id, index) => {
+    const raw = Math.max(0, scores[id] || 0)
+    return raw + (rankBonuses[index] ?? 0)
+  })
+
+  const total = Math.max(1, rawValues.reduce((sum, v) => sum + v, 0))
+  let pcts = rawValues.map((v) => Math.round((v / total) * 100))
+
+  // Step 1: Ensure strict descending: pcts[0] > pcts[1] > pcts[2] > pcts[3]
+  for (let i = 0; i < pcts.length - 1; i++) {
+    if (pcts[i] <= pcts[i + 1]) {
+      const diff = pcts[i + 1] - pcts[i] + 1
+      pcts[i] += diff
+      pcts[pcts.length - 1] = Math.max(1, pcts[pcts.length - 1] - diff)
+    }
+  }
+
+  // Step 2: Ensure total sums to exactly 100%
+  const sumDiff = 100 - pcts.reduce((sum, p) => sum + p, 0)
+  pcts[0] += sumDiff
+
+  // Step 3: Final pass to guarantee strict descending hierarchy
+  for (let i = 0; i < pcts.length - 1; i++) {
+    while (pcts[i] <= pcts[i + 1] && pcts[i + 1] > 1) {
+      pcts[i] += 1
+      pcts[i + 1] -= 1
+    }
+  }
+
+  // Readjust sum if step 3 adjusted values
+  const finalDiff = 100 - pcts.reduce((sum, p) => sum + p, 0)
+  pcts[0] += finalDiff
+
+  const result: Record<CollectionId, number> = {
+    executive: 0,
+    explorer: 0,
+    charmer: 0,
+    icon: 0,
+  }
+  rankedIds.forEach((id, index) => {
+    result[id] = pcts[index]
+  })
+  return result
+}
+
+function strongestIds(
+  scores: Record<CollectionId, number>,
+  sels?: Record<string, string>,
+  questions?: QuizQuestion[],
+): [CollectionId, CollectionId] {
+  const ranked = rankArchetypeIds(scores, sels ?? {}, questions ?? [])
   return [ranked[0], ranked[1]]
 }
 
@@ -185,13 +294,15 @@ function findBestFragranceForGender(
   scores: Record<CollectionId, number>,
   products: ProductSummary[],
   gender: ProductSummary['gender'],
+  sels?: Record<string, string>,
+  questions?: QuizQuestion[],
 ): { fragrance: ProductSummary; collectionId: CollectionId } {
   // 1. Strictly filter products by the chosen gender
   const genderMatchedProducts = products.filter((p) => p.gender === gender)
   const pool = genderMatchedProducts.length > 0 ? genderMatchedProducts : products
 
-  // 2. Rank all collections by personality score descending
-  const rankedCollectionIds = (Object.keys(scores) as CollectionId[]).sort((a, b) => scores[b] - scores[a])
+  // 2. Rank all collections by personality score descending with intelligent tie-breakers
+  const rankedCollectionIds = rankArchetypeIds(scores, sels ?? {}, questions ?? [])
 
   // 3. Prefer user's highest scored collection if it has products for this gender
   let targetCollectionId = primaryCollectionId
@@ -232,15 +343,19 @@ function calculateResult(
   products: ProductSummary[],
   t: (key: string, vars?: Record<string, string | number>) => string,
   gender: ProductSummary['gender'],
+  sels?: Record<string, string>,
+  questions?: QuizQuestion[],
 ): QuizResult | null {
   if (collections.length === 0 || products.length === 0) return null
-  const [primaryId, secondaryId] = strongestIds(scores)
+  const [primaryId, secondaryId] = strongestIds(scores, sels, questions)
 
   const { fragrance, collectionId: matchedCollectionId } = findBestFragranceForGender(
     primaryId,
     scores,
     products,
     gender,
+    sels,
+    questions,
   )
 
   const primary = collections.find((c) => c.id === matchedCollectionId) ?? collections[0]
@@ -414,67 +529,74 @@ export function FindYourScntPage() {
     : baseProgress
   const current = step < total ? quizQuestions[step] ?? null : null
 
-  // Live Scent Aura derivation
+  // 1. Result derivation
+  const result = useMemo(
+    () =>
+      (isResultStep || isMatching) && quizGender
+        ? calculateResult(scores, collections, products, t, quizGender, selections, quizQuestions)
+        : null,
+    [isResultStep, isMatching, quizGender, scores, collections, products, t, selections, quizQuestions],
+  )
+
+  // 2. Live Scent Aura derivation
   const dominantAura = useMemo(() => {
     const totalScore = scores.executive + scores.explorer + scores.charmer + scores.icon
     if (totalScore === 0) return null
-    const [primaryId, secondaryId] = strongestIds(scores)
-    const pct = Math.round((scores[primaryId] / totalScore) * 100)
+    const [primaryId, secondaryId] = strongestIds(scores, selections, quizQuestions)
+    const rankedIds = rankArchetypeIds(scores, selections, quizQuestions)
+    const pcts = computeDescendingPercentages(rankedIds, scores)
     return {
       id: primaryId,
       secondaryId,
       score: scores[primaryId],
       total: totalScore,
-      percentage: pct,
+      percentage: pcts[primaryId],
     }
-  }, [scores])
+  }, [scores, selections, quizQuestions])
 
-  // Archetype Affinity Breakdown for Results page
+  // 3. Archetype Affinity Breakdown for Results page with strict descending hierarchy
   const archetypeAffinity = useMemo(() => {
-    const totalScore = Math.max(1, scores.executive + scores.explorer + scores.charmer + scores.icon)
-    const archetypes: {
-      id: CollectionId
-      name: string
-      pct: number
-      colorClass: string
-      bgBarClass: string
-      charKey: string
-    }[] = [
-      {
-        id: 'executive',
+    const primaryId = result?.collection.id
+    const secondaryId = result?.secondaryCollection.id
+    const rankedIds = rankArchetypeIds(scores, selections, quizQuestions, primaryId, secondaryId)
+    const pcts = computeDescendingPercentages(rankedIds, scores)
+
+    const metaMap: Record<CollectionId, { name: string; colorClass: string; bgBarClass: string; charKey: string }> = {
+      executive: {
         name: collections.find((c) => c.id === 'executive')?.name || (isAr ? 'ذا إكزكتيف' : 'The Executive'),
-        pct: Math.round((scores.executive / totalScore) * 100),
         colorClass: 'text-[#7a8fa3]',
         bgBarClass: 'from-[#7a8fa3] to-[#55697d]',
         charKey: 'fz.char.executive',
       },
-      {
-        id: 'explorer',
+      explorer: {
         name: collections.find((c) => c.id === 'explorer')?.name || (isAr ? 'ذا إكسبلورر' : 'The Explorer'),
-        pct: Math.round((scores.explorer / totalScore) * 100),
         colorClass: 'text-[#3d8b8b]',
         bgBarClass: 'from-[#3d8b8b] to-[#256363]',
         charKey: 'fz.char.explorer',
       },
-      {
-        id: 'charmer',
+      charmer: {
         name: collections.find((c) => c.id === 'charmer')?.name || (isAr ? 'ذا تشارمر' : 'The Charmer'),
-        pct: Math.round((scores.charmer / totalScore) * 100),
         colorClass: 'text-[#8b3d5c]',
         bgBarClass: 'from-[#8b3d5c] to-[#692440]',
         charKey: 'fz.char.charmer',
       },
-      {
-        id: 'icon',
+      icon: {
         name: collections.find((c) => c.id === 'icon')?.name || (isAr ? 'ذا آيكون' : 'The Icon'),
-        pct: Math.round((scores.icon / totalScore) * 100),
         colorClass: 'text-[#b89b5e]',
         bgBarClass: 'from-[#b89b5e] to-[#8f753c]',
         charKey: 'fz.char.icon',
       },
-    ]
-    return archetypes.sort((a, b) => b.pct - a.pct)
-  }, [scores, collections, isAr])
+    }
+
+    return rankedIds.map((id) => ({
+      id,
+      name: metaMap[id].name,
+      pct: pcts[id] || 0,
+      colorClass: metaMap[id].colorClass,
+      bgBarClass: metaMap[id].bgBarClass,
+      charKey: metaMap[id].charKey,
+    }))
+  }, [scores, collections, isAr, result, selections, quizQuestions])
 
   // Can offer early reveal if in full mode, at least 4 questions answered, and clear dominant collection
   const canOfferEarlyReveal = useMemo(() => {
@@ -482,12 +604,6 @@ export function FindYourScntPage() {
     if (step < 3 || isGenderStep || isResultStep || isMatching) return false
     return dominantAura !== null && dominantAura.total >= 8 && dominantAura.percentage >= 44
   }, [mode, step, isGenderStep, isResultStep, isMatching, dominantAura])
-
-  const result = useMemo(
-    () =>
-      (isResultStep || isMatching) && quizGender ? calculateResult(scores, collections, products, t, quizGender) : null,
-    [isResultStep, isMatching, quizGender, scores, collections, products, t],
-  )
 
   useEffect(() => {
     if (!isMatching) return
@@ -808,11 +924,22 @@ export function FindYourScntPage() {
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && selectMode('express')}
-                      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg/60 p-6 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_22px_56px_-36px_rgba(42,38,34,0.5)] focus:outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/30"
+                      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg-elevated/70 p-6 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_22px_56px_-36px_rgba(42,38,34,0.5)] focus:outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/30"
                     >
+                      {/* Atmospheric Backdrop */}
+                      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+                        <img
+                          src="/matcher/categories/sweat-motion.webp"
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover opacity-60 filter brightness-95 contrast-105 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-106 group-hover:opacity-80"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-scnt-bg via-scnt-bg/80 to-scnt-bg/30" />
+                      </div>
                       <div className="absolute -end-12 -top-12 h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(184,155,94,0.18),transparent_70%)] blur-xl transition-all duration-700 group-hover:scale-125" />
                       <div className="relative">
-                        <span className="inline-block rounded-full border border-scnt-border/70 bg-scnt-bg/80 px-2.5 py-1 text-[0.68rem] font-medium tracking-wide text-scnt-text">
+                        <span className="inline-block rounded-full border border-scnt-border/70 bg-scnt-bg/85 px-3 py-1 text-[0.68rem] font-semibold tracking-wide text-scnt-text shadow-xs backdrop-blur-sm">
                           {t('fz.mode.expressBadge')}
                         </span>
                         <h3 className="mt-4 font-serif text-xl sm:text-2xl text-scnt-text group-hover:text-scnt-text">
@@ -839,11 +966,22 @@ export function FindYourScntPage() {
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && selectMode('full')}
-                      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg/60 p-6 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_22px_56px_-36px_rgba(42,38,34,0.5)] focus:outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/30"
+                      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg-elevated/70 p-6 transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_22px_56px_-36px_rgba(42,38,34,0.5)] focus:outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/30"
                     >
+                      {/* Atmospheric Backdrop */}
+                      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+                        <img
+                          src="/matcher/categories/hustle-focus.webp"
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover opacity-60 filter brightness-95 contrast-105 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-106 group-hover:opacity-80"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-scnt-bg via-scnt-bg/80 to-scnt-bg/30" />
+                      </div>
                       <div className="absolute -end-12 -top-12 h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(122,143,163,0.22),transparent_70%)] blur-xl transition-all duration-700 group-hover:scale-125" />
                       <div className="relative">
-                        <span className="inline-block rounded-full border border-scnt-border/70 bg-scnt-bg/80 px-2.5 py-1 text-[0.68rem] font-medium tracking-wide text-scnt-text">
+                        <span className="inline-block rounded-full border border-scnt-border/70 bg-scnt-bg/85 px-3 py-1 text-[0.68rem] font-semibold tracking-wide text-scnt-text shadow-xs backdrop-blur-sm">
                           {t('fz.mode.fullBadge')}
                         </span>
                         <h3 className="mt-4 font-serif text-xl sm:text-2xl text-scnt-text">
@@ -1152,8 +1290,18 @@ export function FindYourScntPage() {
                             role="button"
                             tabIndex={0}
                             onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && pickGender('male')}
-                            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg/65 p-7 text-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/30"
+                            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg-elevated/70 p-7 text-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/30"
                           >
+                            <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+                              <img
+                                src="/matcher/categories/hustle-focus.webp"
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                className="h-full w-full object-cover opacity-60 filter brightness-95 contrast-105 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-106 group-hover:opacity-80"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-scnt-bg via-scnt-bg/80 to-scnt-bg/30" />
+                            </div>
                             <div className="absolute inset-0 bg-gradient-to-t from-[rgba(122,143,163,0.15)] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                             <div className="relative">
                               {/* Bespoke masculine tailoring silhouette emblem */}
@@ -1180,8 +1328,18 @@ export function FindYourScntPage() {
                             role="button"
                             tabIndex={0}
                             onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && pickGender('female')}
-                            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg/65 p-7 text-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/30"
+                            className="group relative cursor-pointer overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg-elevated/70 p-7 text-center transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_22px_56px_-44px_rgba(42,38,34,0.45)] focus:outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/30"
                           >
+                            <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+                              <img
+                                src="/matcher/vibes/lumiere.webp"
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                className="h-full w-full object-cover opacity-60 filter brightness-95 contrast-105 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-106 group-hover:opacity-80"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-scnt-bg via-scnt-bg/80 to-scnt-bg/30" />
+                            </div>
                             <div className="absolute inset-0 bg-gradient-to-t from-[rgba(180,60,90,0.15)] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                             <div className="relative">
                               {/* Bespoke radiant jewel emblem */}
@@ -1227,8 +1385,8 @@ export function FindYourScntPage() {
                         <h2 className="font-serif text-2xl text-scnt-text sm:text-3xl">{current.prompt}</h2>
                         <p className="mt-2 text-xs sm:text-sm text-scnt-text-muted">{current.promptDetail}</p>
 
-                        {/* Visual Choice Cards */}
-                        <div className="mt-6 grid grid-cols-1 gap-3.5 sm:grid-cols-2" role="radiogroup" aria-label={current.prompt}>
+                        {/* Visual Choice Cards with High-Fidelity Mood Photography */}
+                        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2" role="radiogroup" aria-label={current.prompt}>
                           {current.choices.map((choice) => {
                             const selected = selections[current.id] === choice.id
                             return (
@@ -1244,40 +1402,65 @@ export function FindYourScntPage() {
                                     pickChoice(choice)
                                   }
                                 }}
-                                className={`group relative cursor-pointer overflow-hidden rounded-2xl border p-5 text-start transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/40 ${
+                                className={`group relative flex flex-col cursor-pointer overflow-hidden rounded-2xl border text-start transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-scnt-text/40 ${
                                   selected
-                                    ? 'border-scnt-text bg-scnt-bg-elevated shadow-[0_18px_48px_-32px_rgba(42,38,34,0.5)] ring-2 ring-scnt-text/20 scale-[1.01]'
-                                    : 'border-scnt-border/80 bg-scnt-bg/70 hover:-translate-y-0.5 hover:border-scnt-text/40 hover:shadow-[0_20px_50px_-40px_rgba(42,38,34,0.4)]'
+                                    ? 'border-scnt-text bg-scnt-bg-elevated shadow-[0_20px_50px_-25px_rgba(184,155,94,0.45)] ring-2 ring-scnt-text/40 scale-[1.01]'
+                                    : 'border-scnt-border/80 bg-scnt-bg-elevated/70 hover:-translate-y-1 hover:border-scnt-text/40 hover:shadow-[0_20px_45px_-30px_rgba(42,38,34,0.35)]'
                                 }`}
                               >
-                                {/* Background Photography with Luxury Vignette */}
+                                {/* High-Fidelity 16:9 Visual Hero Viewport */}
                                 {choice.imageUrl && (
-                                  <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+                                  <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full overflow-hidden bg-scnt-bg/60">
                                     <img
                                       src={choice.imageUrl}
-                                      alt=""
+                                      alt={choice.title}
                                       loading="lazy"
-                                      className="h-full w-full object-cover opacity-20 filter grayscale contrast-125 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-105 group-hover:opacity-35"
+                                      decoding="async"
+                                      className={`h-full w-full object-cover transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-106 ${
+                                        selected ? 'brightness-105 contrast-105' : 'brightness-100 group-hover:brightness-105'
+                                      }`}
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-scnt-bg via-scnt-bg/85 to-scnt-bg/60" />
-                                  </div>
-                                )}
+                                    {/* Ultra-soft gradient for floating pill and badge legibility */}
+                                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/35" />
 
-                                <div className="relative z-10">
-                                  <div className="flex items-center justify-between">
-                                    <span className="inline-flex items-center rounded-full border border-scnt-border/80 bg-scnt-bg/80 px-2.5 py-0.5 text-[0.62rem] sm:text-[0.65rem] uppercase tracking-[0.2em] text-scnt-text-muted backdrop-blur-sm">
-                                      {choice.aura}
-                                    </span>
-                                    {selected && (
-                                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-scnt-text text-scnt-bg shadow-sm">
-                                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    {/* Floating Aura Pill & Selection Indicator */}
+                                    <div className="absolute inset-x-3.5 top-3.5 flex items-center justify-between pointer-events-none">
+                                      <span className="inline-flex items-center rounded-full border border-white/25 bg-black/60 px-3 py-1 text-[0.62rem] sm:text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-white shadow-md backdrop-blur-md">
+                                        {choice.aura}
+                                      </span>
+                                      <span
+                                        className={`flex h-6 w-6 items-center justify-center rounded-full transition-all duration-300 shadow-md ${
+                                          selected
+                                            ? 'bg-scnt-text text-scnt-bg ring-2 ring-white/50 scale-100'
+                                            : 'border border-white/40 bg-black/40 text-transparent backdrop-blur-md opacity-40 group-hover:opacity-100'
+                                        }`}
+                                      >
+                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                         </svg>
                                       </span>
-                                    )}
+                                    </div>
                                   </div>
-                                  <p className="mt-3 text-base font-medium text-scnt-text sm:text-lg">{choice.title}</p>
-                                  <p className="mt-1 text-xs leading-relaxed text-scnt-text-muted sm:text-sm">{choice.subtitle}</p>
+                                )}
+
+                                <div className="flex flex-1 flex-col justify-between p-4.5 sm:p-5">
+                                  <div>
+                                    <p className="font-serif text-base font-medium text-scnt-text sm:text-lg leading-snug group-hover:text-scnt-text">
+                                      {choice.title}
+                                    </p>
+                                    <p className="mt-1.5 text-xs sm:text-sm leading-relaxed text-scnt-text-muted">
+                                      {choice.subtitle}
+                                    </p>
+                                  </div>
+
+                                  <div className="mt-4 flex items-center justify-between border-t border-scnt-border/40 pt-2.5 text-[0.68rem] text-scnt-text-muted">
+                                    <span className={selected ? 'font-medium text-scnt-text' : 'opacity-70 group-hover:opacity-100'}>
+                                      {selected ? (isAr ? 'تم الاختيار' : 'Selected') : (isAr ? 'اضغط للاختيار' : 'Tap to select')}
+                                    </span>
+                                    <span className={`transition-transform duration-300 ${selected ? 'text-scnt-text font-bold' : 'group-hover:translate-x-1 rtl:group-hover:-translate-x-1'}`}>
+                                      {isAr ? '←' : '→'}
+                                    </span>
+                                  </div>
                                 </div>
                               </article>
                             )
