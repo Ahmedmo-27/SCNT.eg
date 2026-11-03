@@ -70,9 +70,9 @@ function RouteSeo() {
       },
     },
     '/find-your-scnt': {
-      title: { en: 'Find Your Signature Scent', ar: 'اعثر على عطرك المميز' },
+      title: { en: 'Find Your SCNT', ar: 'اعثر على عطرك' },
       description: {
-        en: 'Use the SCNT.eg scent finder to match your personality with notes, styles, and occasions for your next signature perfume.',
+        en: 'Discover your signature fragrance with SCNT.eg Matcher. Match your persona, occasion, and scent notes in Egypt.',
         ar: 'استخدم أداة SCNT.eg لاختيار العطر الأنسب لشخصيتك حسب النوتات والأسلوب والمناسبة.',
       },
     },
