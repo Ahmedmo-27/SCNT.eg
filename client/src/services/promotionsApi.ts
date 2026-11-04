@@ -12,7 +12,11 @@ export type LocalizedText = {
   ar: string
 }
 
-export type PromotionTheme = 'black_friday' | 'gold_luxury' | 'minimal_dark'
+export type PromotionTheme =
+  | 'scnt_signature'
+  | 'black_friday'
+  | 'gold_luxury'
+  | 'minimal_dark'
 export type PromotionType = 'SPECIAL_EVENT' | 'DEFAULT_WELCOME'
 
 export type ActivePromotion = {

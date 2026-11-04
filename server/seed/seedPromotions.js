@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const PromotionCampaign = require("../src/models/PromotionCampaign");
 const PromoCode = require("../src/models/PromoCode");
+const { deleteCache } = require("../src/utils/cache");
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
@@ -16,6 +17,7 @@ async function connectDb() {
 
 async function seedPromotions() {
   // 1. Ensure DEFAULT_WELCOME campaign exists for normal times
+  // Pre-submission text must NOT reveal the discount percentage.
   const welcomeCampaign = await PromotionCampaign.findOneAndUpdate(
     { type: "DEFAULT_WELCOME" },
     {
@@ -25,22 +27,28 @@ async function seedPromotions() {
         badge: { en: "Welcome Perk", ar: "هدية الترحيب" },
         title: { en: "Experience House of SCNT", ar: "اكتشف عالم SCNT العطري" },
         subtitle: {
-          en: "Enjoy 10% off your first artisanal fragrance order.",
-          ar: "احصل على خصم 10% على أول طلب لعطورنا المصنوعة بحرفية.",
+          en: "Enjoy an exclusive introductory discount on your first artisanal fragrance order.",
+          ar: "احصل على خصم ترحيبي حصري على أول طلب لعطورنا المصنوعة بحرفية.",
         },
         description: {
-          en: "Enter your email to receive your personal first-order discount code.",
-          ar: "أدخل بريدك الإلكتروني لاستلام كود خصم طلبك الأول فوراً.",
+          en: "Enter your email to receive your personal discount code directly in your inbox.",
+          ar: "أدخل بريدك الإلكتروني لاستلام كود الخصم الخاص بك مباشرة عبر البريد.",
         },
-        discountHighlight: { en: "10% OFF FIRST ORDER", ar: "خصم 10% على طلبك الأول" },
-        ctaText: { en: "Unlock My 10% Code", ar: "احصل على كود الخصم" },
+        discountHighlight: {
+          en: "EXCLUSIVE FIRST ORDER PRIVILEGE",
+          ar: "ميزة حصرية على أول طلب",
+        },
+        ctaText: {
+          en: "Unlock My Discount Code",
+          ar: "احصل على كود الخصم",
+        },
         promoCode: "FIRST10",
         discountType: "PERCENTAGE",
         discountValue: 10,
         minSubtotal: 0,
         isActive: true,
         showModal: true,
-        theme: "gold_luxury",
+        theme: "scnt_signature",
       },
     },
     { upsert: true, new: true }
@@ -62,7 +70,8 @@ async function seedPromotions() {
     { upsert: true }
   );
 
-  console.log(`Default Welcome campaign seeded: ${welcomeCampaign.name} (${welcomeCampaign.promoCode})`);
+  await deleteCache("promotions:active");
+  console.log(`Default Welcome campaign updated: ${welcomeCampaign.name} (${welcomeCampaign.promoCode})`);
 }
 
 async function run() {

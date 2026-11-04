@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, type FormEvent } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
+import { CalendarIcon, SparklesIcon, EyeIcon, UsersIcon, DownloadIcon, CloseIcon } from '../icons'
 import {
   fetchAdminCampaigns,
   createAdminCampaign,
@@ -47,13 +48,13 @@ const emptyForm: CampaignFormData = {
   badgeAr: 'عرض خاص',
   titleEn: '',
   titleAr: '',
-  subtitleEn: '',
-  subtitleAr: '',
-  descriptionEn: 'Enter your email to receive your exclusive promo code.',
-  descriptionAr: 'أدخل بريدك الإلكتروني لاستلام كود الخصم الحصري فوراً.',
-  discountHighlightEn: '20% OFF',
-  discountHighlightAr: 'خصم 20%',
-  ctaTextEn: 'Claim My Discount',
+  subtitleEn: 'Enjoy an exclusive introductory discount on your first artisanal fragrance order.',
+  subtitleAr: 'احصل على خصم ترحيبي حصري على أول طلب لعطورنا المصنوعة بحرفية.',
+  descriptionEn: 'Enter your email to receive your personal discount code directly in your inbox.',
+  descriptionAr: 'أدخل بريدك الإلكتروني لاستلام كود الخصم الخاص بك مباشرة عبر البريد.',
+  discountHighlightEn: 'EXCLUSIVE PROMOTIONAL PRIVILEGE',
+  discountHighlightAr: 'ميزة ترويجية حصرية',
+  ctaTextEn: 'Unlock My Discount Code',
   ctaTextAr: 'احصل على كود الخصم',
   promoCode: '',
   discountType: 'PERCENTAGE',
@@ -63,7 +64,7 @@ const emptyForm: CampaignFormData = {
   expiresAt: '',
   isActive: true,
   showModal: true,
-  theme: 'black_friday',
+  theme: 'scnt_signature',
 }
 
 function formatDatetimeLocal(isoString: string | null | undefined): string {
@@ -419,7 +420,7 @@ export function PromotionsTab() {
             <div className="rounded-xl border border-scnt-border/60 bg-scnt-bg-elevated/20 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-scnt-text">
-                  📅 Event Schedule (Start & Expiration Dates)
+                  <span className="inline-flex items-center gap-1.5"><CalendarIcon size={14} className="shrink-0 text-scnt-accent" /><span>Event Schedule (Start & Expiration Dates)</span></span>
                 </span>
                 <div className="flex gap-2">
                   <button
@@ -550,7 +551,7 @@ export function PromotionsTab() {
           {/* Bilingual Modal Presentation Content */}
           <div className="rounded-xl border border-scnt-border/60 bg-scnt-bg-elevated/10 p-4 space-y-4">
             <span className="text-xs font-semibold text-scnt-text">
-              ✨ Modal Copy & Content (English & Arabic)
+              <span className="inline-flex items-center gap-1.5"><SparklesIcon size={14} className="shrink-0 text-scnt-accent" /><span>Modal Copy & Content (English & Arabic)</span></span>
             </span>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -703,9 +704,10 @@ export function PromotionsTab() {
                   setFormData((s) => ({ ...s, theme: e.target.value as PromotionTheme }))
                 }
               >
-                <option value="black_friday">Black Friday (Obsidian & Gold Highlights)</option>
-                <option value="gold_luxury">Gold Luxury (Warm Champagne & Gold)</option>
-                <option value="minimal_dark">Minimal SCNT Dark</option>
+                <option value="scnt_signature">SCNT Signature (Warm Beige Platform Theme)</option>
+                <option value="black_friday">Black Friday (Obsidian & Gold Leaf)</option>
+                <option value="gold_luxury">Champagne Luxury (Warm Gold & Luminous Ivory)</option>
+                <option value="minimal_dark">Midnight Nocturne (Dark Slate & Platinum)</option>
               </select>
             </div>
 
@@ -768,7 +770,7 @@ export function PromotionsTab() {
                 })
               }}
             >
-              👁️ Preview Modal
+              <span className="inline-flex items-center gap-1.5"><EyeIcon size={14} className="shrink-0" /><span>Preview Modal</span></span>
             </Button>
 
             {editingCampaignId ? (
@@ -873,7 +875,7 @@ export function PromotionsTab() {
                       className="text-xs py-1 px-3"
                       onClick={() => setPreviewingCampaign(c)}
                     >
-                      👁️ Preview
+                      <span className="inline-flex items-center gap-1.5"><EyeIcon size={14} className="shrink-0" /><span>Preview</span></span>
                     </Button>
 
                     <Button
@@ -881,7 +883,7 @@ export function PromotionsTab() {
                       className="text-xs py-1 px-3"
                       onClick={() => handleOpenLeads(c._id)}
                     >
-                      👥 View Leads ({c.leadsCount || 0})
+                      <span className="inline-flex items-center gap-1.5"><UsersIcon size={14} className="shrink-0" /><span>View Leads ({c.leadsCount || 0})</span></span>
                     </Button>
 
                     <Button
@@ -938,14 +940,14 @@ export function PromotionsTab() {
                   onClick={handleExportCsv}
                   disabled={viewingLeads.leads.length === 0}
                 >
-                  📥 Export CSV
+                  <span className="inline-flex items-center gap-1.5"><DownloadIcon size={14} className="shrink-0" /><span>Export CSV</span></span>
                 </Button>
                 <button
                   type="button"
                   onClick={() => setViewingLeads(null)}
                   className="rounded-lg p-2 text-scnt-text-muted hover:text-scnt-text"
                 >
-                  ✕
+                  <CloseIcon size={16} />
                 </button>
               </div>
             </div>

@@ -2,6 +2,27 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import {
+  BanknoteIcon,
+  ZapIcon,
+  CreditCardIcon,
+  SmartphoneIcon,
+  LandmarkIcon,
+  CoinsIcon,
+  StorefrontIcon,
+  TentIcon,
+  WhatsAppIcon,
+  PhoneIcon,
+  CameraIcon,
+  TagIcon,
+  PencilIcon,
+  ReceiptIcon,
+  TrashIcon,
+  ClipboardIcon,
+  PrinterIcon,
+  CloseIcon,
+  PerfumeBottleIcon,
+} from '../icons'
+import {
   fetchOfflineSales,
   fetchOfflineSalesSummary,
   createOfflineSale,
@@ -49,24 +70,24 @@ function toLocalDatetimeString(d: Date): string {
   return localTime.toISOString().slice(0, 16)
 }
 
-const PAYMENT_LABELS: Record<string, { label: string; badgeCls: string; icon: string }> = {
-  CASH: { label: 'Cash', badgeCls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', icon: '💵' },
-  INSTAPAY: { label: 'InstaPay', badgeCls: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30', icon: '⚡' },
-  CARD: { label: 'Credit/Debit Card', badgeCls: 'bg-blue-500/15 text-blue-300 border-blue-500/30', icon: '💳' },
-  VODAFONE_CASH: { label: 'Vodafone Cash', badgeCls: 'bg-red-500/15 text-red-300 border-red-500/30', icon: '📱' },
-  BANK_TRANSFER: { label: 'Bank Transfer', badgeCls: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30', icon: '🏦' },
-  OTHER: { label: 'Other', badgeCls: 'bg-amber-500/15 text-amber-300 border-amber-500/30', icon: '🪙' },
+const PAYMENT_LABELS: Record<string, { label: string; badgeCls: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = {
+  CASH: { label: 'Cash', badgeCls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', icon: BanknoteIcon },
+  INSTAPAY: { label: 'InstaPay', badgeCls: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30', icon: ZapIcon },
+  CARD: { label: 'Credit/Debit Card', badgeCls: 'bg-blue-500/15 text-blue-300 border-blue-500/30', icon: CreditCardIcon },
+  VODAFONE_CASH: { label: 'Vodafone Cash', badgeCls: 'bg-red-500/15 text-red-300 border-red-500/30', icon: SmartphoneIcon },
+  BANK_TRANSFER: { label: 'Bank Transfer', badgeCls: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30', icon: LandmarkIcon },
+  OTHER: { label: 'Other', badgeCls: 'bg-amber-500/15 text-amber-300 border-amber-500/30', icon: CoinsIcon },
 }
 
-const CHANNEL_LABELS: Record<string, { label: string; icon: string }> = {
-  WALK_IN: { label: 'Walk-in / Showroom', icon: '🏪' },
-  BAZAAR: { label: 'Bazaar Event', icon: '🎪' },
-  POPUP_BOOTH: { label: 'Pop-up Booth', icon: '⛺' },
-  WHATSAPP: { label: 'WhatsApp / DM', icon: '💬' },
-  PHONE: { label: 'Phone Order', icon: '📞' },
-  INSTAGRAM: { label: 'Instagram', icon: '📸' },
-  EXHIBITION: { label: 'Exhibition', icon: '🏛️' },
-  OTHER: { label: 'Direct Sale', icon: '🏷️' },
+const CHANNEL_LABELS: Record<string, { label: string; icon: React.ComponentType<{ size?: number; className?: string }> }> = {
+  WALK_IN: { label: 'Walk-in / Showroom', icon: StorefrontIcon },
+  BAZAAR: { label: 'Bazaar Event', icon: TentIcon },
+  POPUP_BOOTH: { label: 'Pop-up Booth', icon: TentIcon },
+  WHATSAPP: { label: 'WhatsApp / DM', icon: WhatsAppIcon },
+  PHONE: { label: 'Phone Order', icon: PhoneIcon },
+  INSTAGRAM: { label: 'Instagram', icon: CameraIcon },
+  EXHIBITION: { label: 'Exhibition', icon: LandmarkIcon },
+  OTHER: { label: 'Direct Sale', icon: TagIcon },
 }
 
 export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProps) {
@@ -724,7 +745,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
               {summary.paymentMethods.slice(0, 3).map((pm) => (
                 <div key={pm.method} className="flex justify-between items-center text-[11px]">
                   <span className="text-scnt-text-muted">
-                    {PAYMENT_LABELS[pm.method]?.icon} {PAYMENT_LABELS[pm.method]?.label || pm.method}
+                    {(() => { const Icon = PAYMENT_LABELS[pm.method]?.icon; return Icon ? <Icon size={12} className="inline mr-1" /> : null; })()}{PAYMENT_LABELS[pm.method]?.label || pm.method}
                   </span>
                   <span className="font-mono font-medium text-scnt-text">{formatEgp(pm.total)}</span>
                 </div>
@@ -747,7 +768,14 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
           onClick={() => setIsNewSaleOpen((v) => !v)}
           className="flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-medium shadow-lg shadow-amber-900/20"
         >
-          {isNewSaleOpen ? '✕ Close Recorder' : '+ Record Offline Purchase'}
+          {isNewSaleOpen ? (
+            <span className="inline-flex items-center gap-1.5">
+              <CloseIcon size={14} />
+              <span>Close Recorder</span>
+            </span>
+          ) : (
+            '+ Record Offline Purchase'
+          )}
         </Button>
       </div>
 
@@ -757,7 +785,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600" />
           
           <h3 className="text-base font-semibold text-scnt-text mb-4 flex items-center gap-2">
-            <span>🏷️</span> Record Direct / Offline Sale
+            <TagIcon size={14} className="inline mr-1 text-amber-400" /> Record Direct / Offline Sale
           </h3>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -783,7 +811,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                         onClick={() => setProductSearch('')}
                         className="text-[11px] text-amber-400 hover:text-amber-300"
                       >
-                        Clear filter ✕
+                        <span className="inline-flex items-center gap-1"><span>Clear filter</span><CloseIcon size={11} /></span>
                       </button>
                     )}
                   </div>
@@ -881,8 +909,8 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                           className="w-11 h-11 object-contain rounded-lg bg-black/40 p-1 border border-amber-500/20 shrink-0"
                         />
                       ) : (
-                        <div className="w-11 h-11 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-base shrink-0">
-                          🧴
+                        <div className="w-11 h-11 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                          <PerfumeBottleIcon size={20} className="text-amber-400/80" />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
@@ -1059,7 +1087,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                             className="text-red-400 hover:text-red-300 text-xs px-1"
                             title="Remove item"
                           >
-                            ✕
+                            <CloseIcon size={13} />
                           </button>
                         </div>
                       </div>
@@ -1122,7 +1150,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                     >
                       {Object.entries(CHANNEL_LABELS).map(([k, meta]) => (
                         <option key={k} value={k}>
-                          {meta.icon} {meta.label}
+                          {meta.label}
                         </option>
                       ))}
                     </select>
@@ -1150,7 +1178,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                     >
                       {Object.entries(PAYMENT_LABELS).map(([k, meta]) => (
                         <option key={k} value={k}>
-                          {meta.icon} {meta.label}
+                          {meta.label}
                         </option>
                       ))}
                     </select>
@@ -1288,7 +1316,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
             <option value="ALL">All Payments</option>
             {Object.entries(PAYMENT_LABELS).map(([k, meta]) => (
               <option key={k} value={k}>
-                {meta.icon} {meta.label}
+                {meta.label}
               </option>
             ))}
           </select>
@@ -1305,7 +1333,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
             <option value="ALL">All Channels</option>
             {Object.entries(CHANNEL_LABELS).map(([k, meta]) => (
               <option key={k} value={k}>
-                {meta.icon} {meta.label}
+                {meta.label}
               </option>
             ))}
           </select>
@@ -1367,7 +1395,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                     Payment
                   </th>
                   <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px] text-right">
-                    Total
+                    Order Revenue
                   </th>
                   <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px] text-right">
                     Actions
@@ -1403,11 +1431,11 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                         </span>
                         {sale.customer?.phone && (
                           <span className="text-[11px] text-scnt-text-muted block">
-                            📞 {sale.customer.phone}
+                            <span className="inline-flex items-center gap-1"><PhoneIcon size={11} className="shrink-0" /><span>{sale.customer.phone}</span></span>
                           </span>
                         )}
                         <span className="inline-flex items-center gap-1 mt-1 text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                          {chanMeta.icon} {chanMeta.label}
+                          {chanMeta.icon && <chanMeta.icon size={11} className="shrink-0" />} <span>{chanMeta.label}</span>
                           {sale.location ? ` (${sale.location})` : ''}
                         </span>
                       </td>
@@ -1421,8 +1449,11 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                                 <strong className="text-amber-400">{it.quantity}x</strong> {it.productName}{' '}
                                 <span className="text-scnt-text-muted">({it.size})</span>
                               </span>
-                              <span className="font-mono text-scnt-text-muted shrink-0">
+                              <span className="font-mono text-scnt-text-muted shrink-0 text-right">
                                 @ {formatEgp(it.unitPrice)}
+                                <span className="ml-1 text-emerald-400 font-medium">
+                                  ({formatEgp(it.subtotal || it.unitPrice * it.quantity)})
+                                </span>
                               </span>
                             </div>
                           ))}
@@ -1434,21 +1465,28 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                         <span
                           className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-semibold border ${payMeta.badgeCls}`}
                         >
-                          {payMeta.icon} {payMeta.label}
+                          {payMeta.icon && <payMeta.icon size={11} className="shrink-0" />} <span>{payMeta.label}</span>
                         </span>
                         <span className="block mt-1 text-[10px] text-scnt-text-muted">
                           Status: <strong className="text-scnt-text">{sale.paymentStatus}</strong>
                         </span>
                       </td>
 
-                      {/* Total */}
+                      {/* Revenue */}
                       <td className="py-3 px-4 text-right">
+                        <span className="text-[10px] uppercase font-semibold text-emerald-500 tracking-wider block">
+                          Revenue
+                        </span>
                         <span className="font-mono font-bold text-sm text-emerald-400 block">
                           {formatEgp(sale.total)}
                         </span>
-                        {sale.discount > 0 && (
-                          <span className="text-[10px] text-red-300 block">
+                        {sale.discount > 0 ? (
+                          <span className="text-[10px] text-red-300 block font-mono">
                             Disc: -{formatEgp(sale.discount)}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-scnt-text-muted block">
+                            Subtotal: {formatEgp(sale.subtotal)}
                           </span>
                         )}
                       </td>
@@ -1462,7 +1500,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                             className="px-2 py-1 rounded bg-amber-950/20 hover:bg-amber-900/40 border border-amber-500/30 text-[11px] text-amber-300 transition"
                             title="Edit Offline Purchase"
                           >
-                            ✏️ Edit
+                            <span className="inline-flex items-center gap-1"><PencilIcon size={11} className="shrink-0" /><span>Edit</span></span>
                           </button>
                           <button
                             type="button"
@@ -1470,7 +1508,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                             className="px-2 py-1 rounded bg-scnt-bg-elevated hover:bg-scnt-bg border border-scnt-border/60 text-[11px] text-scnt-text transition"
                             title="View Receipt"
                           >
-                            🧾 Receipt
+                            <span className="inline-flex items-center gap-1"><ReceiptIcon size={11} className="shrink-0" /><span>Receipt</span></span>
                           </button>
                           <button
                             type="button"
@@ -1480,9 +1518,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                             }}
                             className="px-2 py-1 rounded bg-red-950/20 hover:bg-red-900/40 border border-red-500/30 text-[11px] text-red-300 transition"
                             title="Void / Delete Sale"
-                          >
-                            🗑️
-                          </button>
+                          ><TrashIcon size={13} className="shrink-0" /></button>
                         </div>
                       </td>
                     </tr>
@@ -1535,8 +1571,8 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                 onClick={() => setReceiptSale(null)}
                 className="text-scnt-text-muted hover:text-scnt-text text-sm p-1"
               >
-                ✕
-              </button>
+              <CloseIcon size={16} />
+            </button>
             </div>
 
             <div className="space-y-1 text-xs">
@@ -1610,6 +1646,13 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                 <span>Total Paid:</span>
                 <span className="font-mono text-emerald-400">{formatEgp(receiptSale.total)}</span>
               </div>
+              <div className="flex justify-between items-center bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2.5 text-xs mt-2">
+                <div>
+                  <span className="font-semibold text-emerald-400 block">Realized Revenue:</span>
+                  <span className="text-[10px] text-scnt-text-muted">Net revenue gotten from this purchase</span>
+                </div>
+                <span className="font-mono text-base font-bold text-emerald-400">{formatEgp(receiptSale.total)}</span>
+              </div>
             </div>
 
             {receiptSale.notes && (
@@ -1625,14 +1668,14 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                 onClick={() => copyReceiptText(receiptSale)}
                 className="flex-1 text-xs"
               >
-                📋 Copy Text
+                <span className="inline-flex items-center gap-1.5"><ClipboardIcon size={13} className="shrink-0" /><span>Copy Text</span></span>
               </Button>
               <Button
                 type="button"
                 onClick={() => window.print()}
                 className="flex-1 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold"
               >
-                🖨️ Print Receipt
+                <span className="inline-flex items-center gap-1.5"><PrinterIcon size={13} className="shrink-0" /><span>Print Receipt</span></span>
               </Button>
             </div>
           </div>
@@ -1696,7 +1739,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
             <div className="flex items-center justify-between border-b border-scnt-border/60 pb-3">
               <div>
                 <h3 className="text-base font-bold text-scnt-text flex items-center gap-2">
-                  <span>✏️</span> Edit Offline Purchase #{editingSale.receiptNumber}
+                  <PencilIcon size={14} className="text-amber-400 shrink-0" /> Edit Offline Purchase #{editingSale.receiptNumber}
                 </h3>
                 <p className="text-xs text-scnt-text-muted mt-0.5">
                   Update sold fragrances, custom bazaar/event pricing, customer info, or payment method.
@@ -1707,8 +1750,8 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                 onClick={() => setEditingSale(null)}
                 className="text-scnt-text-muted hover:text-scnt-text rounded-lg p-1 text-sm"
               >
-                ✕
-              </button>
+              <CloseIcon size={16} />
+            </button>
             </div>
 
             <form onSubmit={handleSaveEditSale} className="space-y-6">
@@ -1792,7 +1835,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                                 className="text-red-400 hover:text-red-300 p-1 text-sm"
                                 title="Remove item"
                               >
-                                ✕
+                                <CloseIcon size={13} />
                               </button>
                             </div>
                           )
@@ -1937,7 +1980,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                         >
                           {Object.entries(CHANNEL_LABELS).map(([k, meta]) => (
                             <option key={k} value={k}>
-                              {meta.icon} {meta.label}
+                              {meta.label}
                             </option>
                           ))}
                         </select>
@@ -1963,7 +2006,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                         >
                           {Object.entries(PAYMENT_LABELS).map(([k, meta]) => (
                             <option key={k} value={k}>
-                              {meta.icon} {meta.label}
+                              {meta.label}
                             </option>
                           ))}
                         </select>

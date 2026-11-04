@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
+import { CartIcon, TagIcon, CloseIcon } from '../icons'
 import {
   fetchFunnelMetrics,
   fetchCustomerJourneys,
@@ -437,7 +438,7 @@ export function JourneysTab() {
                       <td className="py-3.5 px-4">
                         {sess.cart.hasItems ? (
                           <span className="inline-flex items-center gap-1 rounded bg-sky-500/15 px-2 py-0.5 text-xs font-semibold text-sky-300 border border-sky-500/30">
-                            🛒 {sess.cart.itemCount} items
+                            <CartIcon size={12} className="inline mr-1 text-scnt-accent" />{sess.cart.itemCount} items
                           </span>
                         ) : (
                           <span className="text-scnt-text-muted text-[11px]">Empty</span>
@@ -448,7 +449,7 @@ export function JourneysTab() {
                       <td className="py-3.5 px-4">
                         {sess.cart.promoCode ? (
                           <span className="inline-block rounded bg-amber-500/15 px-2 py-0.5 font-mono text-xs font-semibold text-amber-300 border border-amber-500/30">
-                            🏷️ {sess.cart.promoCode}
+                            <TagIcon size={12} className="inline mr-1 text-amber-300" />{sess.cart.promoCode}
                           </span>
                         ) : (
                           <span className="text-scnt-text-muted text-[11px]">—</span>
@@ -538,7 +539,7 @@ export function JourneysTab() {
                 className="flex-shrink-0 rounded-lg p-2 text-scnt-text-muted hover:bg-scnt-bg-elevated hover:text-scnt-text transition-colors"
                 aria-label="Close timeline"
               >
-                ✕
+                <CloseIcon size={16} />
               </button>
             </div>
 

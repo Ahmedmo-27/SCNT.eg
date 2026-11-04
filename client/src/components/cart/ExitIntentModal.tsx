@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../ui/Button'
+import { CloseIcon, PerfumeBottleIcon } from '../icons'
 import { useCartStore } from '../../store/cartStore'
 import { useI18n } from '../../i18n/I18nContext'
 import { formatEgp } from '../../lib/formatEgp'
@@ -18,50 +19,34 @@ export function ExitIntentModal() {
     if (sessionStorage.getItem(STORAGE_KEY)) return
 
     const handleMouseLeave = (e: MouseEvent) => {
-      // Trigger when mouse moves out of top of browser window (closing or switching tab)
-      if (e.clientY <= 10 && !sessionStorage.getItem(STORAGE_KEY)) {
-        sessionStorage.setItem(STORAGE_KEY, '1')
+      // Trigger when mouse moves towards upper boundary (desktop browser exit intent)
+      if (e.clientY <= 15 && !sessionStorage.getItem(STORAGE_KEY)) {
+        sessionStorage.setItem(STORAGE_KEY, 'true')
         setIsOpen(true)
       }
     }
 
     document.addEventListener('mouseleave', handleMouseLeave)
-    return () => {
-      document.removeEventListener('mouseleave', handleMouseLeave)
-    }
+    return () => document.removeEventListener('mouseleave', handleMouseLeave)
   }, [items.length])
-
-  useEffect(() => {
-    if (!isOpen) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false)
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen])
 
   if (!isOpen || items.length === 0) return null
 
-  const isAr = locale === 'ar'
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const handleDismiss = () => setIsOpen(false)
 
   const handleCompleteOrder = () => {
     setIsOpen(false)
     navigate('/checkout')
   }
 
-  const handleDismiss = () => {
-    setIsOpen(false)
-  }
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const isAr = locale === 'ar'
 
   return (
     <div
       role="dialog"
       aria-modal="true"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleDismiss()
-      }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
     >
       <div className="relative w-full max-w-lg max-h-[90svh] overflow-y-auto rounded-2xl border border-scnt-border bg-scnt-bg p-6 sm:p-8 shadow-2xl space-y-6">
         <button
@@ -70,7 +55,7 @@ export function ExitIntentModal() {
           className="absolute top-4 end-4 h-8 w-8 rounded-full border border-scnt-border/60 text-scnt-text-muted hover:text-scnt-text flex items-center justify-center transition-colors"
           aria-label={isAr ? 'إغلاق' : 'Close'}
         >
-          ✕
+          <CloseIcon size={14} />
         </button>
 
         <div className="space-y-2 text-center sm:text-start">
@@ -103,9 +88,7 @@ export function ExitIntentModal() {
                   />
                 ) : (
                   <div className="h-10 w-10 rounded-md bg-scnt-bg border border-scnt-border/60 flex items-center justify-center text-scnt-text-muted">
-                    <svg className="h-5 w-5 stroke-current fill-none" viewBox="0 0 24 24" strokeWidth="1.5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.75h4.5M10.5 3.75v3h3v-3M7.5 9.75h9a2.25 2.25 0 012.25 2.25v7.5A2.25 2.25 0 0116.5 21.75h-9A2.25 2.25 0 015.25 19.5V12A2.25 2.25 0 017.5 9.75z" />
-                    </svg>
+                    <PerfumeBottleIcon size={18} />
                   </div>
                 )}
                 <div className="min-w-0 truncate">

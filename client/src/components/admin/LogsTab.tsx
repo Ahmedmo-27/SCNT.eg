@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
+import { CloseIcon } from '../icons'
 import {
   fetchAdminLogs,
   fetchAdminLogStats,
@@ -400,8 +401,8 @@ export function LogsTab() {
                 onClick={() => setSelectedLog(null)}
                 className="rounded-lg p-1 text-scnt-text-muted hover:bg-scnt-bg-muted"
               >
-                ✕
-              </button>
+              <CloseIcon size={14} />
+            </button>
             </div>
 
             <div className="mt-4 space-y-4 text-xs font-sans">

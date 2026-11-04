@@ -91,8 +91,8 @@ const promotionCampaignSchema = new mongoose.Schema(
     },
     theme: {
       type: String,
-      enum: ["black_friday", "gold_luxury", "minimal_dark"],
-      default: "black_friday",
+      enum: ["black_friday", "gold_luxury", "minimal_dark", "scnt_signature"],
+      default: "scnt_signature",
     },
 
     // Email delivery overrides (optional)

@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { EightPointStar } from '../ui/EightPointStar'
+import { CheckIcon } from '../icons'
 import { Button } from '../ui/Button'
 import { CuratedExperienceCard } from './CuratedExperienceCard'
 import {
@@ -412,7 +413,7 @@ export function ScntMatcher({ embedded = false }: ScntMatcherProps) {
                             : 'border border-scnt-border/70 text-scnt-text-muted/60'
                       }`}
                     >
-                      {isPassed ? '✓' : idx + 1}
+                      {isPassed ? <CheckIcon size={11} strokeWidth={2.4} /> : idx + 1}
                     </span>
                     <span className="hidden sm:inline tracking-wider uppercase text-[0.68rem]">
                       {t(st.labelKey)}
@@ -706,7 +707,7 @@ export function ScntMatcher({ embedded = false }: ScntMatcherProps) {
                                 : 'bg-black/40 border-white/30 group-hover:scale-110 shadow-sm'
                             }`}>
                               <span className="text-[0.62rem] sm:text-xs">
-                                {isSelected ? '✓' : isAr ? '←' : '→'}
+                                {isSelected ? <CheckIcon size={13} strokeWidth={2.4} /> : isAr ? '←' : '→'}
                               </span>
                             </span>
                           </div>
@@ -1166,11 +1167,8 @@ export function ScntMatcher({ embedded = false }: ScntMatcherProps) {
                       animate={{ opacity: 1, y: 0 }}
                       className="mt-3 flex items-center justify-between rounded-xl bg-green-900/10 border border-green-800/30 px-4 py-2.5 text-xs text-green-950 font-medium"
                     >
-                      <span>
-                        {isAr
-                          ? `✓ تمت إضافة ${primaryFragrance.name} مع العينتين بنجاح!`
-                          : `✓ Added ${primaryFragrance.name} + discovery testers to your cart!`}
-                      </span>
+                      <span className="inline-flex items-center gap-1.5"><CheckIcon size={14} className="shrink-0 text-emerald-700" /><span>{isAr ? `تمت إضافة ${primaryFragrance.name} مع العينتين بنجاح!`
+                          : `Added ${primaryFragrance.name} + discovery testers to your cart!`}</span></span>
                       <Link to="/cart" className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-black font-semibold">
                         <span>{isAr ? 'عرض السلة' : 'View Cart'}</span>
                         <span aria-hidden="true">{isAr ? '←' : '→'}</span>
@@ -1214,7 +1212,7 @@ export function ScntMatcher({ embedded = false }: ScntMatcherProps) {
                         className="mt-2.5 flex items-center justify-between rounded-xl bg-green-900/10 border border-green-800/30 px-4 py-2 text-xs text-green-950 font-medium"
                       >
                         <span>
-                          {isAr ? '✓ تمت إضافة الباقة المزدوجة والشحن مجاني!' : '✓ Dual bottle bundle added with Free Shipping!'}
+                          <span className="inline-flex items-center gap-1.5"><CheckIcon size={14} className="shrink-0 text-emerald-700" /><span>{isAr ? 'تمت إضافة الباقة المزدوجة والشحن مجاني!' : 'Dual bottle bundle added with Free Shipping!'}</span></span>
                         </span>
                         <Link to="/cart" className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-black font-semibold">
                           <span>{isAr ? 'إتمام الشراء' : 'Checkout'}</span>

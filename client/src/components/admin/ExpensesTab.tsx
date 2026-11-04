@@ -2,6 +2,19 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import {
+  CheckIcon,
+  GiftIcon,
+  LightbulbIcon,
+  AlertTriangleIcon,
+  CloseIcon,
+  PencilIcon,
+  PerfumeBottleIcon,
+  PackageIcon,
+  ClockIcon,
+  ZapIcon,
+  SparklesIcon,
+} from '../icons'
+import {
   fetchExpenses,
   fetchExpenseSummary,
   createExpense,
@@ -817,7 +830,7 @@ export function ExpensesTab() {
       {/* Toast Feedback */}
       {feedback && (
         <div className="fixed bottom-6 right-6 z-50 rounded-lg bg-emerald-800 px-4 py-2.5 text-xs text-white shadow-xl animate-fade-in flex items-center gap-2">
-          <span>✓</span>
+          <CheckIcon size={14} className="shrink-0 text-emerald-400" />
           <span>{feedback}</span>
         </div>
       )}
@@ -913,7 +926,7 @@ export function ExpensesTab() {
             onClick={() => setShowGiveawayModal(true)}
             className="!px-4 !py-1.5 text-xs border-fuchsia-400 text-fuchsia-800 hover:bg-fuchsia-50"
           >
-            🎁 Log 3ml Decant Giveaway
+            Log 3ml Decant Giveaway
           </Button>
           <Button onClick={() => openAddModal()} className="!px-4 !py-1.5 text-xs">
             + Log Expense
@@ -1035,7 +1048,7 @@ export function ExpensesTab() {
                   ) : expenses.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="px-4 py-8 text-center text-scnt-text-muted">
-                        No expenses found. Click "+ Log Expense" or "🎁 Log 3ml Decant Giveaway" to record spendings.
+                        No expenses found. Click "+ Log Expense" or "Log 3ml Decant Giveaway" to record spendings.
                       </td>
                     </tr>
                   ) : (
@@ -1250,7 +1263,7 @@ export function ExpensesTab() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="sm:col-span-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900">
                   <div className="flex items-center gap-1.5 font-medium">
-                    <span>💡</span>
+                    <LightbulbIcon size={16} className="shrink-0 text-amber-400" />
                     <span>Individual Fragrance Oil Pricing</span>
                   </div>
                   <p className="mt-1 text-[11px] leading-relaxed text-amber-800">
@@ -2039,7 +2052,7 @@ export function ExpensesTab() {
                     >
                       {cogsAnalysis?.productAnalysis.map((p) => (
                         <option key={p._id} value={p.slug}>
-                          {p.name} {p.oilCostPerKg > 0 ? `(${formatEgp(fragranceOilUnit === 'grams' ? (p.oilCostPerGram || p.oilCostPerKg / 1000) : p.oilCostPerKg)}/${fragranceOilUnit === 'grams' ? 'g' : 'kg'})` : '(⚠ Oil Price Needed)'}
+                          {p.name} {p.oilCostPerKg > 0 ? `(${formatEgp(fragranceOilUnit === 'grams' ? (p.oilCostPerGram || p.oilCostPerKg / 1000) : p.oilCostPerKg)}/${fragranceOilUnit === 'grams' ? 'g' : 'kg'})` : '(Oil Price Needed)'}
                         </option>
                       ))}
                     </select>
@@ -2093,7 +2106,7 @@ export function ExpensesTab() {
               {selectedProduct && !isOilSet && (
                 <div className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-900 flex items-center justify-between">
                   <span>
-                    ⚠ <strong>Oil price required:</strong> Each fragrance has a unique oil price. Please enter <strong>{selectedProduct.name}</strong>'s oil cost per kg above to compute total COGS and profit margin.
+                    <span className="inline-flex items-center gap-1 text-amber-400"><AlertTriangleIcon size={14} className="shrink-0" /><strong>Oil price required:</strong></span> Each fragrance has a unique oil price. Please enter <strong>{selectedProduct.name}</strong>'s oil cost per kg above to compute total COGS and profit margin.
                   </span>
                   <span className="font-mono text-[11px] text-amber-800">
                     Base Packaging & Alcohol: {formatEgp(activeBreakdowns.size100ml.baseNonOilCost || 0)}
@@ -2333,7 +2346,7 @@ export function ExpensesTab() {
 
                 {/* Promotional Value / Gifting Impact */}
                 <div className="rounded-lg bg-fuchsia-500/10 p-3 space-y-2 border border-fuchsia-500/20 text-xs">
-                  <span className="font-medium text-fuchsia-900">🎁 Promotion Cost Impact</span>
+                  <span className="font-medium text-fuchsia-900 inline-flex items-center gap-1.5"><GiftIcon size={14} className="shrink-0" /><span>Promotion Cost Impact</span></span>
                   <p className="text-[11px] text-fuchsia-800">
                     Giving away 10 sample decants absorbs{' '}
                     <span className="font-semibold">{formatEgp(activeBreakdowns.decant3ml.totalCogs * 10)}</span> from
@@ -2419,7 +2432,7 @@ export function ExpensesTab() {
 
             <Card asMotion={false} className="p-4 bg-scnt-bg/60 border-scnt-border/60 flex flex-col justify-center">
               <Button onClick={() => setShowGiveawayModal(true)} className="w-full text-xs">
-                🎁 Log Promotional Giveaway
+                Log Promotional Giveaway
               </Button>
             </Card>
           </div>
@@ -2596,8 +2609,8 @@ export function ExpensesTab() {
                               onClick={() => setEditingOilProductId(null)}
                               className="rounded border border-scnt-border px-1.5 py-1 text-[11px] text-scnt-text-muted hover:text-scnt-text"
                             >
-                              ✕
-                            </button>
+              <CloseIcon size={16} />
+            </button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
@@ -2623,7 +2636,7 @@ export function ExpensesTab() {
                                     : 'bg-amber-500/10 text-amber-800 border-amber-500/20'
                                 }`}
                               >
-                                {prod.oilCostPerKg > 0 ? 'Oil Configured' : '⚠ Oil Price Needed'}
+                                {prod.oilCostPerKg > 0 ? 'Oil Configured' : 'Oil Price Needed'}
                               </span>
                             </div>
                             <button
@@ -2638,9 +2651,7 @@ export function ExpensesTab() {
                               }}
                               className="rounded p-1 text-[11px] text-scnt-text-muted hover:text-scnt-text hover:bg-scnt-card/60"
                               title={`Set this fragrance's oil cost in ${fragranceOilUnit === 'grams' ? 'EGP/gram' : 'EGP/kg'}`}
-                            >
-                              ✏️
-                            </button>
+                            ><PencilIcon size={13} className="shrink-0 text-amber-400" /></button>
                           </div>
                         )}
                       </td>
@@ -2693,8 +2704,8 @@ export function ExpensesTab() {
                 className="rounded-lg p-1 text-xs text-scnt-text-muted hover:text-scnt-text hover:bg-scnt-card/60 transition-colors"
                 aria-label="Close modal"
               >
-                ✕
-              </button>
+              <CloseIcon size={16} />
+            </button>
             </div>
 
             <form onSubmit={handleSaveExpense} className="space-y-3">
@@ -2896,7 +2907,7 @@ export function ExpensesTab() {
                 <div className="rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/5 p-4 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-base">🎁</span>
+                      <GiftIcon size={18} className="shrink-0 text-amber-400" />
                       <div>
                         <h4 className="text-xs font-semibold text-fuchsia-950">
                           Promotional Fragrance & Decant Giveaway Calculator
@@ -2937,7 +2948,7 @@ export function ExpensesTab() {
                               : 'text-scnt-text-muted hover:text-scnt-text'
                           }`}
                         >
-                          🧴 100ml Boxed Bottles
+                          <span className="inline-flex items-center gap-1.5"><PerfumeBottleIcon size={14} className="shrink-0" /><span>100ml Boxed Bottles</span></span>
                         </button>
                         <button
                           type="button"
@@ -2952,7 +2963,7 @@ export function ExpensesTab() {
                               : 'text-scnt-text-muted hover:text-scnt-text'
                           }`}
                         >
-                          🧴 50ml Boxed Bottles
+                          <span className="inline-flex items-center gap-1.5"><PerfumeBottleIcon size={14} className="shrink-0" /><span>50ml Boxed Bottles</span></span>
                         </button>
                         <button
                           type="button"
@@ -2967,7 +2978,7 @@ export function ExpensesTab() {
                               : 'text-scnt-text-muted hover:text-scnt-text'
                           }`}
                         >
-                          🎁 3ml Sample Decants
+                          <span className="inline-flex items-center gap-1.5"><GiftIcon size={14} className="shrink-0" /><span>3ml Sample Decants</span></span>
                         </button>
                         <button
                           type="button"
@@ -2980,7 +2991,7 @@ export function ExpensesTab() {
                               : 'text-scnt-text-muted hover:text-scnt-text'
                           }`}
                         >
-                          📦 Mixed Campaign
+                          <span className="inline-flex items-center gap-1.5"><PackageIcon size={14} className="shrink-0" /><span>Mixed Campaign</span></span>
                         </button>
                       </div>
 
@@ -3045,20 +3056,20 @@ export function ExpensesTab() {
                         {allocatedUnitsCount < promoTargetTotal && (
                           <div className="flex items-center justify-between text-[11px] text-amber-800">
                             <span>
-                              ⏳ <strong>{unassignedUnitsCount} {unassignedFormat} unassigned:</strong> priced at approx ~{formatEgp(activeBaselineUnitCost)}/ea ({formatEgp(unassignedCostSum)})
+                              <ClockIcon size={13} className="inline mr-1 text-amber-400" /><strong>{unassignedUnitsCount} {unassignedFormat} unassigned:</strong> priced at approx ~{formatEgp(activeBaselineUnitCost)}/ea ({formatEgp(unassignedCostSum)})
                             </span>
                           </div>
                         )}
 
                         {allocatedUnitsCount === promoTargetTotal && (
                           <div className="text-[11px] text-emerald-800 font-medium">
-                            ✓ Exactly {promoTargetTotal} / {promoTargetTotal} items allocated with exact fragrance COGS (bottles, boxes & packaging included)!
+                            <CheckIcon size={13} className="inline mr-1 text-emerald-400" />Exactly {promoTargetTotal} / {promoTargetTotal} items allocated with exact fragrance COGS (bottles, boxes & packaging included)!
                           </div>
                         )}
 
                         {allocatedUnitsCount > promoTargetTotal && (
                           <div className="text-[11px] text-rose-800 font-medium">
-                            ⚠ Warning: Allocated {allocatedUnitsCount} items exceeds campaign total of {promoTargetTotal}.
+                            <AlertTriangleIcon size={13} className="inline mr-1 text-rose-400" />Warning: Allocated {allocatedUnitsCount} items exceeds campaign total of {promoTargetTotal}.
                           </div>
                         )}
                       </div>
@@ -3120,8 +3131,8 @@ export function ExpensesTab() {
                                     className="p-1 text-scnt-text-muted hover:text-rose-600 text-xs"
                                     title="Remove fragrance"
                                   >
-                                    ✕
-                                  </button>
+              <CloseIcon size={16} />
+            </button>
                                 </div>
                               </div>
                             ))}
@@ -3277,7 +3288,7 @@ export function ExpensesTab() {
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-base">{isPriceModified ? '⚡' : '✓'}</span>
+                          <span className="inline-flex items-center">{isPriceModified ? <ZapIcon size={15} className="text-amber-400" /> : <CheckIcon size={15} className="text-emerald-400" />}</span>
                           <div>
                             <div className="font-medium">
                               {isPriceModified ? 'Price Adjusted from Saved Rate' : 'Loaded Active Saved Price'}:
@@ -3388,10 +3399,17 @@ export function ExpensesTab() {
                     {isPriceModified && currentSavedPrice && (
                       <div className="rounded bg-amber-500/10 border border-amber-500/30 p-2 text-[11px] text-amber-800 flex items-center justify-between">
                         <span>
-                          💡 Price adjusted from saved benchmark (was {formatEgp(currentSavedPrice.price)} → now {formatEgp(numericUnit)} / {formUnit}).
+                          <span className="inline-flex items-center gap-1"><LightbulbIcon size={13} className="shrink-0 text-amber-400" /><span>Price adjusted from saved benchmark</span></span> (was {formatEgp(currentSavedPrice.price)} → now {formatEgp(numericUnit)} / {formUnit}).
                         </span>
                         <span className="font-semibold text-amber-900">
-                          {formSyncBenchmark ? '✓ Sync benchmark enabled' : 'Check sync below to save'}
+                          {formSyncBenchmark ? (
+                          <span className="inline-flex items-center gap-1">
+                            <CheckIcon size={12} className="shrink-0 text-emerald-400" />
+                            <span>Sync benchmark enabled</span>
+                          </span>
+                        ) : (
+                          'Check sync below to save'
+                        )}
                         </span>
                       </div>
                     )}
@@ -3478,7 +3496,7 @@ export function ExpensesTab() {
           <div className="relative my-auto w-full max-w-lg rounded-xl bg-scnt-bg border border-scnt-border p-6 shadow-2xl max-h-[min(90vh,calc(100vh-3rem))] overflow-y-auto">
             <div className="flex items-start justify-between pb-2 mb-2 border-b border-scnt-border/40">
               <div>
-                <h3 className="text-base font-semibold text-scnt-text mb-0.5">🎁 Log Promotional Giveaway</h3>
+                <h3 className="text-base font-semibold text-scnt-text mb-0.5 flex items-center gap-1.5"><GiftIcon size={16} className="shrink-0 text-amber-400" /><span>Log Promotional Giveaway</span></h3>
                 <p className="text-[11px] text-scnt-text-muted">
                   Record promotional gifts for full boxed bottles (100ml / 50ml) or 3ml decants with custom cards.
                 </p>
@@ -3489,8 +3507,8 @@ export function ExpensesTab() {
                 className="rounded-lg p-1 text-xs text-scnt-text-muted hover:text-scnt-text hover:bg-scnt-card/60 transition-colors"
                 aria-label="Close modal"
               >
-                ✕
-              </button>
+              <CloseIcon size={16} />
+            </button>
             </div>
 
             <form onSubmit={handleLogGiveaway} className="space-y-3">
@@ -3642,7 +3660,7 @@ export function ExpensesTab() {
                           : 'text-scnt-text-muted hover:text-scnt-text'
                       }`}
                     >
-                      🧴 100ml Boxed Bottles
+                      <span className="inline-flex items-center gap-1.5"><PerfumeBottleIcon size={14} className="shrink-0" /><span>100ml Boxed Bottles</span></span>
                     </button>
                     <button
                       type="button"
@@ -3657,7 +3675,7 @@ export function ExpensesTab() {
                           : 'text-scnt-text-muted hover:text-scnt-text'
                       }`}
                     >
-                      🧴 50ml Boxed Bottles
+                      <span className="inline-flex items-center gap-1.5"><PerfumeBottleIcon size={14} className="shrink-0" /><span>50ml Boxed Bottles</span></span>
                     </button>
                     <button
                       type="button"
@@ -3672,7 +3690,7 @@ export function ExpensesTab() {
                           : 'text-scnt-text-muted hover:text-scnt-text'
                       }`}
                     >
-                      🎁 3ml Sample Decants
+                      <span className="inline-flex items-center gap-1.5"><GiftIcon size={14} className="shrink-0" /><span>3ml Sample Decants</span></span>
                     </button>
                     <button
                       type="button"
@@ -3685,7 +3703,7 @@ export function ExpensesTab() {
                           : 'text-scnt-text-muted hover:text-scnt-text'
                       }`}
                     >
-                      ✨ Mixed Campaign
+                      <span className="inline-flex items-center gap-1.5"><SparklesIcon size={14} className="shrink-0" /><span>Mixed Campaign</span></span>
                     </button>
                   </div>
 
@@ -3742,19 +3760,19 @@ export function ExpensesTab() {
 
                     {allocatedUnitsCount < promoTargetTotal && (
                       <div className="text-[11px] text-amber-800">
-                        ⏳ <strong>{unassignedUnitsCount} {unassignedFormat} unassigned:</strong> priced at approx ~{formatEgp(activeBaselineUnitCost)}/ea ({formatEgp(unassignedCostSum)})
+                        <ClockIcon size={13} className="inline mr-1 text-amber-400" /><strong>{unassignedUnitsCount} {unassignedFormat} unassigned:</strong> priced at approx ~{formatEgp(activeBaselineUnitCost)}/ea ({formatEgp(unassignedCostSum)})
                       </div>
                     )}
 
                     {allocatedUnitsCount === promoTargetTotal && (
                       <div className="text-[11px] text-emerald-800 font-medium">
-                        ✓ Exactly {promoTargetTotal} / {promoTargetTotal} items allocated with exact fragrance COGS!
+                        <CheckIcon size={13} className="inline mr-1 text-emerald-400" />Exactly {promoTargetTotal} / {promoTargetTotal} items allocated with exact fragrance COGS!
                       </div>
                     )}
 
                     {allocatedUnitsCount > promoTargetTotal && (
                       <div className="text-[11px] text-rose-800 font-medium">
-                        ⚠ Warning: Allocated {allocatedUnitsCount} items exceeds campaign total of {promoTargetTotal}.
+                        <AlertTriangleIcon size={13} className="inline mr-1 text-rose-400" />Warning: Allocated {allocatedUnitsCount} items exceeds campaign total of {promoTargetTotal}.
                       </div>
                     )}
                   </div>
@@ -3807,8 +3825,8 @@ export function ExpensesTab() {
                                 onClick={() => setPromoAllocations((prev) => prev.filter((_, i) => i !== idx))}
                                 className="text-scnt-text-muted hover:text-rose-600 text-xs p-0.5"
                               >
-                                ✕
-                              </button>
+              <CloseIcon size={16} />
+            </button>
                             </div>
                           </div>
                         ))}

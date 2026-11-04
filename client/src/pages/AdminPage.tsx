@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
+import { StarRating } from '../components/ui/StarRating'
 import { Button } from '../components/ui/Button'
+import { GlobeIcon, CartIcon, TargetIcon, RulerIcon, CloseIcon } from '../components/icons'
 import { Card } from '../components/ui/Card'
 import { getStoredAuthToken } from '../lib/authStorage'
 import { fetchProfile, type AuthUser } from '../services/authApi'
@@ -986,7 +988,7 @@ export function AdminPage() {
 
                   {promoForm.applicableProducts.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-scnt-border/60 p-3 text-center text-xs text-scnt-text-muted">
-                      🌐 <strong>Storewide:</strong> This promo applies to all products in cart. Click "+ Add Product Rule" to limit eligibility to specific products, sizes, and quantities.
+                      <span className="inline-flex items-center gap-1.5 text-purple-300"><GlobeIcon size={14} className="shrink-0" /><strong>Storewide:</strong></span> This promo applies to all products in cart. Click "+ Add Product Rule" to limit eligibility to specific products, sizes, and quantities.
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1153,12 +1155,22 @@ export function AdminPage() {
                                 : 'bg-blue-500/15 text-blue-300 border-blue-500/30'
                             }`}
                           >
-                            {item.discountScope === 'WHOLE_CART' ? '🛒 Whole Cart Discount' : '🎯 Certain Items Only'}
+                            {item.discountScope === 'WHOLE_CART' ? (
+                            <span className="inline-flex items-center gap-1">
+                              <CartIcon size={12} className="shrink-0" />
+                              <span>Whole Cart Discount</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1">
+                              <TargetIcon size={12} className="shrink-0" />
+                              <span>Certain Items Only</span>
+                            </span>
+                          )}
                           </span>
 
                           {item.applicableSizes && item.applicableSizes.length > 0 ? (
                             <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-300 border border-amber-500/30">
-                              📏 {item.applicableSizes.join(', ')} only
+                              <span className="inline-flex items-center gap-1"><RulerIcon size={12} className="shrink-0" /><span>{item.applicableSizes.join(', ')} only</span></span>
                             </span>
                           ) : null}
 
@@ -1180,7 +1192,7 @@ export function AdminPage() {
                               )
                             })
                           ) : (
-                            <span className="text-[11px] text-scnt-text-muted">🌐 Storewide</span>
+                            <span className="text-[11px] text-scnt-text-muted inline-flex items-center gap-1"><GlobeIcon size={12} className="shrink-0" /><span>Storewide</span></span>
                           )}
                         </div>
                       </div>
@@ -1240,8 +1252,8 @@ export function AdminPage() {
                       className="flex-shrink-0 rounded-lg p-2 text-scnt-text-muted hover:bg-scnt-bg-elevated hover:text-scnt-text transition-colors"
                       aria-label="Close coupon usage modal"
                     >
-                      ✕
-                    </button>
+              <CloseIcon size={14} />
+            </button>
                   </div>
 
                   {/* Scrollable Body */}
@@ -1293,7 +1305,7 @@ export function AdminPage() {
                                 <th className="py-2.5 px-3 font-medium">Customer</th>
                                 <th className="py-2.5 px-3 font-medium">Order Ref</th>
                                 <th className="py-2.5 px-3 font-medium">Discount Saved</th>
-                                <th className="py-2.5 px-3 font-medium">Order Total</th>
+                                <th className="py-2.5 px-3 font-medium text-right">Order Revenue</th>
                                 <th className="py-2.5 px-3 font-medium">Date</th>
                                 <th className="py-2.5 px-3 font-medium">Status</th>
                               </tr>
@@ -1314,7 +1326,7 @@ export function AdminPage() {
                                   <td className="py-2.5 px-3 text-emerald-400 font-mono font-semibold">
                                     -{formatMoney(red.discountAmount)}
                                   </td>
-                                  <td className="py-2.5 px-3 font-mono font-medium">
+                                  <td className="py-2.5 px-3 font-mono font-bold text-emerald-400 text-right">
                                     {formatMoney(red.orderTotal)}
                                   </td>
                                   <td className="py-2.5 px-3 text-scnt-text-muted whitespace-nowrap">
@@ -1394,7 +1406,7 @@ export function AdminPage() {
                               <div key={review._id} className="bg-scnt-bg-base/30 rounded p-3">
                                 <div className="flex items-start justify-between gap-2 mb-1">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-xs">{'★'.repeat(Math.floor(review.rating))}{review.rating % 1 !== 0 ? '✭' : ''}{'☆'.repeat(5 - Math.ceil(review.rating))}</span>
+                                    <StarRating rating={review.rating} size="sm" />
                                     <span className="text-xs text-scnt-text-muted">{review.rating.toFixed(1)}/5</span>
                                   </div>
                                 </div>

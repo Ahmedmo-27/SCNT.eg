@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
+import { CloseIcon } from '../icons'
 import type { AdminOrder, AdminOrderItem } from '../../services/adminApi'
 
 type Props = {
@@ -202,7 +203,7 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
                   onClick={() => setSearch('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-scnt-text-muted hover:text-scnt-text"
                 >
-                  ✕
+                  <CloseIcon size={12} />
                 </button>
               ) : null}
             </div>
@@ -342,14 +343,32 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
                     ) : null}
                   </div>
 
-                  {/* Right Column: Amount, Status Dropdown, Details Button */}
+                  {/* Right Column: Revenue, Amount, Status Dropdown, Details Button */}
                   <div className="flex flex-wrap items-center gap-3 shrink-0 pt-2 lg:pt-0 border-t border-scnt-border/30 lg:border-t-0 justify-between lg:justify-end">
                     <div className="text-right">
-                      <p className="font-mono text-lg font-bold text-scnt-text">
-                        {formatMoney(order.total)}
-                      </p>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-500">
+                          Revenue:
+                        </span>
+                        <span
+                          className={`font-mono text-lg font-bold ${
+                            order.status === 'CANCELLED'
+                              ? 'line-through text-scnt-text-muted opacity-60'
+                              : 'text-emerald-400'
+                          }`}
+                        >
+                          {order.status === 'CANCELLED' ? formatMoney(0) : formatMoney(order.total)}
+                        </span>
+                      </div>
                       <p className="text-[11px] text-scnt-text-muted">
-                        COD · {itemCount} {itemCount === 1 ? 'bottle' : 'bottles'}
+                        {order.status === 'CANCELLED' ? (
+                          <span className="text-rose-400 font-medium">Order Cancelled (0 EGP)</span>
+                        ) : (
+                          <>
+                            COD · {itemCount} {itemCount === 1 ? 'bottle' : 'bottles'}
+                            {order.shipping ? ` (incl. ${formatMoney(order.shipping)} shipping)` : ''}
+                          </>
+                        )}
                       </p>
                     </div>
 
@@ -442,8 +461,8 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
                 className="rounded-lg p-2 text-scnt-text-muted hover:bg-scnt-bg-elevated hover:text-scnt-text transition-colors"
                 aria-label="Close order details modal"
               >
-                ✕
-              </button>
+              <CloseIcon size={14} />
+            </button>
             </div>
 
             {/* Modal Body: Scrollable Content */}
@@ -580,7 +599,7 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
                         <th className="py-2.5 px-3 font-medium">Size</th>
                         <th className="py-2.5 px-3 font-medium text-right">Unit Price</th>
                         <th className="py-2.5 px-3 font-medium text-center">Qty</th>
-                        <th className="py-2.5 px-3 font-medium text-right">Line Total</th>
+                        <th className="py-2.5 px-3 font-medium text-right">Line Revenue</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-scnt-border/30 text-scnt-text">
@@ -687,9 +706,29 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
                   ) : null}
 
                   <div className="flex justify-between border-t border-scnt-border/50 pt-2 text-sm font-bold text-scnt-text">
-                    <span>Grand Total:</span>
-                    <span className="font-mono text-emerald-400">
+                    <span>Order Total:</span>
+                    <span className="font-mono text-scnt-text">
                       {formatMoney(selectedOrder.total)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2.5 text-xs mt-2">
+                    <div>
+                      <span className="font-semibold text-emerald-400 block">Realized Revenue:</span>
+                      <span className="text-[10px] text-scnt-text-muted">
+                        {selectedOrder.status === 'CANCELLED'
+                          ? 'Cancelled order — 0 EGP realized'
+                          : 'Revenue earned from this order'}
+                      </span>
+                    </div>
+                    <span
+                      className={`font-mono text-base font-bold ${
+                        selectedOrder.status === 'CANCELLED'
+                          ? 'line-through text-scnt-text-muted opacity-60'
+                          : 'text-emerald-400'
+                      }`}
+                    >
+                      {selectedOrder.status === 'CANCELLED' ? formatMoney(0) : formatMoney(selectedOrder.total)}
                     </span>
                   </div>
 

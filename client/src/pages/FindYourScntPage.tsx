@@ -4,6 +4,7 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { Layout } from '../components/layout/Layout'
 import { Button } from '../components/ui/Button'
 import { EightPointStar } from '../components/ui/EightPointStar'
+import { ZapIcon, GemIcon, SparklesIcon, CheckIcon } from '../components/icons'
 import { ScntMatcher } from '../components/matcher/ScntMatcher'
 import { useCatalog } from '../context/CatalogContext'
 import { useCartStore } from '../store/cartStore'
@@ -854,7 +855,7 @@ export function FindYourScntPage() {
                       experienceMode === 'matcher' ? 'text-scnt-bg/85' : 'text-scnt-text-muted'
                     }`}
                   >
-                    {isAr ? '⚡ ١٥ ثانية · حسب المناسبة والمشهد' : '⚡ 15s · Outing & Scene Finder'}
+                    <span className="inline-flex items-center gap-1"><ZapIcon size={11} className="shrink-0 text-amber-400" /><span>{isAr ? '١٥ ثانية · حسب المناسبة والمشهد' : '15s · Outing & Scene Finder'}</span></span>
                   </span>
                 </div>
               </button>
@@ -888,7 +889,7 @@ export function FindYourScntPage() {
                       experienceMode === 'identity' ? 'text-scnt-bg/85' : 'text-scnt-text-muted'
                     }`}
                   >
-                    {isAr ? '✨ استشارة متكاملة · حسب الشخصية' : '✨ Bespoke · Personality Archetype'}
+                    <span className="inline-flex items-center gap-1"><SparklesIcon size={11} className="shrink-0 text-scnt-accent" /><span>{isAr ? 'استشارة متكاملة · حسب الشخصية' : 'Bespoke · Personality Archetype'}</span></span>
                   </span>
                 </div>
               </button>
@@ -939,8 +940,9 @@ export function FindYourScntPage() {
                       </div>
                       <div className="absolute -end-12 -top-12 h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(184,155,94,0.18),transparent_70%)] blur-xl transition-all duration-700 group-hover:scale-125" />
                       <div className="relative">
-                        <span className="inline-block rounded-full border border-scnt-border/70 bg-scnt-bg/85 px-3 py-1 text-[0.68rem] font-semibold tracking-wide text-scnt-text shadow-xs backdrop-blur-sm">
-                          {t('fz.mode.expressBadge')}
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-scnt-border/70 bg-scnt-bg/85 px-3 py-1 text-[0.68rem] font-semibold tracking-wide text-scnt-text shadow-xs backdrop-blur-sm">
+                          <ZapIcon size={11} className="text-amber-400 shrink-0" />
+                          <span>{t('fz.mode.expressBadge')}</span>
                         </span>
                         <h3 className="mt-4 font-serif text-xl sm:text-2xl text-scnt-text group-hover:text-scnt-text">
                           {t('fz.mode.expressTitle')}
@@ -981,8 +983,9 @@ export function FindYourScntPage() {
                       </div>
                       <div className="absolute -end-12 -top-12 h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(122,143,163,0.22),transparent_70%)] blur-xl transition-all duration-700 group-hover:scale-125" />
                       <div className="relative">
-                        <span className="inline-block rounded-full border border-scnt-border/70 bg-scnt-bg/85 px-3 py-1 text-[0.68rem] font-semibold tracking-wide text-scnt-text shadow-xs backdrop-blur-sm">
-                          {t('fz.mode.fullBadge')}
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-scnt-border/70 bg-scnt-bg/85 px-3 py-1 text-[0.68rem] font-semibold tracking-wide text-scnt-text shadow-xs backdrop-blur-sm">
+                          <GemIcon size={11} className="text-cyan-400 shrink-0" />
+                          <span>{t('fz.mode.fullBadge')}</span>
                         </span>
                         <h3 className="mt-4 font-serif text-xl sm:text-2xl text-scnt-text">
                           {t('fz.mode.fullTitle')}
@@ -1761,7 +1764,7 @@ export function FindYourScntPage() {
                                 className="mt-3 flex items-center justify-between rounded-xl bg-green-900/10 border border-green-800/30 px-4 py-2.5 text-xs text-green-950 font-medium"
                               >
                                 <span>
-                                  {t('fz.identity.orderSuccess', { name: result.fragrance.name })}
+                                  <span className="inline-flex items-center gap-1.5"><CheckIcon size={14} className="shrink-0 text-emerald-700" /><span>{t('fz.identity.orderSuccess', { name: result.fragrance.name })}</span></span>
                                 </span>
                                 <Link
                                   to="/cart"

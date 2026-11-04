@@ -11,7 +11,7 @@ import { StarRating } from '../components/ui/StarRating'
 import { submitReviewAsGuest } from '../services/api'
 import { fetchProfile } from '../services/authApi'
 import { getStoredAuthToken } from '../lib/authStorage'
-import { InstagramIcon } from '../components/icons/InstagramIcon'
+import { InstagramIcon, StarIcon, CloseIcon } from '../components/icons'
 import { openInstagramProfile, INSTAGRAM_HANDLE } from '../utils/socialDeepLinks'
 
 export function ReviewPage() {
@@ -174,7 +174,7 @@ export function ReviewPage() {
             <div className="flex flex-col justify-between rounded-xl border border-scnt-border/80 bg-scnt-bg-base/60 p-5 transition-all hover:border-scnt-accent/50">
               <div>
                 <div className="flex items-center gap-2 text-scnt-accent mb-2">
-                  <span className="text-lg leading-none">★</span>
+                  <StarIcon size={18} className="text-scnt-accent" filled />
                   <h3 className="font-serif font-bold text-base text-scnt-text">
                     {t('review.writeReviewTitle')}
                   </h3>
@@ -358,15 +358,15 @@ export function ReviewPage() {
                         className="transition-transform hover:scale-110 active:scale-95 p-1"
                         aria-label={`${star} ${t('review.stars')}`}
                       >
-                        <span
-                          className={`text-4xl transition-colors ${
+                        <StarIcon
+                          size={32}
+                          filled={star <= (hoverRating || rating)}
+                          className={`transition-colors ${
                             star <= (hoverRating || rating)
                               ? 'text-scnt-accent'
                               : 'text-scnt-border/50'
                           }`}
-                        >
-                          ★
-                        </span>
+                        />
                       </button>
                     ))}
                   </div>
@@ -495,7 +495,7 @@ export function ReviewPage() {
                 className="absolute end-4 top-4 rounded-lg p-1.5 text-scnt-text-muted hover:bg-scnt-bg-elevated hover:text-scnt-text transition-colors"
                 aria-label={locale === 'ar' ? 'إغلاق' : 'Close modal'}
               >
-                ✕
+                <CloseIcon size={16} />
               </button>
               <h2 id="review-thank-you-title" className="text-2xl sm:text-3xl font-serif font-bold mb-3 text-scnt-text">
                 {t('review.thankYouTitle')}

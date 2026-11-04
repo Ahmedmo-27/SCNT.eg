@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { EightPointStar } from '../ui/EightPointStar'
 import { Button } from '../ui/Button'
 import { ScntMatcher } from '../matcher/ScntMatcher'
+import { ZapIcon, GemIcon } from '../icons'
 import { useI18n } from '../../i18n/I18nContext'
 
 export function FindYourScent() {
@@ -49,8 +50,9 @@ export function FindYourScent() {
           </div>
           <div>
             <div className="flex items-center justify-between">
-              <span className="rounded-full border border-scnt-border/80 bg-scnt-bg/80 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wider text-scnt-text">
-                {isAr ? '⚡ ١٥ ثانية · حسب المناسبة' : '⚡ 15s · Outing & Scene Finder'}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-scnt-border/80 bg-scnt-bg/80 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wider text-scnt-text">
+                <ZapIcon size={12} className="text-amber-400 shrink-0" />
+                <span>{isAr ? '١٥ ثانية · حسب المناسبة' : '15s · Outing & Scene Finder'}</span>
               </span>
               <span className="text-xs font-semibold text-scnt-text-muted">Mode 01</span>
             </div>
@@ -101,8 +103,9 @@ export function FindYourScent() {
           </div>
           <div>
             <div className="flex items-center justify-between">
-              <span className="rounded-full border border-scnt-border/80 bg-scnt-bg/80 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wider text-scnt-text">
-                {isAr ? '💎 استشارة حسية متكاملة' : '💎 Bespoke · Identity Atelier'}
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-scnt-border/80 bg-scnt-bg/80 px-3 py-1 text-[0.68rem] font-bold uppercase tracking-wider text-scnt-text">
+                <GemIcon size={12} className="text-cyan-400 shrink-0" />
+                <span>{isAr ? 'استشارة حسية متكاملة' : 'Bespoke · Identity Atelier'}</span>
               </span>
               <span className="text-xs font-semibold text-scnt-text-muted">Mode 02</span>
             </div>

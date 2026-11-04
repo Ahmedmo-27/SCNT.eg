@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
+import { PerfumeBottleIcon, AlertTriangleIcon, XCircleIcon, CheckIcon, ClockIcon, CloseIcon, PhoneIcon, WhatsAppIcon, EyeIcon, LinkIcon, MailIcon } from '../icons'
 import {
   fetchActiveCarts,
   sendCartRecoveryEmail,
@@ -392,7 +393,7 @@ export function ActiveCartsTab() {
                           />
                         ) : (
                           <div className="h-12 w-12 rounded-md bg-scnt-bg-elevated flex items-center justify-center text-scnt-text-muted">
-                            🧴
+                            <PerfumeBottleIcon size={20} className="text-scnt-text-muted/60" />
                           </div>
                         )}
 
@@ -455,7 +456,7 @@ export function ActiveCartsTab() {
                     {/* What's Still Missing Alert Box */}
                     <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3.5 space-y-2.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-base">⚠️</span>
+                        <AlertTriangleIcon size={16} className="text-amber-400 shrink-0" />
                         <h4 className="text-xs font-semibold uppercase tracking-wider text-rose-300">
                           What's Still Missing to Complete Order ({cart.orderProgress?.missingFields?.length || 0} items)
                         </h4>
@@ -468,7 +469,7 @@ export function ActiveCartsTab() {
                             className="rounded-md border border-rose-500/20 bg-scnt-bg/70 p-2.5 text-xs space-y-1"
                           >
                             <div className="flex items-center justify-between">
-                              <span className="font-semibold text-rose-300">❌ {item.field}</span>
+                              <span className="font-semibold text-rose-300 inline-flex items-center gap-1"><XCircleIcon size={13} className="shrink-0" /><span>{item.field}</span></span>
                               <span
                                 className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase ${
                                   item.severity === 'critical'
@@ -502,11 +503,11 @@ export function ActiveCartsTab() {
                               <span className="font-medium text-scnt-text">{step.label}</span>
                               {step.status === 'completed' ? (
                                 <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 border border-emerald-500/30">
-                                  ✓ Done
+                                  <span className="inline-flex items-center gap-1"><CheckIcon size={10} strokeWidth={2.4} /><span>Done</span></span>
                                 </span>
                               ) : step.status === 'partial' ? (
                                 <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-300 border border-amber-500/30">
-                                  ⏳ Partial
+                                  <span className="inline-flex items-center gap-1"><ClockIcon size={10} /><span>Partial</span></span>
                                 </span>
                               ) : step.status === 'skipped' ? (
                                 <span className="rounded bg-zinc-500/15 px-1.5 py-0.5 text-[10px] font-medium text-zinc-400 border border-zinc-500/30">
@@ -514,7 +515,7 @@ export function ActiveCartsTab() {
                                 </span>
                               ) : (
                                 <span className="rounded bg-rose-500/15 px-1.5 py-0.5 text-[10px] font-medium text-rose-300 border border-rose-500/30">
-                                  ✗ Missing
+                                  <span className="inline-flex items-center gap-1"><CloseIcon size={10} strokeWidth={2.4} /><span>Missing</span></span>
                                 </span>
                               )}
                             </div>
@@ -556,7 +557,7 @@ export function ActiveCartsTab() {
                                   href={`tel:${cart.orderProgress.contactInfo.phone}`}
                                   className="rounded border border-scnt-border/60 bg-scnt-bg-elevated px-2 py-0.5 text-[10px] text-scnt-text hover:border-scnt-text/40"
                                 >
-                                  📞 Call
+                                  <span className="inline-flex items-center gap-1"><PhoneIcon size={11} className="shrink-0" /><span>Call</span></span>
                                 </a>
                                 <a
                                   href={getWhatsAppUrl(cart.orderProgress.contactInfo.phone, cart._id)}
@@ -564,7 +565,7 @@ export function ActiveCartsTab() {
                                   rel="noreferrer"
                                   className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400 hover:bg-emerald-500/20"
                                 >
-                                  💬 WhatsApp
+                                  <span className="inline-flex items-center gap-1"><WhatsAppIcon size={11} className="shrink-0" /><span>WhatsApp</span></span>
                                 </a>
                               </div>
                             ) : null}
@@ -643,7 +644,7 @@ export function ActiveCartsTab() {
                       className="text-[11px] py-1 px-3 border-scnt-border/80 text-scnt-text hover:bg-scnt-bg-elevated"
                       onClick={() => toggleDetails(cart._id)}
                     >
-                      👁️ {expandedCartIds[cart._id] ? 'Hide Details' : 'Show Details'}
+                      <span className="inline-flex items-center gap-1.5"><EyeIcon size={13} className="shrink-0" /><span>{expandedCartIds[cart._id] ? 'Hide Details' : 'Show Details'}</span></span>
                     </Button>
 
                     <Button
@@ -651,7 +652,7 @@ export function ActiveCartsTab() {
                       className="text-[11px] py-1 px-3"
                       onClick={() => void handleCopyRecoveryLink(cart._id)}
                     >
-                      🔗 {actionFeedback[cart._id] === 'Link Copied!' ? 'Link Copied!' : 'Copy Cart Link'}
+                      <span className="inline-flex items-center gap-1.5"><LinkIcon size={13} className="shrink-0" /><span>{actionFeedback[cart._id] === 'Link Copied!' ? 'Link Copied!' : 'Copy Cart Link'}</span></span>
                     </Button>
 
                     {cart.user?.email || cart.contact?.email ? (
@@ -661,7 +662,7 @@ export function ActiveCartsTab() {
                         disabled={sendingEmailCartId === cart._id}
                         onClick={() => void handleSendRecoveryEmail(cart._id)}
                       >
-                        ✉️ {sendingEmailCartId === cart._id ? 'Sending...' : 'Send Recovery Email'}
+                        <span className="inline-flex items-center gap-1.5"><MailIcon size={13} className="shrink-0" /><span>{sendingEmailCartId === cart._id ? 'Sending...' : 'Send Recovery Email'}</span></span>
                       </Button>
                     ) : null}
 
@@ -672,7 +673,7 @@ export function ActiveCartsTab() {
                         rel="noreferrer"
                         className="inline-flex items-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors"
                       >
-                        💬 WhatsApp
+                        <span className="inline-flex items-center gap-1"><WhatsAppIcon size={11} className="shrink-0" /><span>WhatsApp</span></span>
                       </a>
                     ) : null}
                   </div>

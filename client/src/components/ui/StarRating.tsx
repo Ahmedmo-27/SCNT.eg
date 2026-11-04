@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { StarIcon } from '../icons'
 
 interface StarRatingProps {
   rating: number
@@ -15,12 +16,13 @@ export const StarRating = memo(function StarRating({
   interactive = false,
   onRatingChange,
 }: StarRatingProps) {
-  const sizeClasses = {
-    sm: 'text-lg',
-    md: 'text-2xl',
-    lg: 'text-4xl',
+  const pixelSizes = {
+    sm: 14,
+    md: 18,
+    lg: 24,
   }
 
+  const iconSize = pixelSizes[size]
   const displayRating = Math.round(rating * 2) / 2
   const fullStars = Math.floor(displayRating)
   const hasHalfStar = displayRating % 1 !== 0
@@ -35,26 +37,19 @@ export const StarRating = memo(function StarRating({
           return (
             <button
               key={star}
+              type="button"
               onClick={() => interactive && onRatingChange?.(star)}
               disabled={!interactive}
-              className={`${sizeClasses[size]} transition-colors ${
-                interactive ? 'cursor-pointer hover:opacity-70' : 'cursor-default'
+              className={`inline-flex items-center justify-center transition-transform ${
+                interactive ? 'cursor-pointer hover:scale-115 active:scale-95' : 'cursor-default'
               }`}
             >
               {isFilled ? (
-                <span className="text-scnt-accent">★</span>
+                <StarIcon size={iconSize} filled className="text-scnt-accent" />
               ) : isHalf ? (
-                <span className="relative inline-block">
-                  <span className="text-scnt-border/50">★</span>
-                  <span
-                    className="absolute top-0 left-0 overflow-hidden w-1/2 text-scnt-accent"
-                    style={{ overflow: 'hidden' }}
-                  >
-                    ★
-                  </span>
-                </span>
+                <StarIcon size={iconSize} half className="text-scnt-accent" />
               ) : (
-                <span className="text-scnt-border/50">★</span>
+                <StarIcon size={iconSize} filled={false} className="text-scnt-border/60" />
               )}
             </button>
           )
