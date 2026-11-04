@@ -36,6 +36,9 @@ export type AdminOrderItem = {
   size?: string
   quantity: number
   price: number
+  unitCogs?: number
+  lineCogs?: number
+  lineNetRevenue?: number
 }
 
 export type AdminOrderAddress = {
@@ -64,6 +67,9 @@ export type AdminOrder = {
   createdAt: string
   updatedAt?: string
   user?: { _id: string; full_name?: string; email?: string }
+  cogs?: number
+  netRevenue?: number
+  marginPercent?: number
 }
 
 export type AdminCollection = {
@@ -126,6 +132,9 @@ export type AdminProduct = {
   stock: number
   rating?: number
   reviews?: AdminReview[]
+  oilCostPerMl?: number
+  oilCostPerKg?: number
+  oilCostPerGram?: number
 }
 
 export type PromotionalMailPayload = {
@@ -255,6 +264,9 @@ export type OfflineSaleItem = {
   quantity: number
   unitPrice: number
   subtotal: number
+  unitCogs?: number
+  lineCogs?: number
+  lineNetRevenue?: number
 }
 
 export type OfflineSaleCustomer = {
@@ -280,6 +292,9 @@ export type OfflineSale = {
   deductedStock: boolean
   createdAt: string
   updatedAt: string
+  cogs?: number
+  netRevenue?: number
+  marginPercent?: number
 }
 
 export type CreateOfflineSalePayload = {

@@ -90,6 +90,69 @@ const CHANNEL_LABELS: Record<string, { label: string; icon: React.ComponentType<
   OTHER: { label: 'Direct Sale', icon: TagIcon },
 }
 
+export function getOfflineSaleFinancials(sale: OfflineSale, products?: AdminProduct[]) {
+  // If already computed by backend:
+  if (sale.cogs !== undefined && sale.netRevenue !== undefined) {
+    return {
+      cogs: sale.cogs,
+      netRevenue: sale.netRevenue,
+      marginPercent:
+        sale.marginPercent ??
+        (sale.total > 0 ? Number(((sale.netRevenue / sale.total) * 100).toFixed(1)) : 0),
+    }
+  }
+
+  // Fallback calculation
+  const subtotal =
+    sale.subtotal ||
+    (sale.items || []).reduce((acc, it) => acc + (it.subtotal || it.unitPrice * it.quantity), 0)
+  const discount = sale.discount || 0
+  const fragranceNetSales = Math.max(0, subtotal - discount)
+
+  let computedCogs = 0
+  if (sale.items) {
+    for (const item of sale.items) {
+      const qty = item.quantity || 1
+      const sizeStr = (item.size || '100ml').toLowerCase()
+      let unitCogs = 115
+      if (sizeStr.includes('50')) unitCogs = 82
+      else if (sizeStr.includes('3') || sizeStr.includes('decant')) unitCogs = 15
+
+      const prodId =
+        typeof item.product === 'object' && item.product?._id
+          ? item.product._id
+          : typeof item.product === 'string'
+          ? item.product
+          : null
+
+      if (prodId && products) {
+        const prod = products.find((p) => p._id === prodId)
+        if (prod && (prod.oilCostPerMl || prod.oilCostPerKg)) {
+          const oilPerMl = prod.oilCostPerMl || (prod.oilCostPerKg ? prod.oilCostPerKg / 1000 : 0)
+          if (sizeStr.includes('50')) {
+            unitCogs = Math.round(71 + 12.5 * oilPerMl)
+          } else if (sizeStr.includes('3')) {
+            unitCogs = Math.round(14 + 1 * oilPerMl)
+          } else {
+            unitCogs = Math.round(93 + 25 * oilPerMl)
+          }
+        }
+      }
+      computedCogs += unitCogs * qty
+    }
+  }
+
+  const netRevenue = Math.max(0, Math.round((fragranceNetSales - computedCogs) * 100) / 100)
+  const marginPercent =
+    fragranceNetSales > 0 ? Number(((netRevenue / fragranceNetSales) * 100).toFixed(1)) : 0
+
+  return {
+    cogs: computedCogs,
+    netRevenue,
+    marginPercent,
+  }
+}
+
 export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProps) {
   const [sales, setSales] = useState<OfflineSale[]>([])
   const [summary, setSummary] = useState<OfflineSalesSummary | null>(null)
@@ -1395,7 +1458,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                     Payment
                   </th>
                   <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px] text-right">
-                    Order Revenue
+                    Net Revenue (After COGS)
                   </th>
                   <th className="py-3 px-4 font-semibold uppercase tracking-wider text-[11px] text-right">
                     Actions
@@ -1443,20 +1506,38 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                       {/* Products Sold */}
                       <td className="py-3 px-4 max-w-[280px]">
                         <div className="space-y-1">
-                          {sale.items.map((it, idx) => (
-                            <div key={idx} className="flex items-center justify-between gap-2 text-[11px]">
-                              <span className="text-scnt-text truncate">
-                                <strong className="text-amber-400">{it.quantity}x</strong> {it.productName}{' '}
-                                <span className="text-scnt-text-muted">({it.size})</span>
-                              </span>
-                              <span className="font-mono text-scnt-text-muted shrink-0 text-right">
-                                @ {formatEgp(it.unitPrice)}
-                                <span className="ml-1 text-emerald-400 font-medium">
-                                  ({formatEgp(it.subtotal || it.unitPrice * it.quantity)})
+                          {sale.items.map((it, idx) => {
+                            const sizeStr = (it.size || '100ml').toLowerCase()
+                            let unitCogs = it.unitCogs || (sizeStr.includes('50') ? 82 : sizeStr.includes('3') ? 15 : 115)
+                            const prodId = typeof it.product === 'object' && it.product?._id ? it.product._id : typeof it.product === 'string' ? it.product : null
+                            if (prodId && products && !it.unitCogs) {
+                              const p = products.find((prod) => prod._id === prodId)
+                              if (p && (p.oilCostPerMl || p.oilCostPerKg)) {
+                                const oilPerMl = p.oilCostPerMl || (p.oilCostPerKg ? p.oilCostPerKg / 1000 : 0)
+                                if (sizeStr.includes('50')) unitCogs = Math.round(71 + 12.5 * oilPerMl)
+                                else if (sizeStr.includes('3')) unitCogs = Math.round(14 + 1 * oilPerMl)
+                                else unitCogs = Math.round(93 + 25 * oilPerMl)
+                              }
+                            }
+                            const lineSubtotal = it.subtotal || it.unitPrice * it.quantity
+                            const lineCogs = it.lineCogs ?? unitCogs * it.quantity
+                            const lineProfit = it.lineNetRevenue ?? Math.max(0, lineSubtotal - lineCogs)
+
+                            return (
+                              <div key={idx} className="flex items-center justify-between gap-2 text-[11px]">
+                                <span className="text-scnt-text truncate">
+                                  <strong className="text-amber-400">{it.quantity}x</strong> {it.productName}{' '}
+                                  <span className="text-scnt-text-muted">({it.size})</span>
                                 </span>
-                              </span>
-                            </div>
-                          ))}
+                                <span className="font-mono text-scnt-text-muted shrink-0 text-right">
+                                  @ {formatEgp(it.unitPrice)}
+                                  <span className="ml-1 text-emerald-400 font-medium">
+                                    (+{formatEgp(lineProfit)})
+                                  </span>
+                                </span>
+                              </div>
+                            )
+                          })}
                         </div>
                       </td>
 
@@ -1472,24 +1553,29 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                         </span>
                       </td>
 
-                      {/* Revenue */}
-                      <td className="py-3 px-4 text-right">
-                        <span className="text-[10px] uppercase font-semibold text-emerald-500 tracking-wider block">
-                          Revenue
-                        </span>
-                        <span className="font-mono font-bold text-sm text-emerald-400 block">
-                          {formatEgp(sale.total)}
-                        </span>
-                        {sale.discount > 0 ? (
-                          <span className="text-[10px] text-red-300 block font-mono">
-                            Disc: -{formatEgp(sale.discount)}
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-scnt-text-muted block">
-                            Subtotal: {formatEgp(sale.subtotal)}
-                          </span>
-                        )}
-                      </td>
+                      {/* Net Revenue after Spendings & COGS */}
+                      {(() => {
+                        const fin = getOfflineSaleFinancials(sale, products)
+                        return (
+                          <td className="py-3 px-4 text-right">
+                            <span className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider block">
+                              Net Revenue
+                            </span>
+                            <span className="font-mono font-bold text-base text-emerald-400 block">
+                              +{formatEgp(fin.netRevenue)}
+                            </span>
+                            <div className="text-[10px] text-scnt-text-muted space-y-0.5 mt-0.5">
+                              <span className="block">Billed: <strong className="text-scnt-text font-mono">{formatEgp(sale.total)}</strong></span>
+                              <span className="block text-amber-400 font-mono">COGS: -{formatEgp(fin.cogs)}</span>
+                              {fin.marginPercent > 0 && (
+                                <span className="inline-block rounded bg-emerald-500/10 px-1.5 py-0.2 text-[10px] font-mono text-emerald-400 border border-emerald-500/20 font-medium">
+                                  {fin.marginPercent}% margin
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        )
+                      })()}
 
                       {/* Actions */}
                       <td className="py-3 px-4 text-right">
@@ -1646,13 +1732,36 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                 <span>Total Paid:</span>
                 <span className="font-mono text-emerald-400">{formatEgp(receiptSale.total)}</span>
               </div>
-              <div className="flex justify-between items-center bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2.5 text-xs mt-2">
-                <div>
-                  <span className="font-semibold text-emerald-400 block">Realized Revenue:</span>
-                  <span className="text-[10px] text-scnt-text-muted">Net revenue gotten from this purchase</span>
-                </div>
-                <span className="font-mono text-base font-bold text-emerald-400">{formatEgp(receiptSale.total)}</span>
-              </div>
+              {(() => {
+                const rFin = getOfflineSaleFinancials(receiptSale, products)
+                return (
+                  <>
+                    <div className="flex justify-between text-amber-400 pt-1.5 border-t border-scnt-border/40">
+                      <div>
+                        <span className="font-medium block">Spendings & COGS:</span>
+                        <span className="text-[10px] text-scnt-text-muted">Fragrance packaging & ingredients</span>
+                      </div>
+                      <span className="font-mono font-semibold text-right">
+                        -{formatEgp(rFin.cogs)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center bg-emerald-500/15 border border-emerald-500/30 rounded-lg p-2.5 text-xs mt-2">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-emerald-300 block">Actual Revenue (Net Profit):</span>
+                          {rFin.marginPercent > 0 && (
+                            <span className="rounded bg-emerald-500/20 px-1.5 py-0.2 text-[10px] font-mono text-emerald-300 font-semibold border border-emerald-500/30">
+                              {rFin.marginPercent}% margin
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-scnt-text-muted">Net profit gained from this purchase after deducting COGS</span>
+                      </div>
+                      <span className="font-mono text-base font-bold text-emerald-400">+{formatEgp(rFin.netRevenue)}</span>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
 
             {receiptSale.notes && (

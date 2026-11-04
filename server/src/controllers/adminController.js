@@ -12,7 +12,12 @@ const userRepository = require("../repositories/userRepository");
 const { sendPromotionalEmail } = require("../services/emailService");
 const { getCache, setCache, deleteCache, invalidatePattern } = require("../utils/cache");
 const { recordAuditAction } = require("../utils/auditLogger");
-const { getOrCreateCostConfig, calculateStorewideRevenueAndSales } = require("../utils/cogsCalculator");
+const {
+  getOrCreateCostConfig,
+  calculateStorewideRevenueAndSales,
+  buildProductCogsMap,
+  calculateSingleOrderMarginAndCogs,
+} = require("../utils/cogsCalculator");
 
 const getAllOrders = asyncHandler(async (req, res) => {
   const cacheKey = "admin:orders:all";
@@ -23,12 +28,30 @@ const getAllOrders = asyncHandler(async (req, res) => {
     return res.status(200).json(successResponse(cachedOrders));
   }
 
-  const orders = await orderService.getAllOrders();
-  
+  const [orders, products, costConfig] = await Promise.all([
+    orderService.getAllOrders(),
+    Product.find().lean(),
+    getOrCreateCostConfig(),
+  ]);
+
+  const { productMap, defaultSizeCogs } = buildProductCogsMap(products, costConfig);
+
+  const enrichedOrders = orders.map((o) => {
+    const raw = typeof o.toObject === "function" ? o.toObject() : { ...o };
+    const metrics = calculateSingleOrderMarginAndCogs(raw, productMap, defaultSizeCogs);
+    return {
+      ...raw,
+      cogs: metrics.cogs,
+      netRevenue: metrics.netRevenue,
+      marginPercent: metrics.marginPercent,
+      items: metrics.items,
+    };
+  });
+
   // Cache for 10 minutes (orders change frequently)
-  await setCache(cacheKey, orders, 600);
-  
-  res.status(200).json(successResponse(orders));
+  await setCache(cacheKey, enrichedOrders, 600);
+
+  res.status(200).json(successResponse(enrichedOrders));
 });
 
 const updateOrderStatus = asyncHandler(async (req, res) => {

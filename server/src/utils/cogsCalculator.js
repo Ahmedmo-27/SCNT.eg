@@ -435,6 +435,124 @@ function calculateStorewideRevenueAndSales({ orders = [], offlineSales = [], pro
   };
 }
 
+/**
+ * Calculate COGS, net revenue (actual profit after spendings/COGS), and margin for a single online order
+ */
+function calculateSingleOrderMarginAndCogs(order, productMap, defaultSizeCogs) {
+  if (!order) {
+    return { cogs: 0, netRevenue: 0, marginPercent: 0, fragranceNetSales: 0, items: [] };
+  }
+
+  const isCancelled = order.status === 'CANCELLED';
+
+  const orderSubtotal =
+    Number(order.subtotal) ||
+    (order.items || []).reduce(
+      (sum, it) => sum + (Number(it.price) || 0) * (Number(it.quantity) || 1),
+      0
+    );
+  const orderDiscount = Number(order.discount) || 0;
+  const fragranceNetSales = Math.max(0, orderSubtotal - orderDiscount);
+
+  let orderItemsCogs = 0;
+  const itemsWithCogs = [];
+
+  if (Array.isArray(order.items)) {
+    for (const item of order.items) {
+      const itObj = typeof item.toObject === 'function' ? item.toObject() : { ...item };
+      const qty = Number(itObj.quantity) || 1;
+      const unitCogs = getItemUnitCogs(itObj, productMap, defaultSizeCogs);
+      const lineCogs = Number((unitCogs * qty).toFixed(2));
+      const lineRevenue = (Number(itObj.price) || 0) * qty;
+      const lineNetRevenue = Number((lineRevenue - lineCogs).toFixed(2));
+
+      orderItemsCogs += lineCogs;
+      itemsWithCogs.push({
+        ...itObj,
+        unitCogs,
+        lineCogs,
+        lineNetRevenue,
+      });
+    }
+  }
+
+  if (isCancelled) {
+    return {
+      cogs: 0,
+      netRevenue: 0,
+      marginPercent: 0,
+      fragranceNetSales: 0,
+      items: itemsWithCogs,
+    };
+  }
+
+  const netRevenue = Number((fragranceNetSales - orderItemsCogs).toFixed(2));
+  const marginPercent =
+    fragranceNetSales > 0 ? Number(((netRevenue / fragranceNetSales) * 100).toFixed(1)) : 0;
+
+  return {
+    cogs: Number(orderItemsCogs.toFixed(2)),
+    netRevenue,
+    marginPercent,
+    fragranceNetSales: Number(fragranceNetSales.toFixed(2)),
+    items: itemsWithCogs,
+  };
+}
+
+/**
+ * Calculate COGS, net revenue (actual profit after spendings/COGS), and margin for a single offline sale
+ */
+function calculateSingleOfflineSaleMarginAndCogs(sale, productMap, defaultSizeCogs) {
+  if (!sale) {
+    return { cogs: 0, netRevenue: 0, marginPercent: 0, fragranceNetSales: 0, items: [] };
+  }
+
+  const saleSubtotal =
+    Number(sale.subtotal) ||
+    (sale.items || []).reduce(
+      (sum, it) =>
+        sum + (Number(it.subtotal) || (Number(it.unitPrice) || 0) * (Number(it.quantity) || 1)),
+      0
+    );
+  const saleDiscount = Number(sale.discount) || 0;
+  const fragranceNetSales = Math.max(0, saleSubtotal - saleDiscount);
+
+  let saleItemsCogs = 0;
+  const itemsWithCogs = [];
+
+  if (Array.isArray(sale.items)) {
+    for (const item of sale.items) {
+      const itObj = typeof item.toObject === 'function' ? item.toObject() : { ...item };
+      const qty = Number(itObj.quantity) || 1;
+      const unitCogs = getItemUnitCogs(itObj, productMap, defaultSizeCogs);
+      const lineCogs = Number((unitCogs * qty).toFixed(2));
+      const linePrice = Number(itObj.unitPrice) || 0;
+      const lineSubtotal = Number(itObj.subtotal) || linePrice * qty;
+      const lineNetRevenue = Number((lineSubtotal - lineCogs).toFixed(2));
+
+      saleItemsCogs += lineCogs;
+      itemsWithCogs.push({
+        ...itObj,
+        unitCogs,
+        lineCogs,
+        lineNetRevenue,
+      });
+    }
+  }
+
+  const netRevenue = Number((fragranceNetSales - saleItemsCogs).toFixed(2));
+  const marginPercent =
+    fragranceNetSales > 0 ? Number(((netRevenue / fragranceNetSales) * 100).toFixed(1)) : 0;
+
+  return {
+    cogs: Number(saleItemsCogs.toFixed(2)),
+    netRevenue,
+    marginPercent,
+    fragranceNetSales: Number(fragranceNetSales.toFixed(2)),
+    items: itemsWithCogs,
+  };
+}
+
 module.exports = {
   getOrCreateCostConfig,
   computeStandardCogs,
@@ -444,5 +562,7 @@ module.exports = {
   calculateOrdersMarginAndSales,
   calculateOfflineSalesMarginAndSales,
   calculateStorewideRevenueAndSales,
+  calculateSingleOrderMarginAndCogs,
+  calculateSingleOfflineSaleMarginAndCogs,
   DEFAULT_COST_CONFIG,
 };

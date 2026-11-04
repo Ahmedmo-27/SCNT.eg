@@ -830,6 +830,7 @@ export function AdminPage() {
         {activeTab === 'orders' ? (
           <OnlineOrdersTab
             orders={orders}
+            products={products}
             onStatusChange={changeOrderStatus}
             busy={busy}
             onRefresh={loadAll}

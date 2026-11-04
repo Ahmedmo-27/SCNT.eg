@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { Card } from '../ui/Card'
 import { Button } from '../ui/Button'
 import { CloseIcon } from '../icons'
-import type { AdminOrder, AdminOrderItem } from '../../services/adminApi'
+import type { AdminOrder, AdminOrderItem, AdminProduct } from '../../services/adminApi'
 
 type Props = {
   orders: AdminOrder[]
+  products?: AdminProduct[]
   onStatusChange: (id: string, status: AdminOrder['status']) => Promise<void>
   busy: boolean
   onRefresh?: () => Promise<void>
@@ -17,6 +18,80 @@ function formatMoney(value?: number): string {
     currency: 'EGP',
     maximumFractionDigits: 0,
   }).format(value || 0)
+}
+
+export function getOrderFinancials(order: AdminOrder, products?: AdminProduct[]) {
+  if (order.status === 'CANCELLED') {
+    return {
+      cogs: 0,
+      netRevenue: 0,
+      marginPercent: 0,
+      fragranceNetSales: 0,
+    }
+  }
+
+  // If already computed by backend
+  if (order.cogs !== undefined && order.netRevenue !== undefined) {
+    return {
+      cogs: order.cogs,
+      netRevenue: order.netRevenue,
+      marginPercent:
+        order.marginPercent ??
+        (order.total > 0 ? Number(((order.netRevenue / order.total) * 100).toFixed(1)) : 0),
+      fragranceNetSales: Math.max(0, (order.subtotal ?? order.total) - (order.discount ?? 0)),
+    }
+  }
+
+  // Client-side fallback computation
+  const subtotal =
+    order.subtotal ??
+    (order.items || []).reduce((acc, i) => acc + (i.price || 0) * (i.quantity || 1), 0)
+  const discount = order.discount || 0
+  const fragranceNetSales = Math.max(0, subtotal - discount)
+
+  let computedCogs = 0
+  if (order.items) {
+    for (const item of order.items) {
+      const qty = item.quantity || 1
+      const sizeStr = (item.size || '100ml').toLowerCase()
+      let unitCogs = 115
+      if (sizeStr.includes('50')) unitCogs = 82
+      else if (sizeStr.includes('3') || sizeStr.includes('decant')) unitCogs = 15
+
+      const prodId =
+        item.product && typeof item.product === 'object' && item.product._id
+          ? item.product._id
+          : typeof item.product === 'string'
+          ? item.product
+          : null
+
+      if (prodId && products) {
+        const prod = products.find((p) => p._id === prodId)
+        if (prod && (prod.oilCostPerMl || prod.oilCostPerKg)) {
+          const oilPerMl = prod.oilCostPerMl || (prod.oilCostPerKg ? prod.oilCostPerKg / 1000 : 0)
+          if (sizeStr.includes('50')) {
+            unitCogs = Math.round(71 + 12.5 * oilPerMl)
+          } else if (sizeStr.includes('3')) {
+            unitCogs = Math.round(14 + 1 * oilPerMl)
+          } else {
+            unitCogs = Math.round(93 + 25 * oilPerMl)
+          }
+        }
+      }
+      computedCogs += unitCogs * qty
+    }
+  }
+
+  const netRevenue = Math.max(0, Math.round((fragranceNetSales - computedCogs) * 100) / 100)
+  const marginPercent =
+    fragranceNetSales > 0 ? Number(((netRevenue / fragranceNetSales) * 100).toFixed(1)) : 0
+
+  return {
+    cogs: computedCogs,
+    netRevenue,
+    marginPercent,
+    fragranceNetSales,
+  }
 }
 
 function orderRef(id: string): string {
@@ -63,7 +138,7 @@ const statusBadgeStyles: Record<AdminOrder['status'], { badge: string; dot: stri
   },
 }
 
-export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Props) {
+export function OnlineOrdersTab({ orders, products, onStatusChange, busy, onRefresh }: Props) {
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'ALL' | AdminOrder['status']>('ALL')
@@ -150,9 +225,19 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
     }
   }, [orders])
 
-  const totalRevenue = useMemo(() => {
-    return filteredOrders.reduce((sum, o) => (o.status === 'CANCELLED' ? sum : sum + (o.total || 0)), 0)
-  }, [filteredOrders])
+  const filteredMetrics = useMemo(() => {
+    let gross = 0
+    let net = 0
+    let cogs = 0
+    for (const o of filteredOrders) {
+      if (o.status === 'CANCELLED') continue
+      gross += o.total || 0
+      const fin = getOrderFinancials(o, products)
+      net += fin.netRevenue
+      cogs += fin.cogs
+    }
+    return { gross, net, cogs }
+  }, [filteredOrders, products])
 
   return (
     <div className="space-y-6">
@@ -227,12 +312,28 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
             Showing <strong className="text-scnt-text">{filteredOrders.length}</strong> of{' '}
             {orders.length} online orders
           </p>
-          <p>
-            Filtered Volume:{' '}
-            <strong className="font-mono text-emerald-400 font-medium">
-              {formatMoney(totalRevenue)}
-            </strong>
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <p>
+              Net Revenue (After COGS):{' '}
+              <strong className="font-mono text-emerald-400 font-bold">
+                +{formatMoney(filteredMetrics.net)}
+              </strong>
+            </p>
+            <span className="text-scnt-border">•</span>
+            <p className="text-[11px]">
+              Spendings / COGS:{' '}
+              <span className="font-mono text-amber-400 font-medium">
+                -{formatMoney(filteredMetrics.cogs)}
+              </span>
+            </p>
+            <span className="text-scnt-border">•</span>
+            <p className="text-[11px]">
+              Gross Billed:{' '}
+              <span className="font-mono text-scnt-text font-medium">
+                {formatMoney(filteredMetrics.gross)}
+              </span>
+            </p>
+          </div>
         </div>
       </Card>
 
@@ -343,34 +444,45 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
                     ) : null}
                   </div>
 
-                  {/* Right Column: Revenue, Amount, Status Dropdown, Details Button */}
+                  {/* Right Column: Net Revenue, Spendings/COGS, Billed Total, Status Dropdown, Details Button */}
                   <div className="flex flex-wrap items-center gap-3 shrink-0 pt-2 lg:pt-0 border-t border-scnt-border/30 lg:border-t-0 justify-between lg:justify-end">
-                    <div className="text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-500">
-                          Revenue:
-                        </span>
-                        <span
-                          className={`font-mono text-lg font-bold ${
-                            order.status === 'CANCELLED'
-                              ? 'line-through text-scnt-text-muted opacity-60'
-                              : 'text-emerald-400'
-                          }`}
-                        >
-                          {order.status === 'CANCELLED' ? formatMoney(0) : formatMoney(order.total)}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-scnt-text-muted">
-                        {order.status === 'CANCELLED' ? (
-                          <span className="text-rose-400 font-medium">Order Cancelled (0 EGP)</span>
-                        ) : (
-                          <>
-                            COD · {itemCount} {itemCount === 1 ? 'bottle' : 'bottles'}
-                            {order.shipping ? ` (incl. ${formatMoney(order.shipping)} shipping)` : ''}
-                          </>
-                        )}
-                      </p>
-                    </div>
+                    {(() => {
+                      const fin = getOrderFinancials(order, products)
+                      return (
+                        <div className="text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                              Net Revenue:
+                            </span>
+                            <span
+                              className={`font-mono text-lg font-bold ${
+                                order.status === 'CANCELLED'
+                                  ? 'line-through text-scnt-text-muted opacity-60'
+                                  : 'text-emerald-400'
+                              }`}
+                            >
+                              {order.status === 'CANCELLED' ? formatMoney(0) : `+${formatMoney(fin.netRevenue)}`}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-end gap-1.5 text-[11px] text-scnt-text-muted mt-0.5">
+                            {order.status === 'CANCELLED' ? (
+                              <span className="text-rose-400 font-medium">Order Cancelled (0 EGP)</span>
+                            ) : (
+                              <>
+                                <span>Billed: <strong className="font-mono text-scnt-text">{formatMoney(order.total)}</strong></span>
+                                <span>·</span>
+                                <span className="text-amber-400 font-mono">COGS: -{formatMoney(fin.cogs)}</span>
+                                {fin.marginPercent > 0 && (
+                                  <span className="rounded bg-emerald-500/10 px-1.5 py-0.2 text-[10px] font-mono text-emerald-400 border border-emerald-500/20 font-medium">
+                                    {fin.marginPercent}% margin
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
 
                     <div className="flex items-center gap-2">
                       <select
@@ -599,7 +711,8 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
                         <th className="py-2.5 px-3 font-medium">Size</th>
                         <th className="py-2.5 px-3 font-medium text-right">Unit Price</th>
                         <th className="py-2.5 px-3 font-medium text-center">Qty</th>
-                        <th className="py-2.5 px-3 font-medium text-right">Line Revenue</th>
+                        <th className="py-2.5 px-3 font-medium text-right">Spendings (COGS)</th>
+                        <th className="py-2.5 px-3 font-medium text-right">Net Revenue</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-scnt-border/30 text-scnt-text">
@@ -607,7 +720,24 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
                         selectedOrder.items.map((line, idx) => {
                           const img = getProductImage(line)
                           const name = getProductName(line)
-                          const lineTotal = (line.price || 0) * (line.quantity || 1)
+                          const qty = line.quantity || 1
+                          const lineTotal = (line.price || 0) * qty
+
+                          // COGS calculation
+                          const sizeStr = (line.size || '100ml').toLowerCase()
+                          let unitCogs = line.unitCogs || (sizeStr.includes('50') ? 82 : sizeStr.includes('3') ? 15 : 115)
+                          const prodId = line.product && typeof line.product === 'object' && line.product._id ? line.product._id : typeof line.product === 'string' ? line.product : null
+                          if (prodId && products && !line.unitCogs) {
+                            const p = products.find((prod) => prod._id === prodId)
+                            if (p && (p.oilCostPerMl || p.oilCostPerKg)) {
+                              const oilPerMl = p.oilCostPerMl || (p.oilCostPerKg ? p.oilCostPerKg / 1000 : 0)
+                              if (sizeStr.includes('50')) unitCogs = Math.round(71 + 12.5 * oilPerMl)
+                              else if (sizeStr.includes('3')) unitCogs = Math.round(14 + 1 * oilPerMl)
+                              else unitCogs = Math.round(93 + 25 * oilPerMl)
+                            }
+                          }
+                          const lineCogs = line.lineCogs ?? unitCogs * qty
+                          const lineNet = line.lineNetRevenue ?? Math.max(0, lineTotal - lineCogs)
 
                           return (
                             <tr key={idx} className="hover:bg-scnt-bg-elevated/20">
@@ -645,15 +775,18 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
                               <td className="py-3 px-3 text-center font-mono font-medium">
                                 ×{line.quantity}
                               </td>
-                              <td className="py-3 px-3 text-right font-mono font-semibold text-scnt-text">
-                                {formatMoney(lineTotal)}
+                              <td className="py-3 px-3 text-right font-mono text-amber-400 text-xs">
+                                -{formatMoney(lineCogs)}
+                              </td>
+                              <td className="py-3 px-3 text-right font-mono font-bold text-emerald-400">
+                                +{formatMoney(lineNet)}
                               </td>
                             </tr>
                           )
                         })
                       ) : (
                         <tr>
-                          <td colSpan={5} className="py-4 text-center text-scnt-text-muted">
+                          <td colSpan={6} className="py-4 text-center text-scnt-text-muted">
                             No items recorded for this order.
                           </td>
                         </tr>
@@ -706,31 +839,55 @@ export function OnlineOrdersTab({ orders, onStatusChange, busy, onRefresh }: Pro
                   ) : null}
 
                   <div className="flex justify-between border-t border-scnt-border/50 pt-2 text-sm font-bold text-scnt-text">
-                    <span>Order Total:</span>
+                    <span>Customer Total Billed:</span>
                     <span className="font-mono text-scnt-text">
                       {formatMoney(selectedOrder.total)}
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2.5 text-xs mt-2">
-                    <div>
-                      <span className="font-semibold text-emerald-400 block">Realized Revenue:</span>
-                      <span className="text-[10px] text-scnt-text-muted">
-                        {selectedOrder.status === 'CANCELLED'
-                          ? 'Cancelled order — 0 EGP realized'
-                          : 'Revenue earned from this order'}
-                      </span>
-                    </div>
-                    <span
-                      className={`font-mono text-base font-bold ${
-                        selectedOrder.status === 'CANCELLED'
-                          ? 'line-through text-scnt-text-muted opacity-60'
-                          : 'text-emerald-400'
-                      }`}
-                    >
-                      {selectedOrder.status === 'CANCELLED' ? formatMoney(0) : formatMoney(selectedOrder.total)}
-                    </span>
-                  </div>
+                  {(() => {
+                    const modalFin = getOrderFinancials(selectedOrder, products)
+                    return (
+                      <>
+                        <div className="flex justify-between text-amber-400 pt-1.5 border-t border-scnt-border/40">
+                          <div>
+                            <span className="font-medium block">Spendings & COGS:</span>
+                            <span className="text-[10px] text-scnt-text-muted">Bottles, oils, alcohol, packaging & boxes</span>
+                          </div>
+                          <span className="font-mono font-semibold text-right">
+                            -{formatMoney(modalFin.cogs)}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between items-center bg-emerald-500/15 border border-emerald-500/30 rounded-lg p-3 text-xs mt-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-emerald-300 text-sm block">Actual Revenue (Net Profit):</span>
+                              {modalFin.marginPercent > 0 && selectedOrder.status !== 'CANCELLED' && (
+                                <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-mono font-semibold text-emerald-300 border border-emerald-500/30">
+                                  {modalFin.marginPercent}% margin
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-scnt-text-muted">
+                              {selectedOrder.status === 'CANCELLED'
+                                ? 'Cancelled order — 0 EGP realized'
+                                : 'Net profit gained from this order after deducting fragrance production & packaging costs'}
+                            </span>
+                          </div>
+                          <span
+                            className={`font-mono text-xl font-bold ${
+                              selectedOrder.status === 'CANCELLED'
+                                ? 'line-through text-scnt-text-muted opacity-60'
+                                : 'text-emerald-400'
+                            }`}
+                          >
+                            {selectedOrder.status === 'CANCELLED' ? formatMoney(0) : `+${formatMoney(modalFin.netRevenue)}`}
+                          </span>
+                        </div>
+                      </>
+                    )
+                  })()}
 
                   <div className="pt-2 flex items-center justify-between text-[11px] text-scnt-text-muted border-t border-scnt-border/30">
                     <span>Payment Method:</span>

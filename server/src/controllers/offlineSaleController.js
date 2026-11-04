@@ -9,6 +9,7 @@ const {
   getOrCreateCostConfig,
   buildProductCogsMap,
   calculateOfflineSalesMarginAndSales,
+  calculateSingleOfflineSaleMarginAndCogs,
 } = require("../utils/cogsCalculator");
 
 /**
@@ -70,7 +71,7 @@ const listOfflineSales = asyncHandler(async (req, res) => {
     ];
   }
 
-  const [total, sales] = await Promise.all([
+  const [total, sales, products, costConfig] = await Promise.all([
     OfflineSale.countDocuments(query),
     OfflineSale.find(query)
       .populate("items.product", "name slug price sizes images coverImage clearBackground_Image")
@@ -79,11 +80,26 @@ const listOfflineSales = asyncHandler(async (req, res) => {
       .skip(skip)
       .limit(limit)
       .lean(),
+    Product.find().lean(),
+    getOrCreateCostConfig(),
   ]);
+
+  const { productMap, defaultSizeCogs } = buildProductCogsMap(products, costConfig);
+
+  const enrichedSales = sales.map((s) => {
+    const metrics = calculateSingleOfflineSaleMarginAndCogs(s, productMap, defaultSizeCogs);
+    return {
+      ...s,
+      cogs: metrics.cogs,
+      netRevenue: metrics.netRevenue,
+      marginPercent: metrics.marginPercent,
+      items: metrics.items,
+    };
+  });
 
   res.status(200).json(
     successResponse({
-      sales,
+      sales: enrichedSales,
       pagination: {
         total,
         page,
