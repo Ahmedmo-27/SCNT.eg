@@ -5,6 +5,7 @@ import {
   fetchOfflineSales,
   fetchOfflineSalesSummary,
   createOfflineSale,
+  updateOfflineSale,
   deleteOfflineSale,
   type AdminProduct,
   type OfflineSale,
@@ -118,6 +119,33 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
   const [receiptSale, setReceiptSale] = useState<OfflineSale | null>(null)
   const [deletingSale, setDeletingSale] = useState<OfflineSale | null>(null)
   const [restoreStockOnDelete, setRestoreStockOnDelete] = useState(true)
+
+  // Edit Purchase State
+  const [editingSale, setEditingSale] = useState<OfflineSale | null>(null)
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false)
+  const [editBasket, setEditBasket] = useState<BasketLine[]>([])
+  const [editCustomerName, setEditCustomerName] = useState('Walk-in Customer')
+  const [editCustomerPhone, setEditCustomerPhone] = useState('')
+  const [editCustomerEmail, setEditCustomerEmail] = useState('')
+  const [editChannel, setEditChannel] = useState<
+    'WALK_IN' | 'BAZAAR' | 'POPUP_BOOTH' | 'WHATSAPP' | 'PHONE' | 'INSTAGRAM' | 'EXHIBITION' | 'OTHER'
+  >('WALK_IN')
+  const [editLocationName, setEditLocationName] = useState('')
+  const [editPaymentMethod, setEditPaymentMethod] = useState<
+    'CASH' | 'INSTAPAY' | 'CARD' | 'VODAFONE_CASH' | 'BANK_TRANSFER' | 'OTHER'
+  >('CASH')
+  const [editPaymentStatus, setEditPaymentStatus] = useState<'PAID' | 'PARTIALLY_PAID' | 'PENDING'>('PAID')
+  const [editSaleDate, setEditSaleDate] = useState<string>(toLocalDatetimeString(new Date()))
+  const [editOrderDiscount, setEditOrderDiscount] = useState<string>('0')
+  const [editAdjustStock, setEditAdjustStock] = useState<boolean>(true)
+  const [editOrderNotes, setEditOrderNotes] = useState('')
+
+  // Edit Line item picker
+  const [editSelectedProductId, setEditSelectedProductId] = useState<string>('')
+  const [editSelectedSize, setEditSelectedSize] = useState<string>('100ml')
+  const [editItemSoldPrice, setEditItemSoldPrice] = useState<string>('')
+  const [editItemQuantity, setEditItemQuantity] = useState<number>(1)
+  const [editProductSearch, setEditProductSearch] = useState('')
 
   // Ensure selectedProductId is initialized when products prop loads or changes
   useEffect(() => {
@@ -376,6 +404,215 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
     }
   }
 
+  // Edit Product Selection & Calculations
+  const editCurrentProduct = useMemo(() => {
+    if (!products || products.length === 0) return null
+    return (
+      products.find((p) => (p._id || (p as any).id) === editSelectedProductId) ||
+      products[0] ||
+      null
+    )
+  }, [products, editSelectedProductId])
+
+  const editFilteredProducts = useMemo(() => {
+    if (!editProductSearch.trim()) return products
+    const term = editProductSearch.toLowerCase()
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(term) ||
+        (p.inspired_from && p.inspired_from.toLowerCase().includes(term))
+    )
+  }, [products, editProductSearch])
+
+  const handleSelectEditProduct = useCallback(
+    (product: AdminProduct) => {
+      const id = product._id || (product as any).id
+      setEditSelectedProductId(id)
+      const sizeOpt = product.sizes?.find((s) => s.size === editSelectedSize)
+      const defaultPrice = sizeOpt ? sizeOpt.price : product.price || 750
+      setEditItemSoldPrice(String(defaultPrice))
+    },
+    [editSelectedSize]
+  )
+
+  useEffect(() => {
+    if (!editCurrentProduct) return
+    const sizeOpt = editCurrentProduct.sizes?.find((s) => s.size === editSelectedSize)
+    const defaultPrice = sizeOpt ? sizeOpt.price : editCurrentProduct.price || 750
+    setEditItemSoldPrice(String(defaultPrice))
+  }, [editCurrentProduct, editSelectedSize])
+
+  const editBasketSubtotal = useMemo(() => {
+    return editBasket.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0)
+  }, [editBasket])
+
+  const editParsedDiscount = Math.max(0, parseFloat(editOrderDiscount) || 0)
+  const editBasketTotal = Math.max(0, editBasketSubtotal - editParsedDiscount)
+
+  const handleAddEditBasketItem = () => {
+    if (!editCurrentProduct) return
+    const price = parseFloat(editItemSoldPrice)
+    if (isNaN(price) || price < 0) {
+      alert('Please enter a valid sold price')
+      return
+    }
+    if (editItemQuantity <= 0) {
+      alert('Please enter a quantity greater than zero')
+      return
+    }
+
+    const curId = editCurrentProduct._id || (editCurrentProduct as any).id
+    const existingIndex = editBasket.findIndex(
+      (b) => (b.product._id || (b.product as any).id) === curId && b.size === editSelectedSize
+    )
+
+    if (existingIndex >= 0) {
+      const updated = [...editBasket]
+      updated[existingIndex].quantity += editItemQuantity
+      updated[existingIndex].unitPrice = price
+      setEditBasket(updated)
+    } else {
+      setEditBasket((prev) => [
+        ...prev,
+        {
+          product: editCurrentProduct,
+          size: editSelectedSize,
+          quantity: editItemQuantity,
+          unitPrice: price,
+        },
+      ])
+    }
+    setEditItemQuantity(1)
+  }
+
+  const handleRemoveEditLine = (index: number) => {
+    setEditBasket((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleUpdateEditLinePrice = (index: number, newPrice: number) => {
+    if (isNaN(newPrice) || newPrice < 0) return
+    setEditBasket((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, unitPrice: newPrice } : item))
+    )
+  }
+
+  const handleUpdateEditLineQuantity = (index: number, delta: number) => {
+    setEditBasket((prev) =>
+      prev
+        .map((item, i) => {
+          if (i === index) {
+            const nextQty = item.quantity + delta
+            return nextQty > 0 ? { ...item, quantity: nextQty } : null
+          }
+          return item
+        })
+        .filter(Boolean) as BasketLine[]
+    )
+  }
+
+  const handleStartEditSale = (sale: OfflineSale) => {
+    setEditingSale(sale)
+    setEditCustomerName(sale.customer?.fullName || 'Walk-in Customer')
+    setEditCustomerPhone(sale.customer?.phone || '')
+    setEditCustomerEmail(sale.customer?.email || '')
+    setEditChannel(sale.channel || 'WALK_IN')
+    setEditLocationName(sale.location || '')
+    setEditPaymentMethod(sale.paymentMethod || 'CASH')
+    setEditPaymentStatus(sale.paymentStatus || 'PAID')
+    setEditSaleDate(sale.saleDate ? toLocalDatetimeString(new Date(sale.saleDate)) : toLocalDatetimeString(new Date()))
+    setEditOrderDiscount(String(sale.discount || 0))
+    setEditAdjustStock(sale.deductedStock ?? true)
+    setEditOrderNotes(sale.notes || '')
+
+    const lines: BasketLine[] = (sale.items || []).map((item) => {
+      const prodId =
+        typeof item.product === 'object' && item.product ? (item.product as any)._id : String(item.product)
+      const foundProduct = products.find((p) => (p._id || (p as any).id) === prodId)
+      const productObj: AdminProduct = foundProduct || {
+        _id: prodId,
+        name: item.productName || 'Perfume',
+        slug: (item.productName || 'perfume').toLowerCase().replace(/\s+/g, '-'),
+        inspired_from: '',
+        price: item.unitPrice || 750,
+        size: item.size || '100ml',
+        sizes: [{ size: item.size || '100ml', price: item.unitPrice || 750 }],
+        images: [],
+        stock: 0,
+        gender: 'male',
+        rating: 5,
+        collection: { _id: '', name: 'Main', slug: 'main' },
+      }
+      return {
+        product: productObj,
+        size: item.size || '100ml',
+        quantity: item.quantity || 1,
+        unitPrice: item.unitPrice || 750,
+      }
+    })
+    setEditBasket(lines)
+    if (products.length > 0) {
+      const first = products[0]
+      const id = first._id || (first as any).id
+      setEditSelectedProductId(id)
+      setEditSelectedSize('100ml')
+      setEditItemSoldPrice(String(first.price || 750))
+      setEditItemQuantity(1)
+    }
+  }
+
+  const handleSaveEditSale = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingSale) return
+    if (editBasket.length === 0) {
+      setError('An offline purchase must contain at least one fragrance item')
+      return
+    }
+
+    setIsEditSubmitting(true)
+    setError(null)
+    setSuccessMsg(null)
+
+    try {
+      const payload = {
+        items: editBasket.map((item) => ({
+          product: item.product._id || (item.product as any).id,
+          productName: item.product.name,
+          size: item.size,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        discount: editParsedDiscount,
+        paymentMethod: editPaymentMethod,
+        paymentStatus: editPaymentStatus,
+        channel: editChannel,
+        location: editLocationName.trim(),
+        customer: {
+          fullName: editCustomerName.trim() || 'Walk-in Customer',
+          phone: editCustomerPhone.trim(),
+          email: editCustomerEmail.trim(),
+        },
+        notes: editOrderNotes.trim(),
+        saleDate: editSaleDate ? new Date(editSaleDate).toISOString() : new Date().toISOString(),
+        adjustStock: editAdjustStock,
+      }
+
+      const updated = await updateOfflineSale(editingSale._id, payload)
+
+      setSuccessMsg(
+        `Offline purchase #${updated.receiptNumber} updated successfully! Final total: ${formatEgp(updated.total)}`
+      )
+      setEditingSale(null)
+      await loadData()
+      if (onSaleCreated) {
+        onSaleCreated()
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update offline purchase')
+    } finally {
+      setIsEditSubmitting(false)
+    }
+  }
+
   // Copy receipt summary text
   const copyReceiptText = (sale: OfflineSale) => {
     const lines = [
@@ -439,13 +676,22 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
       {summary && (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Card asMotion={false} className="p-4 border border-scnt-border/60">
-            <span className="text-xs font-medium uppercase tracking-wider text-scnt-text-muted">
-              Total Offline Revenue
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium uppercase tracking-wider text-scnt-text-muted">
+                Total Offline Revenue
+              </span>
+              {summary.marginPercent != null && (
+                <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono text-emerald-400">
+                  {summary.marginPercent}% margin
+                </span>
+              )}
+            </div>
             <p className="mt-1 font-mono text-2xl font-bold text-emerald-400">
               {formatEgp(summary.totalRevenue)}
             </p>
-            <p className="mt-1 text-[11px] text-scnt-text-muted">Direct in-person & event sales</p>
+            <p className="mt-1 text-[11px] text-scnt-text-muted">
+              Net fragrance margin · Total sales {formatEgp(summary.totalSales ?? summary.totalRevenue)}
+            </p>
           </Card>
 
           <Card asMotion={false} className="p-4 border border-scnt-border/60">
@@ -1212,6 +1458,14 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
+                            onClick={() => handleStartEditSale(sale)}
+                            className="px-2 py-1 rounded bg-amber-950/20 hover:bg-amber-900/40 border border-amber-500/30 text-[11px] text-amber-300 transition"
+                            title="Edit Offline Purchase"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => setReceiptSale(sale)}
                             className="px-2 py-1 rounded bg-scnt-bg-elevated hover:bg-scnt-bg border border-scnt-border/60 text-[11px] text-scnt-text transition"
                             title="View Receipt"
@@ -1429,6 +1683,389 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                 {isSubmitting ? 'Voiding...' : 'Confirm Void'}
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT OFFLINE PURCHASE MODAL */}
+      {editingSale && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-2xl border border-amber-500/40 bg-scnt-bg-elevated p-6 shadow-2xl space-y-6 relative">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 rounded-t-2xl" />
+
+            <div className="flex items-center justify-between border-b border-scnt-border/60 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-scnt-text flex items-center gap-2">
+                  <span>✏️</span> Edit Offline Purchase #{editingSale.receiptNumber}
+                </h3>
+                <p className="text-xs text-scnt-text-muted mt-0.5">
+                  Update sold fragrances, custom bazaar/event pricing, customer info, or payment method.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingSale(null)}
+                className="text-scnt-text-muted hover:text-scnt-text rounded-lg p-1 text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditSale} className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* LEFT: Items In Sale & Item Adder (7 Cols) */}
+                <div className="lg:col-span-7 space-y-4">
+                  {/* Current Sold Items Table */}
+                  <div className="rounded-xl border border-scnt-border/60 bg-scnt-bg/60 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-amber-400">
+                        Sold Fragrances in Purchase ({editBasket.length})
+                      </h4>
+                      <span className="text-[11px] text-scnt-text-muted">
+                        Subtotal: <strong className="font-mono text-scnt-text">{formatEgp(editBasketSubtotal)}</strong>
+                      </span>
+                    </div>
+
+                    {editBasket.length === 0 ? (
+                      <div className="p-4 rounded-lg border border-dashed border-red-500/40 bg-red-950/10 text-center text-xs text-red-300">
+                        At least one fragrance item is required in the purchase.
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                        {editBasket.map((line, idx) => {
+                          const lineTotal = line.quantity * line.unitPrice
+                          return (
+                            <div
+                              key={`${line.product._id}-${line.size}-${idx}`}
+                              className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-scnt-border/60 bg-scnt-bg-elevated/80 text-xs"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-scnt-text truncate">{line.product.name}</p>
+                                <span className="text-[11px] text-scnt-text-muted">
+                                  Size: <strong className="text-amber-400">{line.size}</strong>
+                                </span>
+                              </div>
+
+                              {/* Price input */}
+                              <div className="flex items-center gap-1">
+                                <span className="text-[11px] text-scnt-text-muted">EGP</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="5"
+                                  value={line.unitPrice}
+                                  onChange={(e) => handleUpdateEditLinePrice(idx, parseFloat(e.target.value))}
+                                  className="w-20 rounded border border-scnt-border/80 bg-scnt-bg px-2 py-1 text-xs text-scnt-text font-mono text-right"
+                                />
+                              </div>
+
+                              {/* Quantity control */}
+                              <div className="flex items-center gap-1 border border-scnt-border/80 rounded bg-scnt-bg p-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateEditLineQuantity(idx, -1)}
+                                  className="w-5 h-5 flex items-center justify-center rounded text-scnt-text-muted hover:text-scnt-text hover:bg-scnt-bg-elevated"
+                                >
+                                  -
+                                </button>
+                                <span className="w-6 text-center font-mono font-semibold text-scnt-text">
+                                  {line.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateEditLineQuantity(idx, 1)}
+                                  className="w-5 h-5 flex items-center justify-center rounded text-scnt-text-muted hover:text-scnt-text hover:bg-scnt-bg-elevated"
+                                >
+                                  +
+                                </button>
+                              </div>
+
+                              {/* Line Total */}
+                              <span className="font-mono font-medium text-emerald-400 w-16 text-right">
+                                {formatEgp(lineTotal)}
+                              </span>
+
+                              {/* Remove line */}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveEditLine(idx)}
+                                className="text-red-400 hover:text-red-300 p-1 text-sm"
+                                title="Remove item"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Add Another Product to Sale */}
+                  <div className="rounded-xl border border-scnt-border/60 bg-scnt-bg/60 p-4 space-y-3">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-amber-400">
+                      + Add Another Fragrance to Purchase
+                    </h4>
+
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        placeholder="Search fragrance to add..."
+                        value={editProductSearch}
+                        onChange={(e) => setEditProductSearch(e.target.value)}
+                        className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-1.5 text-xs text-scnt-text placeholder-scnt-text-muted/60"
+                      />
+
+                      <select
+                        value={editSelectedProductId}
+                        onChange={(e) => {
+                          const id = e.target.value
+                          const found = products.find((p) => (p._id || (p as any).id) === id)
+                          if (found) {
+                            handleSelectEditProduct(found)
+                          } else {
+                            setEditSelectedProductId(id)
+                          }
+                        }}
+                        className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text font-medium"
+                      >
+                        {editFilteredProducts.map((p) => {
+                          const id = p._id || (p as any).id
+                          return (
+                            <option key={id} value={id}>
+                              {p.name} {p.inspired_from ? `(${p.inspired_from})` : ''} - Stock: {p.stock ?? 0}
+                            </option>
+                          )
+                        })}
+                      </select>
+
+                      <div className="grid grid-cols-3 gap-2 pt-1">
+                        <div>
+                          <label className="text-[11px] text-scnt-text-muted block">Size</label>
+                          <select
+                            value={editSelectedSize}
+                            onChange={(e) => setEditSelectedSize(e.target.value)}
+                            className="w-full rounded border border-scnt-border/80 bg-scnt-bg px-2 py-1 text-xs text-scnt-text"
+                          >
+                            <option value="100ml">100ml</option>
+                            <option value="50ml">50ml</option>
+                            <option value="3ml">3ml Decant</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] text-scnt-text-muted block">Sold Price (EGP)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="5"
+                            value={editItemSoldPrice}
+                            onChange={(e) => setEditItemSoldPrice(e.target.value)}
+                            className="w-full rounded border border-scnt-border/80 bg-scnt-bg px-2 py-1 text-xs text-scnt-text font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] text-scnt-text-muted block">Qty</label>
+                          <div className="flex gap-1">
+                            <input
+                              type="number"
+                              min="1"
+                              value={editItemQuantity}
+                              onChange={(e) => setEditItemQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                              className="w-14 rounded border border-scnt-border/80 bg-scnt-bg px-2 py-1 text-xs text-scnt-text font-mono"
+                            />
+                            <Button
+                              type="button"
+                              onClick={handleAddEditBasketItem}
+                              className="flex-1 bg-amber-600 hover:bg-amber-500 text-white text-xs px-2 py-1"
+                            >
+                              + Add
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT: Customer, Channel, Payment & Totals (5 Cols) */}
+                <div className="lg:col-span-5 space-y-4">
+                  <div className="rounded-xl border border-scnt-border/60 bg-scnt-bg/60 p-4 space-y-3">
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-amber-400">
+                      Customer & Sale Details
+                    </h4>
+
+                    <div>
+                      <label className="text-[11px] text-scnt-text-muted">Customer Name</label>
+                      <input
+                        type="text"
+                        value={editCustomerName}
+                        onChange={(e) => setEditCustomerName(e.target.value)}
+                        className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] text-scnt-text-muted">Phone Number</label>
+                        <input
+                          type="text"
+                          value={editCustomerPhone}
+                          onChange={(e) => setEditCustomerPhone(e.target.value)}
+                          className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-scnt-text-muted">Email</label>
+                        <input
+                          type="email"
+                          value={editCustomerEmail}
+                          onChange={(e) => setEditCustomerEmail(e.target.value)}
+                          className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] text-scnt-text-muted">Channel</label>
+                        <select
+                          value={editChannel}
+                          onChange={(e) => setEditChannel(e.target.value as any)}
+                          className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2 py-1.5 text-xs text-scnt-text"
+                        >
+                          {Object.entries(CHANNEL_LABELS).map(([k, meta]) => (
+                            <option key={k} value={k}>
+                              {meta.icon} {meta.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-scnt-text-muted">Location / Event</label>
+                        <input
+                          type="text"
+                          value={editLocationName}
+                          onChange={(e) => setEditLocationName(e.target.value)}
+                          className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] text-scnt-text-muted">Payment Method</label>
+                        <select
+                          value={editPaymentMethod}
+                          onChange={(e) => setEditPaymentMethod(e.target.value as any)}
+                          className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2 py-1.5 text-xs text-scnt-text font-medium"
+                        >
+                          {Object.entries(PAYMENT_LABELS).map(([k, meta]) => (
+                            <option key={k} value={k}>
+                              {meta.icon} {meta.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-scnt-text-muted">Payment Status</label>
+                        <select
+                          value={editPaymentStatus}
+                          onChange={(e) => setEditPaymentStatus(e.target.value as any)}
+                          className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2 py-1.5 text-xs text-scnt-text"
+                        >
+                          <option value="PAID">PAID</option>
+                          <option value="PARTIALLY_PAID">Partially Paid</option>
+                          <option value="PENDING">Pending</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] text-scnt-text-muted">Sale Date & Time</label>
+                        <input
+                          type="datetime-local"
+                          value={editSaleDate}
+                          onChange={(e) => setEditSaleDate(e.target.value)}
+                          className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2 py-1.5 text-xs text-scnt-text"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] text-scnt-text-muted">Overall Discount (EGP)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={editOrderDiscount}
+                          onChange={(e) => setEditOrderDiscount(e.target.value)}
+                          className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2 py-1.5 text-xs text-scnt-text font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] text-scnt-text-muted">Notes / Special Requests</label>
+                      <textarea
+                        rows={2}
+                        value={editOrderNotes}
+                        onChange={(e) => setEditOrderNotes(e.target.value)}
+                        className="w-full rounded-lg border border-scnt-border/80 bg-scnt-bg px-2.5 py-1.5 text-xs text-scnt-text resize-none"
+                      />
+                    </div>
+
+                    <label className="flex items-center gap-2 cursor-pointer pt-1">
+                      <input
+                        type="checkbox"
+                        checked={editAdjustStock}
+                        onChange={(e) => setEditAdjustStock(e.target.checked)}
+                        className="rounded border-scnt-border/80 text-amber-500 focus:ring-amber-500"
+                      />
+                      <span className="text-[11px] text-scnt-text">
+                        Synchronize inventory stock with updated quantities
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* Summary Box */}
+                  <div className="p-4 rounded-xl border border-amber-500/40 bg-amber-950/20 space-y-2">
+                    <div className="flex justify-between text-xs text-scnt-text-muted">
+                      <span>Subtotal:</span>
+                      <span className="font-mono text-scnt-text">{formatEgp(editBasketSubtotal)}</span>
+                    </div>
+                    {editParsedDiscount > 0 && (
+                      <div className="flex justify-between text-xs text-red-300">
+                        <span>Discount:</span>
+                        <span className="font-mono">-{formatEgp(editParsedDiscount)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-base font-bold text-scnt-text pt-2 border-t border-scnt-border/60">
+                      <span>Final Total:</span>
+                      <span className="font-mono text-emerald-400">{formatEgp(editBasketTotal)}</span>
+                    </div>
+                  </div>
+
+                  {/* Submit / Cancel Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      type="submit"
+                      disabled={isEditSubmitting || editBasket.length === 0}
+                      className="flex-1 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-semibold py-2.5"
+                    >
+                      {isEditSubmitting ? 'Saving Changes...' : `Save Changes (${formatEgp(editBasketTotal)})`}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setEditingSale(null)}
+                      disabled={isEditSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}

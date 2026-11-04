@@ -54,7 +54,7 @@ describe("Admin Domain Test Suite", () => {
       expect(res.body.success).toBe(true);
       expect(res.body.data).toBeDefined();
 
-      const { usersCount, productsCount, ordersCount, collectionsCount, pendingOrders, totalRevenue } =
+      const { usersCount, productsCount, ordersCount, collectionsCount, pendingOrders, totalRevenue, totalSales } =
         res.body.data;
       expect(typeof usersCount).toBe("number");
       expect(typeof productsCount).toBe("number");
@@ -62,6 +62,7 @@ describe("Admin Domain Test Suite", () => {
       expect(typeof collectionsCount).toBe("number");
       expect(typeof pendingOrders).toBe("number");
       expect(typeof totalRevenue).toBe("number");
+      expect(typeof totalSales).toBe("number");
       expect(ordersCount).toBeGreaterThanOrEqual(1);
     });
   });

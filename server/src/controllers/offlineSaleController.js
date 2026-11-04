@@ -5,6 +5,11 @@ const OfflineSale = require("../models/OfflineSale");
 const Product = require("../models/Product");
 const { deleteCache, invalidatePattern } = require("../utils/cache");
 const { recordAuditAction } = require("../utils/auditLogger");
+const {
+  getOrCreateCostConfig,
+  buildProductCogsMap,
+  calculateOfflineSalesMarginAndSales,
+} = require("../utils/cogsCalculator");
 
 /**
  * Generate a clean, unique human-readable receipt number
@@ -93,78 +98,75 @@ const listOfflineSales = asyncHandler(async (req, res) => {
  * Summary KPI statistics for offline sales
  */
 const getOfflineSalesSummary = asyncHandler(async (_req, res) => {
-  const [totalsAgg, paymentAgg, channelAgg, topProductsAgg] = await Promise.all([
-    // Total revenue, total orders, units sold
-    OfflineSale.aggregate([
-      { $unwind: "$items" },
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: "$items.subtotal" }, // or group by sale first for total discount
-          totalUnitsSold: { $sum: "$items.quantity" },
+  const [totalsAgg, paymentAgg, channelAgg, totalRevenueAgg, totalOrders, offlineSales, products, costConfig] =
+    await Promise.all([
+      // Units sold aggregate
+      OfflineSale.aggregate([
+        { $unwind: "$items" },
+        {
+          $group: {
+            _id: null,
+            totalUnitsSold: { $sum: "$items.quantity" },
+          },
         },
-      },
-    ]),
-    // Payment method breakdown
-    OfflineSale.aggregate([
-      {
-        $group: {
-          _id: "$paymentMethod",
-          count: { $sum: 1 },
-          total: { $sum: "$total" },
+      ]),
+      // Payment method breakdown
+      OfflineSale.aggregate([
+        {
+          $group: {
+            _id: "$paymentMethod",
+            count: { $sum: 1 },
+            total: { $sum: "$total" },
+          },
         },
-      },
-      { $sort: { total: -1 } },
-    ]),
-    // Channel breakdown
-    OfflineSale.aggregate([
-      {
-        $group: {
-          _id: "$channel",
-          count: { $sum: 1 },
-          total: { $sum: "$total" },
+        { $sort: { total: -1 } },
+      ]),
+      // Channel breakdown
+      OfflineSale.aggregate([
+        {
+          $group: {
+            _id: "$channel",
+            count: { $sum: 1 },
+            total: { $sum: "$total" },
+          },
         },
-      },
-      { $sort: { total: -1 } },
-    ]),
-    // Top selling products offline
-    OfflineSale.aggregate([
-      { $unwind: "$items" },
-      {
-        $group: {
-          _id: "$items.productName",
-          quantity: { $sum: "$items.quantity" },
-          revenue: { $sum: "$items.subtotal" },
+        { $sort: { total: -1 } },
+      ]),
+      // Gross sales volume aggregate
+      OfflineSale.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalSales: { $sum: "$total" },
+          },
         },
-      },
-      { $sort: { quantity: -1 } },
-      { $limit: 10 },
-    ]),
-  ]);
+      ]),
+      OfflineSale.countDocuments({}),
+      OfflineSale.find({}).select("items total subtotal discount channel").lean(),
+      Product.find({}).select("name slug price sizes oilCostPerKg oilCostPerMl").lean(),
+      getOrCreateCostConfig(),
+    ]);
 
-  const totalOrders = await OfflineSale.countDocuments({});
-  const totalRevenueAgg = await OfflineSale.aggregate([
-    {
-      $group: {
-        _id: null,
-        totalRevenue: { $sum: "$total" },
-      },
-    },
-  ]);
+  const { productMap, defaultSizeCogs } = buildProductCogsMap(products, costConfig);
+  const marginMetrics = calculateOfflineSalesMarginAndSales(offlineSales, productMap, defaultSizeCogs);
 
-  const totalRevenue = totalRevenueAgg[0]?.totalRevenue || 0;
-  const totalUnitsSold = totalsAgg[0]?.totalUnitsSold || 0;
-  const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+  const totalSales = totalRevenueAgg[0]?.totalSales || 0;
+  const totalRevenue = marginMetrics.margin; // Actual net margin from offline fragrances sold
+  const totalUnitsSold = totalsAgg[0]?.totalUnitsSold || marginMetrics.totalUnits || 0;
+  const avgOrderValue = totalOrders > 0 ? Math.round(totalSales / totalOrders) : 0;
+  const marginPercent = totalSales > 0 ? Number(((totalRevenue / totalSales) * 100).toFixed(1)) : 0;
 
   res.status(200).json(
     successResponse({
-      totalRevenue,
+      totalRevenue, // Actual net margin
+      totalSales, // Gross sales volume
+      marginPercent,
       totalOrders,
       totalUnitsSold,
       avgOrderValue,
       paymentMethods: paymentAgg.map((p) => ({ method: p._id, count: p.count, total: p.total })),
       channels: channelAgg.map((c) => ({ channel: c._id, count: c.count, total: c.total })),
-      topProducts: topProductsAgg.map((p) => ({ productName: p._id, quantity: p.quantity, revenue: p.revenue })),
+      topProducts: marginMetrics.topProducts,
     })
   );
 });
@@ -323,16 +325,36 @@ const getOfflineSaleById = asyncHandler(async (req, res) => {
 });
 
 /**
- * Update offline sale notes or customer / status
+ * Update offline purchase details, items, pricing, customer, payment, and channel
  */
 const updateOfflineSale = asyncHandler(async (req, res) => {
-  const { notes, customer, paymentStatus, paymentMethod, location } = req.body;
+  const existingSale = await OfflineSale.findById(req.params.id);
+  if (!existingSale) {
+    throw new ApiError(404, "Offline sale not found");
+  }
+
+  const {
+    items,
+    discount,
+    paymentStatus,
+    paymentMethod,
+    channel,
+    location,
+    customer,
+    notes,
+    saleDate,
+    adjustStock,
+  } = req.body;
+
   const updateData = {};
 
   if (notes !== undefined) updateData.notes = String(notes).trim();
   if (paymentStatus) updateData.paymentStatus = paymentStatus;
   if (paymentMethod) updateData.paymentMethod = paymentMethod;
+  if (channel) updateData.channel = channel;
   if (location !== undefined) updateData.location = String(location).trim();
+  if (saleDate) updateData.saleDate = new Date(saleDate);
+
   if (customer && typeof customer === "object") {
     updateData.customer = {
       fullName: (customer.fullName || "Walk-in Customer").trim(),
@@ -341,13 +363,113 @@ const updateOfflineSale = asyncHandler(async (req, res) => {
     };
   }
 
-  const sale = await OfflineSale.findByIdAndUpdate(req.params.id, updateData, { new: true })
+  // Handle items update, pricing recalculation, and stock adjustments
+  if (Array.isArray(items) && items.length > 0) {
+    const productIds = items.map((i) => i.product).filter(Boolean);
+    const dbProducts = await Product.find({ _id: { $in: productIds } });
+    const productMap = new Map(dbProducts.map((p) => [p._id.toString(), p]));
+
+    let subtotal = 0;
+    const processedItems = [];
+
+    for (const item of items) {
+      if (!item.product) {
+        throw new ApiError(400, "Item must specify a product ID");
+      }
+      const product = productMap.get(String(item.product));
+      if (!product) {
+        throw new ApiError(404, `Product not found: ${item.product}`);
+      }
+
+      const quantity = Math.max(1, parseInt(item.quantity, 10) || 1);
+      const unitPrice = Number(item.unitPrice);
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+        throw new ApiError(400, `Invalid sold unit price for ${product.name}`);
+      }
+
+      const lineSubtotal = Math.round(unitPrice * quantity * 100) / 100;
+      subtotal += lineSubtotal;
+
+      processedItems.push({
+        product: product._id,
+        productName: item.productName || product.name,
+        size: item.size || product.size || "100ml",
+        quantity,
+        unitPrice,
+        subtotal: lineSubtotal,
+      });
+    }
+
+    const numDiscount =
+      discount !== undefined ? Math.max(0, Number(discount) || 0) : existingSale.discount || 0;
+    const total = Math.max(0, subtotal - numDiscount);
+
+    // If stock adjustment is requested or the sale previously deducted stock
+    const shouldSyncStock = adjustStock === true || (adjustStock !== false && existingSale.deductedStock);
+    if (shouldSyncStock) {
+      // 1. Restore previous stock from existing items
+      for (const oldItem of existingSale.items) {
+        const product = await Product.findById(oldItem.product);
+        if (product) {
+          const updateQuery = { $inc: { stock: oldItem.quantity } };
+          if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+            updateQuery.sizes = product.sizes.map((s) => {
+              if (s.size === oldItem.size) {
+                return {
+                  size: s.size,
+                  price: s.price,
+                  stock: (Number(s.stock) || 0) + oldItem.quantity,
+                };
+              }
+              return s;
+            });
+          }
+          await Product.findByIdAndUpdate(product._id, updateQuery);
+        }
+      }
+
+      // 2. Deduct new stock for updated items
+      for (const newItem of processedItems) {
+        const product = await Product.findById(newItem.product);
+        if (product) {
+          const newStock = Math.max(0, (product.stock || 0) - newItem.quantity);
+          const updateQuery = { stock: newStock };
+          if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+            updateQuery.sizes = product.sizes.map((s) => {
+              if (s.size === newItem.size) {
+                const currentSizeStock = Number(s.stock) || 0;
+                return {
+                  size: s.size,
+                  price: s.price,
+                  stock: Math.max(0, currentSizeStock - newItem.quantity),
+                };
+              }
+              return s;
+            });
+          }
+          await Product.findByIdAndUpdate(product._id, updateQuery);
+        }
+      }
+      updateData.deductedStock = true;
+    }
+
+    updateData.items = processedItems;
+    updateData.subtotal = subtotal;
+    updateData.discount = numDiscount;
+    updateData.total = total;
+  } else if (discount !== undefined) {
+    const numDiscount = Math.max(0, Number(discount) || 0);
+    updateData.discount = numDiscount;
+    updateData.total = Math.max(0, (existingSale.subtotal || 0) - numDiscount);
+  }
+
+  const updatedSale = await OfflineSale.findByIdAndUpdate(req.params.id, updateData, { new: true })
     .populate("items.product", "name slug price sizes images coverImage clearBackground_Image")
     .lean();
 
-  if (!sale) {
-    throw new ApiError(404, "Offline sale not found");
-  }
+  // Clear dashboard and order caches
+  await deleteCache("admin:dashboard:summary");
+  await invalidatePattern("admin:dashboard:*");
 
   await recordAuditAction(req, {
     action: "OFFLINE_SALE_UPDATE",
@@ -356,7 +478,7 @@ const updateOfflineSale = asyncHandler(async (req, res) => {
     details: updateData,
   });
 
-  res.status(200).json(successResponse(sale, "Offline sale updated"));
+  res.status(200).json(successResponse(updatedSale, "Offline sale updated successfully"));
 });
 
 /**

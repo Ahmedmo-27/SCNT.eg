@@ -78,7 +78,10 @@ async function request({ method, path, body = null, headers = {} }) {
       }
     };
 
-    const reqHeaders = { ...headers };
+    const reqHeaders =
+      headers && typeof headers === "object" && headers.headers
+        ? { ...headers.headers }
+        : { ...headers };
 
     let payload = null;
     if (body !== null && body !== undefined) {

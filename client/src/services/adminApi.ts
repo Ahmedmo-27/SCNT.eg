@@ -6,9 +6,14 @@ export type AdminDashboard = {
   ordersCount: number
   collectionsCount: number
   pendingOrders: number
-  totalRevenue: number
+  totalRevenue: number // Actual net fragrance margin
   onlineRevenue?: number
   offlineRevenue?: number
+  totalSales?: number // Gross sales volume
+  onlineSales?: number
+  offlineSales?: number
+  marginPercent?: number
+  totalCogs?: number
   offlineSalesCount?: number
 }
 
@@ -301,13 +306,15 @@ export type CreateOfflineSalePayload = {
 }
 
 export type OfflineSalesSummary = {
-  totalRevenue: number
+  totalRevenue: number // Actual net fragrance margin
+  totalSales?: number // Gross sales volume
+  marginPercent?: number
   totalOrders: number
   totalUnitsSold: number
   avgOrderValue: number
   paymentMethods: Array<{ method: string; count: number; total: number }>
   channels: Array<{ channel: string; count: number; total: number }>
-  topProducts: Array<{ productName: string; quantity: number; revenue: number }>
+  topProducts: Array<{ productName: string; quantity: number; revenue: number; sales?: number; margin?: number }>
 }
 
 export type OfflineSalesListResponse = {

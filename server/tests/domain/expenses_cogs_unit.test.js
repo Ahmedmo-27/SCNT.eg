@@ -194,20 +194,20 @@ describe("Expenses & COGS Formulas Unit Tests", () => {
   it("calculates mixed promotional campaign containing full boxed bottles and decant cards", () => {
     // Campaign: 5x 100ml full boxed bottles + 10x 50ml full boxed bottles + 50x 3ml decants
     const base100 = 105.075;
-    const base50 = 28 + 16 + 5 + 2 + 1.875 + 15 + 2.5 + 0.7 + 3 + (35 * 0.2); // 81.075
+    const base50 = 28 + 16 + 5 + 2 + 1.875 + 15 + 2.5 + 0.7 + 3 + (37.5 * 0.2); // 81.575
     const baseDecant = 6 + 0.9 + 0.4; // 7.30
 
     // Fragrance Royal Amber with oil 4 EGP/ml:
     const royal100 = base100 + (25 * 4); // 105.075 + 100 = 205.075
-    const royal50 = base50 + (15 * 4); // 81.075 + 60 = 141.075
+    const royal50 = base50 + (12.5 * 4); // 81.575 + 50 = 131.575
     const royalDecant = baseDecant + (1 * 4); // 7.30 + 4 = 11.30
 
     const totalMixed = Number((5 * royal100 + 10 * royal50 + 50 * royalDecant).toFixed(2));
     // 5 * 205.075 = 1025.375
-    // 10 * 141.075 = 1410.75
+    // 10 * 131.575 = 1315.75
     // 50 * 11.30 = 565.00
-    // Total = 1025.375 + 1410.75 + 565.00 = 3001.13
-    expect(totalMixed).toBe(3001.13);
+    // Total = 1025.375 + 1315.75 + 565.00 = 2906.13
+    expect(totalMixed).toBe(2906.13);
   });
 
   it("computes unit price and total amount bidirectionally and detects price adjustments from saved benchmarks", () => {
@@ -256,9 +256,9 @@ describe("Expenses & COGS Formulas Unit Tests", () => {
     const oilCost100 = 25 * oilPricePerGram;
     expect(oilCost100).toBe(87.5);
 
-    // 50ml recipe uses 15g/15ml oil
-    const oilCost50 = 15 * oilPricePerGram;
-    expect(oilCost50).toBe(52.5);
+    // 50ml recipe uses 12.5g/12.5ml oil
+    const oilCost50 = 12.5 * oilPricePerGram;
+    expect(oilCost50).toBe(43.75);
 
     // 3ml decant recipe uses 1g/1ml oil
     const oilCostDecant = 1 * oilPricePerGram;

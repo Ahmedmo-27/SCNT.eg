@@ -4,8 +4,10 @@ const costConfigSchema = new mongoose.Schema(
   {
     key: { type: String, default: "global", unique: true },
 
-    // Shared Liquids formulation (Fragrant Alcohol + Cleaning Alcohol)
+    // Shared Liquids formulation (Fragrant Alcohol + Cleaning Alcohol + Optional benchmark Oil)
     liquids: {
+      oilCostPerKg: { type: Number, default: 0 },
+      oilCostPerMl: { type: Number, default: 0 },
       fragrantAlcoholCostPerLiter: { type: Number, default: 200 },
       fragrantAlcoholCostPerMl: { type: Number, default: 0.2 }, // EGP/ml
       cleaningAlcoholCostPerLiter: { type: Number, default: 80 },
@@ -13,8 +15,8 @@ const costConfigSchema = new mongoose.Schema(
       // Standard recipes (ml of oil and fragrant alcohol per product size)
       recipes: {
         size50ml: {
-          oilMl: { type: Number, default: 15 },
-          alcoholMl: { type: Number, default: 35 },
+          oilMl: { type: Number, default: 12.5 },
+          alcoholMl: { type: Number, default: 37.5 },
         },
         size100ml: {
           oilMl: { type: Number, default: 25 },
@@ -54,10 +56,12 @@ const costConfigSchema = new mongoose.Schema(
         stickersPerSheet: { type: Number, default: 24 }, // Yield: 24 stickers per sheet
         unitCost: { type: Number, default: 1.875 }, // 45 / 24 = 1.875 EGP
       },
-      // 3. Box Top Stickers: Lid sticker (Bought BY THE METER)
+      // 3. Box Top Stickers: Lid sticker (Bought BY THE METER or SHEET)
       boxTopStickers: {
         costPerMeter: { type: Number, default: 50 },
         stickersPerMeter: { type: Number, default: 25 }, // Yield: 25 stickers per meter
+        costPerSheet: { type: Number, default: null },
+        stickersPerSheet: { type: Number, default: null },
         unitCost: { type: Number, default: 2 }, // 50 / 25 = 2 EGP
       },
     },
@@ -106,8 +110,12 @@ costConfigSchema.pre("save", function (next) {
       (this.stickers.boxSealingStickers.costPerSheet / this.stickers.boxSealingStickers.stickersPerSheet).toFixed(4)
     );
   }
-  // Box top stickers (meter)
-  if (this.stickers?.boxTopStickers?.stickersPerMeter > 0) {
+  // Box top stickers (meter or sheet)
+  if (this.stickers?.boxTopStickers?.stickersPerSheet > 0 && this.stickers?.boxTopStickers?.costPerSheet != null) {
+    this.stickers.boxTopStickers.unitCost = Number(
+      (this.stickers.boxTopStickers.costPerSheet / this.stickers.boxTopStickers.stickersPerSheet).toFixed(4)
+    );
+  } else if (this.stickers?.boxTopStickers?.stickersPerMeter > 0 && this.stickers?.boxTopStickers?.costPerMeter != null) {
     this.stickers.boxTopStickers.unitCost = Number(
       (this.stickers.boxTopStickers.costPerMeter / this.stickers.boxTopStickers.stickersPerMeter).toFixed(4)
     );
@@ -131,8 +139,12 @@ costConfigSchema.pre("save", function (next) {
     );
   }
   // Fragrant alcohol per ml
-  if (this.liquids?.fragrantAlcoholCostPerLiter > 0) {
+  if (this.liquids?.fragrantAlcoholCostPerLiter > 0 && !this.liquids?.fragrantAlcoholCostPerMl) {
     this.liquids.fragrantAlcoholCostPerMl = Number((this.liquids.fragrantAlcoholCostPerLiter / 1000).toFixed(4));
+  }
+  // Benchmark fragrance oil per ml
+  if (this.liquids?.oilCostPerKg > 0 && !this.liquids?.oilCostPerMl) {
+    this.liquids.oilCostPerMl = Number((this.liquids.oilCostPerKg / 1000).toFixed(4));
   }
   next();
 });

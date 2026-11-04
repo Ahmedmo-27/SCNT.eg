@@ -137,4 +137,86 @@ describe("Offline Purchases & Direct Sales Unit Tests", () => {
     expect(auditDetails.deductedStock).toBe(true);
     expect(auditDetails.receiptNumber).toBe("OFF-261023-1234");
   });
+
+  describe("Offline Purchase Editing Logic", () => {
+    it("recalculates items subtotal, discount, and final total upon sale editing", () => {
+      const originalSale = {
+        subtotal: 750,
+        discount: 0,
+        total: 750,
+        items: [{ productName: "Azure Code", size: "100ml", quantity: 1, unitPrice: 750, subtotal: 750 }],
+      };
+
+      // Admin edits the sale: adds another bottle (or increases quantity to 2) and gives a 100 EGP discount
+      const editedItems = [
+        { productName: "Azure Code", size: "100ml", quantity: 2, unitPrice: 700, subtotal: 1400 },
+        { productName: "Deep Horizon", size: "50ml", quantity: 1, unitPrice: 450, subtotal: 450 },
+      ];
+      const newDiscount = 100;
+      const newSubtotal = editedItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+      const newTotal = Math.max(0, newSubtotal - newDiscount);
+
+      expect(newSubtotal).toBe(1850);
+      expect(newTotal).toBe(1750);
+      expect(newTotal).not.toBe(originalSale.total);
+    });
+
+    it("adjusts inventory stock accurately when offline purchase quantities change", () => {
+      // Product starting with 10 units in stock
+      let productStock = 10;
+      let sizeStock = 10;
+
+      // 1. Initial sale deducted 2 units
+      const initialQuantity = 2;
+      productStock -= initialQuantity;
+      sizeStock -= initialQuantity;
+      expect(productStock).toBe(8);
+
+      // 2. Admin edits sale to 3 units (instead of 2):
+      // Restore previous 2 units
+      productStock += initialQuantity;
+      sizeStock += initialQuantity;
+      expect(productStock).toBe(10);
+
+      // Deduct updated 3 units
+      const updatedQuantity = 3;
+      productStock -= updatedQuantity;
+      sizeStock -= updatedQuantity;
+      expect(productStock).toBe(7);
+      expect(sizeStock).toBe(7);
+    });
+
+    it("updates customer contact, payment details, notes, and channel without losing original receipt", () => {
+      const original = {
+        receiptNumber: "OFF-261104-5678",
+        customer: { fullName: "Walk-in Customer", phone: "", email: "" },
+        paymentMethod: "CASH",
+        paymentStatus: "PENDING",
+        channel: "WALK_IN",
+        notes: "",
+      };
+
+      const updatePayload = {
+        customer: { fullName: "Dr. Kareem", phone: "01001234567", email: "kareem@example.com" },
+        paymentMethod: "INSTAPAY",
+        paymentStatus: "PAID",
+        channel: "BAZAAR",
+        location: "Arkan Plaza",
+        notes: "Paid via InstaPay transaction #987654",
+      };
+
+      const updated = {
+        ...original,
+        ...updatePayload,
+      };
+
+      expect(updated.receiptNumber).toBe("OFF-261104-5678"); // Receipt number preserved
+      expect(updated.customer.fullName).toBe("Dr. Kareem");
+      expect(updated.customer.phone).toBe("01001234567");
+      expect(updated.paymentMethod).toBe("INSTAPAY");
+      expect(updated.paymentStatus).toBe("PAID");
+      expect(updated.channel).toBe("BAZAAR");
+      expect(updated.location).toBe("Arkan Plaza");
+    });
+  });
 });

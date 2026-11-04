@@ -40,6 +40,7 @@ import { ActiveCartsTab } from '../components/admin/ActiveCartsTab'
 import { ExpensesTab } from '../components/admin/ExpensesTab'
 import { OfflineSalesTab } from '../components/admin/OfflineSalesTab'
 import { OnlineOrdersTab } from '../components/admin/OnlineOrdersTab'
+import { PromotionsTab } from '../components/admin/PromotionsTab'
 import {
   fetchAnalyticsOverview,
   fetchAdminLogStats,
@@ -62,6 +63,7 @@ type TabKey =
   | 'products'
   | 'collections'
   | 'promos'
+  | 'promotions'
   | 'reviews'
   | 'users'
   | 'mailing'
@@ -78,6 +80,7 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: 'products', label: 'Products' },
   { key: 'collections', label: 'Collections' },
   { key: 'promos', label: 'Promo codes & Usage' },
+  { key: 'promotions', label: 'Promotional Popups' },
   { key: 'reviews', label: 'Reviews' },
   { key: 'users', label: 'Users' },
   { key: 'mailing', label: 'Mailing' },
@@ -639,11 +642,30 @@ export function AdminPage() {
           <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Card asMotion={false} className="p-5">
-                <p className="text-xs uppercase text-scnt-text-muted">Total Revenue</p>
-                <p className="mt-2 text-3xl font-mono text-emerald-400">{dashboard ? formatMoney(dashboard.totalRevenue) : '—'}</p>
-                <p className="mt-1 text-[11px] text-scnt-text-muted">
-                  Online {formatMoney(dashboard?.onlineRevenue || 0)} · Offline {formatMoney(dashboard?.offlineRevenue || 0)}
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-wider text-scnt-text-muted">Total Revenue</p>
+                  {dashboard?.marginPercent != null && (
+                    <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono text-emerald-400">
+                      {dashboard.marginPercent}% margin
+                    </span>
+                  )}
+                </div>
+                <p className="mt-2 text-3xl font-mono font-semibold text-emerald-400">
+                  {dashboard ? formatMoney(dashboard.totalRevenue) : '—'}
                 </p>
+                <div className="mt-2 space-y-1 text-[11px] text-scnt-text-muted">
+                  <p>
+                    Online Margin {formatMoney(dashboard?.onlineRevenue || 0)} · Offline Margin {formatMoney(dashboard?.offlineRevenue || 0)}
+                  </p>
+                  {dashboard?.totalSales != null && (
+                    <p className="border-t border-scnt-border/40 pt-1 text-scnt-text-muted/80">
+                      Total Sales: <strong className="font-mono text-scnt-text">{formatMoney(dashboard.totalSales)}</strong>
+                      {dashboard.onlineSales != null && dashboard.offlineSales != null && (
+                        <span> (Online {formatMoney(dashboard.onlineSales)} · Offline {formatMoney(dashboard.offlineSales)})</span>
+                      )}
+                    </p>
+                  )}
+                </div>
               </Card>
               <Card asMotion={false} className="p-5">
                 <p className="text-xs uppercase text-scnt-text-muted">Online Orders</p>
@@ -1327,6 +1349,8 @@ export function AdminPage() {
             ) : null}
           </div>
         ) : null}
+
+        {activeTab === 'promotions' ? <PromotionsTab /> : null}
 
         {activeTab === 'users' ? (
           <Card asMotion={false} className="p-5">

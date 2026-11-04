@@ -5,6 +5,7 @@ const adminLogController = require("../controllers/adminLogController");
 const cartController = require("../controllers/cartController");
 const expenseController = require("../controllers/expenseController");
 const offlineSaleController = require("../controllers/offlineSaleController");
+const promotionController = require("../controllers/promotionController");
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
@@ -76,6 +77,13 @@ router.get("/promo-codes", adminController.listPromoCodes);
 router.post("/promo-codes", adminController.createPromoCode);
 router.put("/promo-codes/:id", adminController.updatePromoCode);
 router.delete("/promo-codes/:id", adminController.deletePromoCode);
+
+// Promotional Modal Campaigns Management
+router.get("/promotions", promotionController.adminListCampaigns);
+router.post("/promotions", promotionController.adminCreateCampaign);
+router.put("/promotions/:id", promotionController.adminUpdateCampaign);
+router.delete("/promotions/:id", promotionController.adminDeleteCampaign);
+router.get("/promotions/:id/leads", promotionController.adminGetCampaignLeads);
 
 // Marketing / Mailing
 router.post("/mail/promotional", adminController.sendPromotionalBroadcast);

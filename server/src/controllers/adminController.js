@@ -12,6 +12,7 @@ const userRepository = require("../repositories/userRepository");
 const { sendPromotionalEmail } = require("../services/emailService");
 const { getCache, setCache, deleteCache, invalidatePattern } = require("../utils/cache");
 const { recordAuditAction } = require("../utils/auditLogger");
+const { getOrCreateCostConfig, calculateStorewideRevenueAndSales } = require("../utils/cogsCalculator");
 
 const getAllOrders = asyncHandler(async (req, res) => {
   const cacheKey = "admin:orders:all";
@@ -202,22 +203,30 @@ const getDashboardSummary = asyncHandler(async (_req, res) => {
     ordersCount,
     collectionsCount,
     pendingOrders,
-    revenueAgg,
     offlineSalesCount,
-    offlineRevenueAgg,
+    orders,
+    offlineSales,
+    products,
+    costConfig,
   ] = await Promise.all([
     User.countDocuments({}),
     Product.countDocuments({}),
     Order.countDocuments({}),
     Collection.countDocuments({}),
     Order.countDocuments({ status: "PENDING" }),
-    Order.aggregate([{ $group: { _id: null, totalRevenue: { $sum: "$total" } } }]),
     OfflineSale.countDocuments({}),
-    OfflineSale.aggregate([{ $group: { _id: null, totalRevenue: { $sum: "$total" } } }]),
+    Order.find({ status: { $ne: "CANCELLED" } }).select("items total subtotal discount shipping status").lean(),
+    OfflineSale.find({}).select("items total subtotal discount channel").lean(),
+    Product.find({}).select("name slug price sizes oilCostPerKg oilCostPerMl").lean(),
+    getOrCreateCostConfig(),
   ]);
 
-  const onlineRevenue = revenueAgg[0]?.totalRevenue || 0;
-  const offlineRevenue = offlineRevenueAgg[0]?.totalRevenue || 0;
+  const marginMetrics = calculateStorewideRevenueAndSales({
+    orders,
+    offlineSales,
+    products,
+    config: costConfig,
+  });
 
   const summary = {
     usersCount,
@@ -225,9 +234,14 @@ const getDashboardSummary = asyncHandler(async (_req, res) => {
     ordersCount,
     collectionsCount,
     pendingOrders,
-    totalRevenue: onlineRevenue + offlineRevenue,
-    onlineRevenue,
-    offlineRevenue,
+    totalRevenue: marginMetrics.totalRevenue,
+    onlineRevenue: marginMetrics.onlineRevenue,
+    offlineRevenue: marginMetrics.offlineRevenue,
+    totalSales: marginMetrics.totalSales,
+    onlineSales: marginMetrics.onlineSales,
+    offlineSales: marginMetrics.offlineSales,
+    marginPercent: marginMetrics.marginPercent,
+    totalCogs: marginMetrics.totalCogs,
     offlineSalesCount,
   };
 

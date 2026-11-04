@@ -8,3 +8,13 @@ server/logs/
 server/tests/test_report.json
 server/tests/TEST_REPORT.md
 server/tests/edge_case_inventory.md
+.failurelens/
+graphify-out/
+.graphifyignore
+scratch/
+*.zip
+temp_*.js
+scnt-website-audit/
+scnt-website-audit-knowledge/
+*merchant_feed*.csv
+*merchant_feed*.tsv

@@ -7,6 +7,7 @@ const wishlistRoutes = require("./wishlistRoutes");
 const orderRoutes = require("./orderRoutes");
 const adminRoutes = require("./adminRoutes");
 const analyticsRoutes = require("./analyticsRoutes");
+const promotionRoutes = require("./promotionRoutes");
 
 const router = express.Router();
 
@@ -18,6 +19,7 @@ router.use("/wishlist", wishlistRoutes);
 router.use("/orders", orderRoutes);
 router.use("/admin", adminRoutes);
 router.use("/analytics", analyticsRoutes);
+router.use("/promotions", promotionRoutes);
 
 module.exports = router;
 

@@ -112,6 +112,26 @@ async function cleanTestCollections() {
     const PromoCode = require("../../src/models/PromoCode");
     await PromoCode.deleteMany({});
   } catch (_) {}
+
+  try {
+    const Expense = require("../../src/models/Expense");
+    await Expense.deleteMany({});
+  } catch (_) {}
+
+  try {
+    const CostConfig = require("../../src/models/CostConfig");
+    await CostConfig.deleteMany({});
+  } catch (_) {}
+
+  try {
+    const PromotionCampaign = require("../../src/models/PromotionCampaign");
+    await PromotionCampaign.deleteMany({});
+  } catch (_) {}
+
+  try {
+    const PromotionLead = require("../../src/models/PromotionLead");
+    await PromotionLead.deleteMany({});
+  } catch (_) {}
 }
 
 module.exports = {

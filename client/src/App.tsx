@@ -6,6 +6,7 @@ import { Seo } from './components/seo/Seo'
 import { buildOrganizationSchema, buildWebsiteSchema } from './seo/schema'
 import { useI18n } from './i18n/I18nContext'
 import { VisitTracker } from './components/analytics/VisitTracker'
+import { PromotionalModal } from './components/promotions/PromotionalModal'
 
 
 const Home = lazy(() => import('./pages/Home').then((m) => ({ default: m.Home })))
@@ -229,6 +230,7 @@ export default function App() {
       <RouteScrollLock />
       <RouteSeo />
       <BrandIntroTransition />
+      <PromotionalModal />
 
       <Suspense fallback={<StarLoader className="py-24" label="Loading page" />}>
         <Routes>

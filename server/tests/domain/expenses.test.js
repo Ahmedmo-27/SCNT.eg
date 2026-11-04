@@ -230,7 +230,7 @@ describe("Expenses, Materials & COGS Management Domain Test Suite", () => {
           fragrantAlcoholCostPerMl: 0.2,
           recipes: {
             size100ml: { oilMl: 25, alcoholMl: 75 },
-            size50ml: { oilMl: 15, alcoholMl: 35 },
+            size50ml: { oilMl: 12.5, alcoholMl: 37.5 },
             decant3ml: { oilMl: 1, alcoholMl: 2 },
           },
         },

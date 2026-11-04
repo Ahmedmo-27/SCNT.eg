@@ -330,7 +330,7 @@ export function ExpensesTab() {
       : 3.0
 
   const avg100mlCost = Number((baseNonOil100ml + 25 * avgOilPerMl).toFixed(2))
-  const avg50mlCost = Number((baseNonOil50ml + 15 * avgOilPerMl).toFixed(2))
+  const avg50mlCost = Number((baseNonOil50ml + 12.5 * avgOilPerMl).toFixed(2))
   const avgDecantCost = Number((baseNonOilDecant + 1 * avgOilPerMl).toFixed(2))
 
   const getFormatBaselineCost = (fmt: '100ml' | '50ml' | 'decant3ml'): number => {
@@ -2214,12 +2214,12 @@ export function ExpensesTab() {
                 <div className="space-y-2 text-xs divide-y divide-scnt-border/30">
                   <div className="flex justify-between pt-1">
                     <span className="text-scnt-text-muted">
-                      Fragrance Oil (15ml @ {formatEgp(activeOilCostPerMl)}/ml)
+                      Fragrance Oil (12.5g @ {formatEgp(activeOilCostPerMl)}/ml)
                     </span>
                     <span className="font-mono font-medium">{formatEgp(activeBreakdowns.size50ml.oilCost)}</span>
                   </div>
                   <div className="flex justify-between pt-1">
-                    <span className="text-scnt-text-muted">Fragrant Alcohol (35ml)</span>
+                    <span className="text-scnt-text-muted">Fragrant Alcohol (37.5ml)</span>
                     <span className="font-mono">{formatEgp(activeBreakdowns.size50ml.alcoholCost)}</span>
                   </div>
                   <div className="flex justify-between pt-1">

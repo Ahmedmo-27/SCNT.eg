@@ -494,11 +494,114 @@ const sendAbandonedCartRecoveryEmail = async ({
   });
 };
 
+const sendPromotionDiscountEmail = async ({ to, campaign, promoCode, locale = "en" }) => {
+  const isAr = locale === "ar";
+  const safeCode = String(promoCode || campaign?.promoCode || "").trim().toUpperCase();
+
+  const title = isAr
+    ? campaign?.title?.ar || campaign?.title?.en || "عرض خاص من SCNT"
+    : campaign?.title?.en || campaign?.title?.ar || "Special SCNT Offer";
+
+  const intro = isAr
+    ? campaign?.subtitle?.ar || campaign?.description?.ar || "إليك كود الخصم الحصري الخاص بك للاستمتاع بتشكيلتنا العطرية."
+    : campaign?.subtitle?.en || campaign?.description?.en || "Here is your exclusive discount code to experience our curated fragrance extracts.";
+
+  const discountBadge = isAr
+    ? campaign?.discountHighlight?.ar || campaign?.badge?.ar || "كود خصم حصري"
+    : campaign?.discountHighlight?.en || campaign?.badge?.en || "Exclusive Access";
+
+  const discountDetail = campaign?.discountType === "PERCENTAGE"
+    ? (isAr ? `خصم ${campaign.discountValue}% على طلبك` : `${campaign.discountValue}% off your order`)
+    : (isAr ? `خصم بقيمة ${campaign.discountValue} ج.م` : `EGP ${campaign.discountValue} off your order`);
+
+  const minSpendNote = campaign?.minSubtotal && Number(campaign.minSubtotal) > 0
+    ? (isAr ? `الحد الأدنى للطلب: ${formatCurrency(campaign.minSubtotal)}` : `Minimum order subtotal: ${formatCurrency(campaign.minSubtotal)}`)
+    : "";
+
+  const expiryNote = campaign?.expiresAt
+    ? (isAr ? `صالح حتى: ${formatOrderDate(campaign.expiresAt)}` : `Valid until: ${formatOrderDate(campaign.expiresAt)}`)
+    : "";
+
+  const customSubject = isAr ? campaign?.emailSubject?.ar : campaign?.emailSubject?.en;
+  const subject = customSubject?.trim()
+    ? customSubject.trim()
+    : isAr
+    ? `كود الخصم الخاص بك (${safeCode}) - بيت SCNT للعطور`
+    : `Your House of SCNT Discount Code [${safeCode}]`;
+
+  const baseUrl = (env.clientBaseUrl || "https://scnt.eg").replace(/\/+$/, "");
+  const shopUrl = `${baseUrl}/shop?promo=${encodeURIComponent(safeCode)}`;
+
+  const bodyHtml = `
+    <div style="text-align:center;margin:18px 0 24px 0;">
+      <p style="margin:0 0 8px 0;font-size:15px;line-height:1.7;color:${BRAND.ink};">
+        ${escapeHtml(intro)}
+      </p>
+    </div>
+    <div style="margin:20px auto;max-width:440px;padding:24px 20px;border:2px dashed #b59a57;border-radius:14px;background:#171412;color:#f6f3ef;text-align:center;">
+      <p style="margin:0 0 6px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#d4af37;">
+        ${escapeHtml(discountBadge)}
+      </p>
+      <div style="font-family:'Courier New',Courier,monospace;font-size:32px;font-weight:700;letter-spacing:0.18em;color:#ffffff;margin:12px 0;padding:12px 18px;background:#2a2622;border-radius:8px;display:inline-block;border:1px solid #3d362f;">
+        ${escapeHtml(safeCode)}
+      </div>
+      <p style="margin:8px 0 0 0;font-size:14px;font-weight:600;color:#c5a962;">
+        ${escapeHtml(discountDetail)}
+      </p>
+      ${
+        minSpendNote || expiryNote
+          ? `<p style="margin:8px 0 0 0;font-size:12px;color:#a3988e;">
+              ${[minSpendNote, expiryNote].filter(Boolean).map(escapeHtml).join(" · ")}
+            </p>`
+          : ""
+      }
+    </div>
+    <p style="margin:20px 0 0 0;font-size:13px;line-height:1.6;color:${BRAND.muted};text-align:center;">
+      ${
+        isAr
+          ? "أدخل الكود عند إتمام الطلب لتطبيق الخصم فوراً."
+          : "Simply enter this code at checkout in the promo code field to apply your savings."
+      }
+    </p>
+  `;
+
+  const ctaHtml = `
+    <p style="margin:26px 0 10px 0;text-align:center;">
+      <a href="${shopUrl}" style="display:inline-block;background:#171412;color:#ffffff;text-decoration:none;padding:14px 34px;border-radius:10px;font-size:14px;font-weight:700;letter-spacing:0.04em;">
+        ${isAr ? "تسوق المجموعات العطرية الآن" : "Explore The Collections & Shop"}
+      </a>
+    </p>
+  `;
+
+  const footerNote = isAr
+    ? "إذا كان لديك أي استفسار حول النوتات أو الطلبات، يمكنك الرد على هذه الرسالة مباشرة."
+    : "If you have questions about notes, bottle sizes, or artisanal extracts, simply reply to this email.";
+
+  const html = wrapEmailLayout({
+    eyebrow: isAr ? "عرض خاص" : "Private Invitation",
+    title,
+    intro: "",
+    bodyHtml,
+    ctaHtml,
+    footerNote,
+  });
+
+  const text = `${title}\n\n${intro}\n\nPromo Code: ${safeCode}\nOffer: ${discountDetail}\n${minSpendNote ? minSpendNote + "\n" : ""}${expiryNote ? expiryNote + "\n" : ""}\nShop now: ${shopUrl}`;
+
+  return sendEmail({
+    to,
+    subject,
+    text,
+    html,
+  });
+};
+
 module.exports = {
   isMailerConfigured,
   sendEmail,
   sendVerificationEmail,
   sendPromotionalEmail,
+  sendPromotionDiscountEmail,
   sendOrderConfirmationEmail,
   sendAbandonedCartRecoveryEmail,
 };
