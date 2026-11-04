@@ -32,7 +32,7 @@ export function CollectionSplitSection({
     : undefined
 
   return (
-    <div className="relative min-h-[calc(100svh-var(--scnt-header-h,5.5rem))] w-full md:h-auto">
+    <div className="relative h-[calc(100svh-var(--scnt-header-h,5.5rem))] w-full md:h-auto md:min-h-[calc(100svh-var(--scnt-header-h,5.5rem))]">
       <div className="absolute inset-0 -z-10 opacity-95" style={{ background: gradient }} aria-hidden />
 
       <div className="relative mx-auto flex h-full w-full max-w-6xl items-stretch px-0 md:px-5 lg:px-8">
@@ -40,7 +40,7 @@ export function CollectionSplitSection({
           className={`flex h-full w-full flex-col justify-end md:grid md:h-auto md:items-center md:gap-10 md:py-10 lg:gap-14 ${flip ? 'md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.1fr)]' : 'md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.95fr)]'
             }`}
         >
-          <div className={`relative z-10 mt-auto px-5 pb-8 pt-16 sm:pt-24 bg-gradient-to-t from-scnt-bg via-scnt-bg/95 to-transparent md:bg-none md:mt-0 md:pt-0 md:order-none md:h-auto md:overflow-visible md:px-0 md:py-0 ${flip ? 'md:order-2' : ''}`}>
+          <div className={`relative z-10 mt-auto px-5 pb-8 pt-32 bg-gradient-to-t from-scnt-bg via-scnt-bg/95 to-transparent md:bg-none md:mt-0 md:pt-0 md:order-none md:h-auto md:overflow-visible md:px-0 md:py-0 ${flip ? 'md:order-2' : ''}`}>
             {kicker ? (
               <p className="mb-4 inline-flex items-center gap-2 text-xs uppercase tracking-[0.32em] text-scnt-text-muted">
                 <EightPointStar size={9} className="opacity-45" />
@@ -48,18 +48,18 @@ export function CollectionSplitSection({
               </p>
             ) : null}
 
-            <h2 className="max-w-2xl font-serif text-3xl text-scnt-text sm:text-5xl md:text-[3.15rem]">
+            <h2 className="max-w-2xl font-serif text-4xl text-scnt-text sm:text-5xl md:text-[3.15rem]">
               {title}
             </h2>
 
             {body ? (
-              <p className="mt-4 sm:mt-6 max-w-xl whitespace-pre-line text-sm leading-relaxed text-scnt-text-muted sm:text-[0.98rem]">
+              <p className="mt-6 max-w-xl whitespace-pre-line text-sm leading-relaxed text-scnt-text-muted sm:text-[0.98rem]">
                 {body}
               </p>
             ) : null}
 
             {ctaLabel && ctaTo ? (
-              <div className="mt-6 sm:mt-10">
+              <div className="mt-10">
                 <Button to={ctaTo} variant="outline" className="px-9">
                   {ctaLabel}
                 </Button>
