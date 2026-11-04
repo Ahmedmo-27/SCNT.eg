@@ -92,7 +92,7 @@ const CHANNEL_LABELS: Record<string, { label: string; icon: React.ComponentType<
 
 export function getOfflineSaleFinancials(sale: OfflineSale, products?: AdminProduct[]) {
   // If already computed by backend:
-  if (sale.cogs !== undefined && sale.netRevenue !== undefined) {
+  if (typeof sale.cogs === 'number' && sale.cogs > 0 && typeof sale.netRevenue === 'number') {
     return {
       cogs: sale.cogs,
       netRevenue: sale.netRevenue,
@@ -104,15 +104,18 @@ export function getOfflineSaleFinancials(sale: OfflineSale, products?: AdminProd
 
   // Fallback calculation
   const subtotal =
-    sale.subtotal ||
-    (sale.items || []).reduce((acc, it) => acc + (it.subtotal || it.unitPrice * it.quantity), 0)
-  const discount = sale.discount || 0
+    Number(sale.subtotal) ||
+    (sale.items || []).reduce(
+      (acc, it) => acc + (Number(it.subtotal) || (Number(it.unitPrice) || 0) * (Number(it.quantity) || 1)),
+      0
+    )
+  const discount = Number(sale.discount) || 0
   const fragranceNetSales = Math.max(0, subtotal - discount)
 
   let computedCogs = 0
   if (sale.items) {
     for (const item of sale.items) {
-      const qty = item.quantity || 1
+      const qty = Number(item.quantity) || 1
       const sizeStr = (item.size || '100ml').toLowerCase()
       let unitCogs = 115
       if (sizeStr.includes('50')) unitCogs = 82
@@ -125,8 +128,14 @@ export function getOfflineSaleFinancials(sale: OfflineSale, products?: AdminProd
           ? item.product
           : null
 
-      if (prodId && products) {
-        const prod = products.find((p) => p._id === prodId)
+      if (products) {
+        const prod = products.find(
+          (p) =>
+            (prodId && (p._id || (p as any).id) === prodId) ||
+            (item.productName &&
+              ((p.name && p.name.trim().toLowerCase() === item.productName.trim().toLowerCase()) ||
+                (p.title && p.title.trim().toLowerCase() === item.productName.trim().toLowerCase())))
+        )
         if (prod && (prod.oilCostPerMl || prod.oilCostPerKg)) {
           const oilPerMl = prod.oilCostPerMl || (prod.oilCostPerKg ? prod.oilCostPerKg / 1000 : 0)
           if (sizeStr.includes('50')) {
@@ -1645,8 +1654,13 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
 
       {/* RECEIPT / INVOICE MODAL */}
       {receiptSale && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-scnt-border bg-scnt-bg-elevated p-6 shadow-2xl space-y-4">
+        <div
+          className="fixed inset-0 z-[250] flex items-center justify-center overflow-y-auto bg-black/80 backdrop-blur-sm p-3 sm:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setReceiptSale(null)
+          }}
+        >
+          <div className="relative my-auto w-full max-w-md max-h-[min(90vh,calc(100vh-3rem))] overflow-y-auto rounded-2xl border border-scnt-border bg-scnt-bg-elevated p-5 sm:p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-scnt-border/60 pb-3">
               <div>
                 <h3 className="text-base font-bold text-scnt-text tracking-wider">SCNT.EG</h3>
@@ -1655,7 +1669,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
               <button
                 type="button"
                 onClick={() => setReceiptSale(null)}
-                className="text-scnt-text-muted hover:text-scnt-text text-sm p-1"
+                className="text-scnt-text-muted hover:text-scnt-text text-sm p-1 rounded-lg hover:bg-scnt-bg"
               >
               <CloseIcon size={16} />
             </button>
@@ -1717,7 +1731,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
               ))}
             </div>
 
-            <div className="space-y-1 text-xs">
+            <div className="space-y-1.5 text-xs">
               <div className="flex justify-between text-scnt-text-muted">
                 <span>Subtotal:</span>
                 <span className="font-mono text-scnt-text">{formatEgp(receiptSale.subtotal)}</span>
@@ -1728,9 +1742,9 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                   <span className="font-mono">-{formatEgp(receiptSale.discount)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-base font-bold text-scnt-text pt-1 border-t border-scnt-border/40">
+              <div className="flex justify-between text-sm font-semibold text-scnt-text pt-1 border-t border-scnt-border/40">
                 <span>Total Paid:</span>
-                <span className="font-mono text-emerald-400">{formatEgp(receiptSale.total)}</span>
+                <span className="font-mono text-scnt-text font-bold">{formatEgp(receiptSale.total)}</span>
               </div>
               {(() => {
                 const rFin = getOfflineSaleFinancials(receiptSale, products)
@@ -1741,7 +1755,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                         <span className="font-medium block">Spendings & COGS:</span>
                         <span className="text-[10px] text-scnt-text-muted">Fragrance packaging & ingredients</span>
                       </div>
-                      <span className="font-mono font-semibold text-right">
+                      <span className="font-mono font-semibold text-right text-rose-400">
                         -{formatEgp(rFin.cogs)}
                       </span>
                     </div>
@@ -1793,8 +1807,13 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
 
       {/* DELETE / VOID CONFIRMATION MODAL */}
       {deletingSale && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-red-500/30 bg-scnt-bg-elevated p-6 shadow-2xl space-y-4">
+        <div
+          className="fixed inset-0 z-[250] flex items-center justify-center overflow-y-auto bg-black/80 backdrop-blur-sm p-4 sm:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDeletingSale(null)
+          }}
+        >
+          <div className="relative my-auto w-full max-w-sm rounded-2xl border border-red-500/30 bg-scnt-bg-elevated p-6 shadow-2xl space-y-4">
             <h3 className="text-base font-bold text-red-300">Void / Delete Offline Sale</h3>
             <p className="text-xs text-scnt-text-muted">
               Are you sure you want to void sale{' '}
@@ -1841,8 +1860,13 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
 
       {/* EDIT OFFLINE PURCHASE MODAL */}
       {editingSale && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-2xl border border-amber-500/40 bg-scnt-bg-elevated p-6 shadow-2xl space-y-6 relative">
+        <div
+          className="fixed inset-0 z-[250] flex items-center justify-center bg-black/85 backdrop-blur-sm p-3 sm:p-6 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setEditingSale(null)
+          }}
+        >
+          <div className="relative my-auto w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-2xl border border-amber-500/40 bg-scnt-bg-elevated p-6 shadow-2xl space-y-6">
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 rounded-t-2xl" />
 
             <div className="flex items-center justify-between border-b border-scnt-border/60 pb-3">

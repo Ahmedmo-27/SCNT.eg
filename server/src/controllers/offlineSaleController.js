@@ -26,6 +26,31 @@ function generateReceiptNumber() {
 }
 
 /**
+ * Enriches a single offline sale with accurate COGS, net revenue, and margin %
+ */
+async function enrichOfflineSaleWithCogs(saleObj) {
+  if (!saleObj) return saleObj;
+  const raw = typeof saleObj.toObject === "function" ? saleObj.toObject() : { ...saleObj };
+  try {
+    const [allProducts, costConfig] = await Promise.all([
+      Product.find().lean(),
+      getOrCreateCostConfig(),
+    ]);
+    const { productMap, defaultSizeCogs } = buildProductCogsMap(allProducts, costConfig);
+    const metrics = calculateSingleOfflineSaleMarginAndCogs(raw, productMap, defaultSizeCogs);
+    return {
+      ...raw,
+      cogs: metrics.cogs,
+      netRevenue: metrics.netRevenue,
+      marginPercent: metrics.marginPercent,
+      items: metrics.items,
+    };
+  } catch (err) {
+    return raw;
+  }
+}
+
+/**
  * List offline sales with pagination, search, and date filters
  */
 const listOfflineSales = asyncHandler(async (req, res) => {
@@ -321,7 +346,8 @@ const createOfflineSale = asyncHandler(async (req, res) => {
     },
   });
 
-  res.status(201).json(successResponse(offlineSale, "Offline purchase recorded successfully"));
+  const enrichedSale = await enrichOfflineSaleWithCogs(offlineSale);
+  res.status(201).json(successResponse(enrichedSale, "Offline purchase recorded successfully"));
 });
 
 /**
@@ -337,7 +363,8 @@ const getOfflineSaleById = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Offline sale not found");
   }
 
-  res.status(200).json(successResponse(sale));
+  const enrichedSale = await enrichOfflineSaleWithCogs(sale);
+  res.status(200).json(successResponse(enrichedSale));
 });
 
 /**
@@ -494,7 +521,8 @@ const updateOfflineSale = asyncHandler(async (req, res) => {
     details: updateData,
   });
 
-  res.status(200).json(successResponse(updatedSale, "Offline sale updated successfully"));
+  const enrichedUpdatedSale = await enrichOfflineSaleWithCogs(updatedSale);
+  res.status(200).json(successResponse(enrichedUpdatedSale, "Offline sale updated successfully"));
 });
 
 /**

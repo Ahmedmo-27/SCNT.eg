@@ -524,12 +524,12 @@ export function OnlineOrdersTab({ orders, products, onStatusChange, busy, onRefr
       {/* FULL ORDER DETAILS MODAL */}
       {selectedOrder ? (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/75 p-3 sm:p-5 md:p-6 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-[250] flex items-center justify-center overflow-y-auto bg-black/75 p-3 sm:p-5 md:p-6 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) setSelectedOrder(null)
           }}
         >
-          <div className="relative flex flex-col max-h-[92dvh] w-full max-w-3xl overflow-hidden rounded-2xl border border-scnt-border bg-scnt-bg shadow-2xl">
+          <div className="relative my-auto flex flex-col max-h-[92dvh] w-full max-w-3xl overflow-hidden rounded-2xl border border-scnt-border bg-scnt-bg shadow-2xl">
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-scnt-border/60 p-4 sm:p-6 bg-scnt-bg-elevated/40">
               <div className="space-y-1">

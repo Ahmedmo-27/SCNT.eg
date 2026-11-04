@@ -118,6 +118,7 @@ export type AdminReview = {
 export type AdminProduct = {
   _id: string
   name: string
+  title?: string
   slug: string
   inspired_from: string
   gender: 'male' | 'female'
