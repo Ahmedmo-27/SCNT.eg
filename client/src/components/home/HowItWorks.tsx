@@ -134,7 +134,7 @@ export function HowItWorks() {
 
               {i < steps.length - 1 ? (
                 <>
-                  <div className="hidden shrink-0 self-center pt-10 text-scnt-text/35 lg:block">
+                  <div className="hidden shrink-0 self-center pt-10 text-scnt-text/35 rtl:-scale-x-100 lg:block">
                     <ArrowAcross className="h-6 w-14" />
                   </div>
                   <div className="flex justify-center text-scnt-text/35 lg:hidden">

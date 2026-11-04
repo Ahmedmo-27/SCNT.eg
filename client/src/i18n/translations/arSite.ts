@@ -226,6 +226,8 @@ export const arSite: Record<string, string> = {
   'cart.promoRmOk': 'تمت إزالة رمز الخصم.',
   'cart.promoApplyFail': 'تعذّر تطبيق رمز الخصم.',
   'cart.promoRmFail': 'تعذّر إزالة رمز الخصم.',
+  'cart.promoWhole': 'مطبق على كامل السلة',
+  'cart.promoEligible': 'مطبق على المنتجات المؤهلة فقط',
 
   'checkout.title': 'الدفع',
   'checkout.sub': 'أكمل بيانات التوصيل وأكد طلبك. الدفع عند الاستلام فقط.',

@@ -15,7 +15,7 @@ import { InstagramIcon } from '../components/icons/InstagramIcon'
 import { openInstagramProfile, INSTAGRAM_HANDLE } from '../utils/socialDeepLinks'
 
 export function ReviewPage() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [searchParams] = useSearchParams()
   const initialSlugOrId = searchParams.get('product') || searchParams.get('productId')
   const { products: catalogProducts } = useCatalog()
@@ -210,7 +210,7 @@ export function ReviewPage() {
         </div>
 
         {error && (
-          <div className={`${cardShell} mb-8 bg-red-900/30 border-red-500/30 text-red-400`}>
+          <div className={`${cardShell} mb-8 border-red-500/40 bg-red-950/10 text-red-700 font-medium`}>
             {error}
           </div>
         )}
@@ -267,7 +267,7 @@ export function ReviewPage() {
                 <p className="text-xs text-scnt-text-muted mb-4">
                   {t('review.selectProduct')}
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto pe-1">
                   {catalogProducts.map((product: ProductSummary) => {
                     return (
                       <button
@@ -277,7 +277,7 @@ export function ReviewPage() {
                           setSelectedProduct(product)
                           setError(null)
                         }}
-                        className="p-4 rounded-xl border-2 border-scnt-border/80 bg-scnt-bg-base/40 transition-all text-left group hover:border-scnt-accent/60 hover:bg-scnt-bg-base/70 hover:shadow-md"
+                        className="p-4 rounded-xl border-2 border-scnt-border/80 bg-scnt-bg-base/40 transition-all text-start group hover:border-scnt-accent/60 hover:bg-scnt-bg-base/70 hover:shadow-md"
                       >
                         <div className="flex items-center gap-3">
                           {product.galleryImages[0] && (
@@ -483,16 +483,21 @@ export function ReviewPage() {
               if (e.target === e.currentTarget) setShowThankYou(false)
             }}
           >
-            <div className="relative flex flex-col max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-scnt-border/80 bg-scnt-bg p-6 sm:p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="review-thank-you-title"
+              className="relative flex flex-col max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-2xl border border-scnt-border/80 bg-scnt-bg p-6 sm:p-8 text-center shadow-2xl animate-in zoom-in-95 duration-200"
+            >
               <button
                 type="button"
                 onClick={() => setShowThankYou(false)}
-                className="absolute right-4 top-4 rounded-lg p-1.5 text-scnt-text-muted hover:bg-scnt-bg-elevated hover:text-scnt-text transition-colors"
-                aria-label="Close modal"
+                className="absolute end-4 top-4 rounded-lg p-1.5 text-scnt-text-muted hover:bg-scnt-bg-elevated hover:text-scnt-text transition-colors"
+                aria-label={locale === 'ar' ? 'إغلاق' : 'Close modal'}
               >
                 ✕
               </button>
-              <h2 className="text-2xl sm:text-3xl font-serif font-bold mb-3 text-scnt-text">
+              <h2 id="review-thank-you-title" className="text-2xl sm:text-3xl font-serif font-bold mb-3 text-scnt-text">
                 {t('review.thankYouTitle')}
               </h2>
               <p className="text-scnt-text/80 text-sm mb-5 leading-relaxed">

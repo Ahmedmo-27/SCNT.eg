@@ -42,7 +42,7 @@ function GenderCard({
         className="group relative block overflow-hidden rounded-2xl border border-scnt-border/80 bg-scnt-bg-elevated/40 p-7 shadow-[0_30px_90px_-50px_var(--color-scnt-shadow)] backdrop-blur-md transition-[transform,box-shadow,border-color,background-color] duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] hover:-translate-y-1 hover:border-scnt-border hover:bg-scnt-bg-elevated/60 hover:shadow-[0_46px_110px_-62px_var(--color-scnt-shadow)] sm:p-9"
       >
         <div
-          className={`pointer-events-none absolute -right-14 -top-14 h-44 w-44 rounded-full blur-3xl opacity-40 transition-opacity duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:opacity-65 ${accentClass}`}
+          className={`pointer-events-none absolute -end-14 -top-14 h-44 w-44 rounded-full blur-3xl opacity-40 transition-opacity duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover:opacity-65 ${accentClass}`}
           aria-hidden
         />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_85%_70%_at_40%_30%,rgba(255,255,255,0.22)_0%,transparent_62%)] opacity-50" />

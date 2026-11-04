@@ -11,7 +11,7 @@ import { buildFaqSchema } from '../seo/schema'
 function FaqItem({ question, answer }: { question: string; answer: string }) {
   return (
     <details className="group border-b border-scnt-border/60 pb-1 last:border-b-0">
-      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 py-5 text-left font-medium text-scnt-text [-webkit-details-marker]:hidden [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-4 py-5 text-start font-medium text-scnt-text [-webkit-details-marker]:hidden [&::-webkit-details-marker]:hidden">
         <span className="text-base leading-snug sm:text-[1.05rem]">{question}</span>
         <span className="mt-0.5 shrink-0 text-scnt-text-muted transition-transform duration-300 group-open:rotate-45" aria-hidden>
           <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">

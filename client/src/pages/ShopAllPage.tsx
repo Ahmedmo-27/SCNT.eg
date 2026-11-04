@@ -149,12 +149,12 @@ export function ShopAllPage() {
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
               {t('shop.filterLine')}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-nowrap overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap gap-2 no-scrollbar">
               <button
                 type="button"
                 onClick={() => setFilter(null)}
                 aria-pressed={filter === null}
-                className={`rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                className={`shrink-0 rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
                   filter === null
                     ? 'border-scnt-text bg-scnt-text text-scnt-bg shadow-[0_12px_32px_-18px_rgba(42,38,34,0.35)]'
                     : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
@@ -168,7 +168,7 @@ export function ShopAllPage() {
                   type="button"
                   onClick={() => setFilter(c.id)}
                   aria-pressed={filter === c.id}
-                  className={`rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  className={`shrink-0 rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
                     filter === c.id
                       ? 'text-scnt-bg shadow-[0_12px_32px_-18px_rgba(42,38,34,0.22)]'
                       : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
@@ -189,12 +189,12 @@ export function ShopAllPage() {
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
               {t('shop.filterGender')}
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-nowrap overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap gap-2 no-scrollbar">
               <button
                 type="button"
                 onClick={() => setGender(null)}
                 aria-pressed={gender === null}
-                className={`rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                className={`shrink-0 rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
                   gender === null
                     ? 'border-scnt-text bg-scnt-text text-scnt-bg shadow-[0_12px_32px_-18px_rgba(42,38,34,0.35)]'
                     : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
@@ -206,7 +206,7 @@ export function ShopAllPage() {
                 type="button"
                 onClick={() => setGender('male')}
                 aria-pressed={gender === 'male'}
-                className={`rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                className={`shrink-0 rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
                   gender === 'male'
                     ? 'border-scnt-text bg-scnt-text text-scnt-bg shadow-[0_12px_32px_-18px_rgba(42,38,34,0.35)]'
                     : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'
@@ -218,7 +218,7 @@ export function ShopAllPage() {
                 type="button"
                 onClick={() => setGender('female')}
                 aria-pressed={gender === 'female'}
-                className={`rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                className={`shrink-0 rounded-full border px-4 py-2 text-[0.65rem] font-medium uppercase tracking-[0.16em] transition-[background-color,border-color,color,box-shadow] duration-[550ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
                   gender === 'female'
                     ? 'border-scnt-text bg-scnt-text text-scnt-bg shadow-[0_12px_32px_-18px_rgba(42,38,34,0.35)]'
                     : 'border-scnt-border/80 bg-scnt-bg-elevated/40 text-scnt-text-muted hover:border-scnt-text/25 hover:text-scnt-text'

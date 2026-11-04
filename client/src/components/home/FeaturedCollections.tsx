@@ -96,18 +96,18 @@ export function FeaturedCollections() {
                     aria-hidden
                   />
                   <span
-                    className="absolute left-0 top-0 z-[2] h-full w-1.5 rounded-full opacity-90 transition-opacity duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:opacity-100"
+                    className="absolute start-0 top-0 z-[2] h-full w-1.5 rounded-full opacity-90 transition-opacity duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:opacity-100"
                     style={{ backgroundColor: c.accent }}
                     aria-hidden
                   />
                   <div
-                    className="pointer-events-none absolute -right-6 -top-10 z-0 h-40 w-40 rounded-full opacity-40 blur-2xl transition-opacity duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:opacity-70"
+                    className="pointer-events-none absolute -end-6 -top-10 z-0 h-40 w-40 rounded-full opacity-40 blur-2xl transition-opacity duration-[var(--duration-scnt)] ease-[var(--ease-scnt)] group-hover/card:opacity-70"
                     style={{
                       background: `radial-gradient(circle, ${c.accent}33, transparent 65%)`,
                     }}
                     aria-hidden
                   />
-                  <div className="relative z-[3] pl-2">
+                  <div className="relative z-[3] ps-2">
                     <p className="text-xs font-medium uppercase tracking-[0.2em] text-scnt-text-muted">
                       {c.code}
                     </p>

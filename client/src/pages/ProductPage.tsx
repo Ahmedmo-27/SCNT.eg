@@ -97,22 +97,29 @@ export function ProductPage() {
   const related = getRelatedProducts(products, product.id, 3)
   const path = `/product/${product.id}`
   const productDescription = `${product.name} by SCNT.eg. Inspired by ${product.inspiredBy}. Top notes: ${product.topNotes.join(', ')}. Heart notes: ${product.heartNotes.join(', ')}. Base notes: ${product.baseNotes.join(', ')}.`
+  const isAr = locale === 'ar'
   const quickAnswers = [
     {
       question: t('product.faq.inspiredQuestion', { name: product.name }),
       answer: t('product.faq.inspiredAnswer', { name: product.name, fragrance: product.inspiredBy }),
     },
     {
-      question: `Who is ${product.name} best for?`,
-      answer: `${product.name} is designed for ${product.gender === 'female' ? 'women' : 'men'} who enjoy ${product.vibeSentence.toLowerCase()}`,
+      question: isAr ? `لمن يناسب عطر ${product.name}؟` : `Who is ${product.name} best for?`,
+      answer: isAr
+        ? `صُمم ${product.name} ${product.gender === 'female' ? 'للنساء' : 'للرجال'} الذين يفضلون ${product.vibeSentence}.`
+        : `${product.name} is designed for ${product.gender === 'female' ? 'women' : 'men'} who enjoy ${product.vibeSentence.toLowerCase()}.`,
     },
     {
-      question: `What are the main notes in ${product.name}?`,
-      answer: `Top notes: ${product.topNotes.join(', ')}. Heart notes: ${product.heartNotes.join(', ')}. Base notes: ${product.baseNotes.join(', ')}.`,
+      question: isAr ? `ما هي النوتات العطرية الأساسية في ${product.name}؟` : `What are the main notes in ${product.name}?`,
+      answer: isAr
+        ? `مقدمة العطر: ${product.topNotes.join('، ')}. قلب العطر: ${product.heartNotes.join('، ')}. قاعدة العطر: ${product.baseNotes.join('، ')}.`
+        : `Top notes: ${product.topNotes.join(', ')}. Heart notes: ${product.heartNotes.join(', ')}. Base notes: ${product.baseNotes.join(', ')}.`,
     },
     {
-      question: `What fragrance family does ${product.name} belong to?`,
-      answer: `${product.name} belongs to the ${col?.name ?? product.collection} collection by SCNT.eg.`,
+      question: isAr ? `إلى أي عائلة عطرية ينتمي ${product.name}؟` : `What fragrance family does ${product.name} belong to?`,
+      answer: isAr
+        ? `ينتمي ${product.name} إلى مجموعة ${col?.name ?? product.collection} من SCNT.eg.`
+        : `${product.name} belongs to the ${col?.name ?? product.collection} collection by SCNT.eg.`,
     },
   ]
 
@@ -450,7 +457,9 @@ export function ProductPage() {
             </div>
 
             <div className="mt-10 space-y-4 rounded-2xl bg-scnt-bg-elevated/65 p-6 ring-1 ring-scnt-border/90 backdrop-blur-md">
-              <h2 className="font-serif text-2xl text-scnt-text">Quick answers</h2>
+              <h2 className="font-serif text-2xl text-scnt-text">
+                {isAr ? 'إجابات سريعة' : 'Quick answers'}
+              </h2>
               {quickAnswers.map((item) => (
                 <article key={item.question} className="space-y-1.5">
                   <h3 className="text-sm font-medium uppercase tracking-[0.15em] text-scnt-text-muted">

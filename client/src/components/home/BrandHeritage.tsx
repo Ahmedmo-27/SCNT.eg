@@ -12,7 +12,7 @@ export function BrandHeritage() {
         whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true, margin: '-100px' }}
         transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-        className="flex w-full flex-col pr-0 sm:w-1/2 sm:pr-20"
+        className="flex w-full flex-col pe-0 sm:w-1/2 sm:pe-20"
       >
         <h2 className="font-serif text-4xl font-medium leading-[1.15] text-scnt-text sm:text-5xl lg:text-6xl text-balance">
           {t('home.heritage.title')}

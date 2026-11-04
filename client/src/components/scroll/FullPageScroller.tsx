@@ -95,6 +95,19 @@ export function FullPageScroller({
       if (isEditableTarget(e.target)) return
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
       if (Math.abs(e.deltaY) < 6) return
+
+      const activeSectionEl = container.querySelectorAll('section')[activeIndexRef.current] as HTMLElement | undefined
+      if (activeSectionEl && activeSectionEl.scrollHeight > activeSectionEl.clientHeight + 4) {
+        if (e.deltaY > 0 && activeSectionEl.scrollTop + activeSectionEl.clientHeight < activeSectionEl.scrollHeight - 6) {
+          // Allow internal scroll downwards
+          return
+        }
+        if (e.deltaY < 0 && activeSectionEl.scrollTop > 6) {
+          // Allow internal scroll upwards
+          return
+        }
+      }
+
       e.preventDefault()
 
       if (e.deltaY > 0) {
@@ -201,6 +214,18 @@ export function FullPageScroller({
 
       if (Math.abs(deltaY) < 40) return // Swipe threshold
 
+      const activeSectionEl = container.querySelectorAll('section')[activeIndexRef.current] as HTMLElement | undefined
+      if (activeSectionEl && activeSectionEl.scrollHeight > activeSectionEl.clientHeight + 4) {
+        if (deltaY > 0 && activeSectionEl.scrollTop + activeSectionEl.clientHeight < activeSectionEl.scrollHeight - 16) {
+          // User is swiping up to scroll content down
+          return
+        }
+        if (deltaY < 0 && activeSectionEl.scrollTop > 16) {
+          // User is swiping down to scroll content up
+          return
+        }
+      }
+
       if (deltaY > 0) {
         if (activeIndexRef.current >= sections.length - 1) return
         requestLock()
@@ -243,7 +268,7 @@ export function FullPageScroller({
             <section
               key={s.id}
               aria-label={s.ariaLabel}
-              className="h-[calc(100svh-var(--scnt-header-h,5.5rem))]"
+              className="h-[calc(100svh-var(--scnt-header-h,5.5rem))] overflow-y-auto overscroll-contain"
             >
               {s.node}
             </section>

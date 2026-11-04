@@ -250,7 +250,7 @@ export function CartPage() {
                         <button
                           type="button"
                           onClick={() => void removeItem(i.productId, i.size, i.metadata)}
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-scnt-border/80 text-scnt-text-muted transition hover:border-scnt-text/40 hover:text-scnt-text"
+                          className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border border-scnt-border/80 text-scnt-text-muted transition hover:border-scnt-text/40 hover:text-scnt-text before:absolute before:-inset-2 before:content-['']"
                           aria-label={t('pc.rmCart', { name: i.name })}
                           title={t('pc.rmItem')}
                         >
@@ -306,12 +306,12 @@ export function CartPage() {
                           : t('cart.amtOff', { price: formatEgp(promo.discountValue, locale) })}
                       </p>
                       {promo.discountScope === 'WHOLE_CART' ? (
-                        <p className="mt-0.5 text-[11px] text-purple-400">
-                          Applied to entire cart
+                        <p className="mt-0.5 text-[11px] font-medium text-purple-800">
+                          {t('cart.promoWhole')}
                         </p>
                       ) : (promo.applicableProducts && promo.applicableProducts.length > 0) || (promo.applicableSizes && promo.applicableSizes.length > 0) ? (
-                        <p className="mt-0.5 text-[11px] text-sky-400">
-                          Applied to eligible items only
+                        <p className="mt-0.5 text-[11px] font-medium text-sky-800">
+                          {t('cart.promoEligible')}
                         </p>
                       ) : null}
                     </div>

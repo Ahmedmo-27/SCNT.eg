@@ -357,7 +357,7 @@ export function ProductCard({ product, entrance = true, carousel = false, compac
         <button
           type="button"
           onClick={handleToggleWishlist}
-          className={`absolute end-4 top-4 z-[7] inline-flex ${compact ? 'h-7 w-7' : 'h-10 w-10'} items-center justify-center rounded-full border border-scnt-border/70 backdrop-blur-sm transition-colors sm:end-3 sm:top-3 ${
+          className={`absolute end-4 top-4 z-[7] inline-flex ${compact ? 'h-7 w-7' : 'h-10 w-10'} items-center justify-center rounded-full border border-scnt-border/70 backdrop-blur-sm transition-colors before:absolute before:-inset-2 before:content-[''] sm:end-3 sm:top-3 ${
             isWishlisted
               ? 'bg-scnt-text text-scnt-bg'
               : 'bg-scnt-bg-elevated/85 text-scnt-text-muted hover:text-scnt-text'
@@ -386,7 +386,7 @@ export function ProductCard({ product, entrance = true, carousel = false, compac
         </button>
         <div className={`border-t border-scnt-border/75 text-center sm:hidden ${compact ? 'px-3.5 pb-3 pt-2' : 'px-5 pb-5 pt-4'}`}>
           <div className="space-y-2">
-            <Button type="button" className={`w-full ${compact ? 'px-3.5 py-1.5 text-[0.68rem]' : 'px-5 py-2 text-xs'}`} onClick={handleAddToCart}>
+            <Button type="button" className={`w-full min-h-[44px] ${compact ? 'px-3.5 py-2 text-[0.72rem]' : 'px-5 py-2.5 text-xs'}`} onClick={handleAddToCart}>
               {t('pc.addToCart')}
             </Button>
             {justAdded ? (

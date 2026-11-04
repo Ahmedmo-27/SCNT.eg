@@ -87,7 +87,7 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
                   to={`/product/${product.id}`}
                   className="inline-flex h-9 shrink-0 items-center whitespace-nowrap rounded-lg border border-scnt-text/40 px-3 text-[0.68rem] font-medium uppercase tracking-[0.14em] text-scnt-text transition-colors hover:bg-scnt-text hover:text-scnt-bg"
                 >
-                  View Full Details
+                  {locale === 'ar' ? 'عرض التفاصيل الكاملة' : 'View Full Details'}
                 </Link>
               </div>
 
@@ -98,22 +98,22 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
               <div className="relative z-40 mt-6 flex max-w-[42rem] flex-col gap-5 md:gap-6 md:rounded-3xl md:border md:border-scnt-border/70 md:bg-scnt-bg-elevated/55 md:p-4 md:backdrop-blur-sm lg:p-5">
                 <div className="hidden grid-cols-3 gap-3 sm:gap-4 md:grid">
                   <div>
-                    <p className="text-[1.25rem] uppercase tracking-[0.3em] text-scnt-text/60">Top</p>
+                    <p className="text-[1.25rem] uppercase tracking-[0.3em] text-scnt-text/60">{locale === 'ar' ? 'الافتتاحية' : 'Top'}</p>
                     <p className="mt-1.5 text-[1.15rem] text-scnt-text">{firstOrDash(product.topNotes)}</p>
                   </div>
                   <div>
-                    <p className="text-[1.25rem] uppercase tracking-[0.3em] text-scnt-text/60">Heart</p>
+                    <p className="text-[1.25rem] uppercase tracking-[0.3em] text-scnt-text/60">{locale === 'ar' ? 'القلب' : 'Heart'}</p>
                     <p className="mt-1.5 text-[1.15rem] text-scnt-text">{firstOrDash(product.heartNotes)}</p>
                   </div>
                   <div>
-                    <p className="text-[1.25rem] uppercase tracking-[0.3em] text-scnt-text/60">Base</p>
+                    <p className="text-[1.25rem] uppercase tracking-[0.3em] text-scnt-text/60">{locale === 'ar' ? 'القاعدة' : 'Base'}</p>
                     <p className="mt-1.5 text-[1.15rem] text-scnt-text">{firstOrDash(product.baseNotes)}</p>
                   </div>
                 </div>
 
                 {product.inspiredBy ? (
                   <div>
-                    <p className="text-[0.62rem] uppercase tracking-[0.3em] text-scnt-text/60">Inspired By</p>
+                    <p className="text-[0.62rem] uppercase tracking-[0.3em] text-scnt-text/60">{locale === 'ar' ? 'مستوحى من' : 'Inspired By'}</p>
                     <p className="mt-1.5 text-[1.3rem] font-serif italic leading-none text-scnt-text sm:text-[1.8rem]">{product.inspiredBy}</p>
                   </div>
                 ) : null}
@@ -143,14 +143,14 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
 
                   <div className="mt-4 flex items-center gap-3">
                     <Button type="button" onClick={handleAddToCart} className="h-[2.85rem] flex-1 rounded-full text-[0.9rem]">
-                      {justAdded ? 'Added' : 'Add to Cart'}
+                      {justAdded ? (locale === 'ar' ? 'تمت الإضافة' : 'Added') : (locale === 'ar' ? 'أضف إلى السلة' : 'Add to Cart')}
                     </Button>
                     <button
                       type="button"
                       onClick={handleToggleWishlist}
                       className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-scnt-border/70 bg-scnt-bg/90 text-scnt-text-muted transition-colors hover:text-scnt-text"
-                      aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                      title={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                      aria-label={isWishlisted ? (locale === 'ar' ? 'إزالة من المفضلة' : 'Remove from wishlist') : (locale === 'ar' ? 'إضافة إلى المفضلة' : 'Add to wishlist')}
+                      title={isWishlisted ? (locale === 'ar' ? 'إزالة من المفضلة' : 'Remove from wishlist') : (locale === 'ar' ? 'إضافة إلى المفضلة' : 'Add to wishlist')}
                     >
                       <svg
                         width="18"
@@ -213,8 +213,8 @@ export function CollectionProductSplitSection({ product, collection }: Props) {
             ) : (
               <div className="grid h-full w-full place-items-center bg-scnt-bg-elevated/35">
                 <div className="text-center">
-                  <p className="text-xs font-medium uppercase tracking-[0.32em] text-scnt-text/55">Cover image</p>
-                  <p className="mt-2 max-w-xs text-xs text-scnt-text/55">You'll add a per-product cover later.</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.32em] text-scnt-text/55">{locale === 'ar' ? 'غلاف المنتج' : 'Cover image'}</p>
+                  <p className="mt-2 max-w-xs text-xs text-scnt-text/55">{locale === 'ar' ? 'سيتم تعيين صورة خاصة للمنتج لاحقاً.' : "You'll add a per-product cover later."}</p>
                 </div>
               </div>
             )}

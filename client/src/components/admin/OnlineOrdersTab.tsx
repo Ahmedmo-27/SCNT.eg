@@ -36,28 +36,28 @@ function getProductImage(item: AdminOrderItem): string | null {
 
 const statusBadgeStyles: Record<AdminOrder['status'], { badge: string; dot: string; label: string }> = {
   PENDING: {
-    badge: 'border-amber-500/30 bg-amber-500/10 text-amber-300',
-    dot: 'bg-amber-400',
+    badge: 'border-amber-500/30 bg-amber-500/10 text-amber-800 font-semibold',
+    dot: 'bg-amber-600',
     label: 'Pending',
   },
   CONFIRMED: {
-    badge: 'border-sky-500/30 bg-sky-500/10 text-sky-300',
-    dot: 'bg-sky-400',
+    badge: 'border-sky-500/30 bg-sky-500/10 text-sky-800 font-semibold',
+    dot: 'bg-sky-600',
     label: 'Confirmed',
   },
   PAID: {
-    badge: 'border-indigo-500/30 bg-indigo-500/10 text-indigo-300',
-    dot: 'bg-indigo-400',
+    badge: 'border-indigo-500/30 bg-indigo-500/10 text-indigo-800 font-semibold',
+    dot: 'bg-indigo-600',
     label: 'Paid',
   },
   SHIPPED: {
-    badge: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
-    dot: 'bg-emerald-400',
+    badge: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 font-semibold',
+    dot: 'bg-emerald-600',
     label: 'Shipped',
   },
   CANCELLED: {
-    badge: 'border-rose-500/30 bg-rose-500/10 text-rose-400',
-    dot: 'bg-rose-400',
+    badge: 'border-rose-500/30 bg-rose-500/10 text-rose-800 font-semibold',
+    dot: 'bg-rose-600',
     label: 'Cancelled',
   },
 }

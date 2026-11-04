@@ -13,7 +13,7 @@ import { useCartStore } from '../../store/cartStore'
 import { useI18n } from '../../i18n/I18nContext'
 import { formatEgp } from '../../lib/formatEgp'
 
-const MEGA_LEAVE_MS = 28
+const MEGA_LEAVE_MS = 160
 const SEARCH_DEBOUNCE_MS = 320
 /** Past this offset we treat scroll as real user movement and drop the search hero lock. */
 const SEARCH_HERO_LOCK_CLEAR_PX = 24
@@ -239,7 +239,7 @@ export function Header() {
   }
 
   const iconBtn =
-    'inline-flex items-center justify-center rounded-full p-2 text-scnt-text-muted transition-colors hover:bg-scnt-border/40 hover:text-scnt-text'
+    'inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full p-2.5 text-scnt-text-muted transition-colors hover:bg-scnt-border/40 hover:text-scnt-text'
 
   const productSearchActive = searchQuery.trim().length > 0
   const isOnCollectionPage = activeSectionIndex > 0

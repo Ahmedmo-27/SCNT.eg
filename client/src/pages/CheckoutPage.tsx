@@ -414,7 +414,7 @@ export function CheckoutPage() {
                     to="/cart"
                     className="inline-flex items-center text-xs text-scnt-text-muted hover:text-scnt-text underline underline-offset-4"
                   >
-                    ← {t('checkout.backCart')}
+                    {locale === 'ar' ? '→' : '←'} {t('checkout.backCart')}
                   </Link>
                 </div>
               </div>

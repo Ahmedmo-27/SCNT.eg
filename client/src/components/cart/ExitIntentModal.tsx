@@ -31,6 +31,15 @@ export function ExitIntentModal() {
     }
   }, [items.length])
 
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen])
+
   if (!isOpen || items.length === 0) return null
 
   const isAr = locale === 'ar'
@@ -49,14 +58,17 @@ export function ExitIntentModal() {
     <div
       role="dialog"
       aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleDismiss()
+      }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
     >
-      <div className="relative w-full max-w-lg rounded-2xl border border-scnt-border bg-scnt-bg p-6 sm:p-8 shadow-2xl space-y-6">
+      <div className="relative w-full max-w-lg max-h-[90svh] overflow-y-auto rounded-2xl border border-scnt-border bg-scnt-bg p-6 sm:p-8 shadow-2xl space-y-6">
         <button
           type="button"
           onClick={handleDismiss}
-          className="absolute top-4 right-4 h-8 w-8 rounded-full border border-scnt-border/60 text-scnt-text-muted hover:text-scnt-text flex items-center justify-center transition-colors"
-          aria-label="Close"
+          className="absolute top-4 end-4 h-8 w-8 rounded-full border border-scnt-border/60 text-scnt-text-muted hover:text-scnt-text flex items-center justify-center transition-colors"
+          aria-label={isAr ? 'إغلاق' : 'Close'}
         >
           ✕
         </button>
@@ -90,8 +102,10 @@ export function ExitIntentModal() {
                     className="h-10 w-10 rounded-md object-cover border border-scnt-border/60"
                   />
                 ) : (
-                  <div className="h-10 w-10 rounded-md bg-scnt-bg flex items-center justify-center text-xs">
-                    🧴
+                  <div className="h-10 w-10 rounded-md bg-scnt-bg border border-scnt-border/60 flex items-center justify-center text-scnt-text-muted">
+                    <svg className="h-5 w-5 stroke-current fill-none" viewBox="0 0 24 24" strokeWidth="1.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.75h4.5M10.5 3.75v3h3v-3M7.5 9.75h9a2.25 2.25 0 012.25 2.25v7.5A2.25 2.25 0 0116.5 21.75h-9A2.25 2.25 0 015.25 19.5V12A2.25 2.25 0 017.5 9.75z" />
+                    </svg>
                   </div>
                 )}
                 <div className="min-w-0 truncate">

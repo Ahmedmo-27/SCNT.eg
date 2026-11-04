@@ -619,13 +619,13 @@ export function AdminPage() {
           </Button>
         </div>
 
-        <div className="mb-6 flex flex-wrap gap-2">
+        <div className="mb-6 flex flex-nowrap overflow-x-auto pb-1 sm:pb-0 sm:flex-wrap gap-2 no-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`rounded-full border px-4 py-2 text-xs uppercase tracking-[0.12em] transition-colors ${
+              className={`shrink-0 rounded-full border px-4 py-2 text-xs uppercase tracking-[0.12em] transition-colors ${
                 activeTab === tab.key
                   ? 'border-scnt-text bg-scnt-text text-scnt-bg'
                   : 'border-scnt-border/80 bg-scnt-bg-elevated/35 text-scnt-text hover:bg-scnt-bg-muted/40'
@@ -645,12 +645,12 @@ export function AdminPage() {
                 <div className="flex items-center justify-between">
                   <p className="text-xs uppercase tracking-wider text-scnt-text-muted">Total Revenue</p>
                   {dashboard?.marginPercent != null && (
-                    <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono text-emerald-400">
+                    <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-mono text-emerald-800 font-semibold">
                       {dashboard.marginPercent}% margin
                     </span>
                   )}
                 </div>
-                <p className="mt-2 text-3xl font-mono font-semibold text-emerald-400">
+                <p className="mt-2 text-3xl font-mono font-semibold text-emerald-800">
                   {dashboard ? formatMoney(dashboard.totalRevenue) : '—'}
                 </p>
                 <div className="mt-2 space-y-1 text-[11px] text-scnt-text-muted">
@@ -678,8 +678,8 @@ export function AdminPage() {
                 onClick={() => setActiveTab('offline-sales')}
               >
                 <p className="text-xs uppercase text-scnt-text-muted">Offline Purchases (POS)</p>
-                <p className="mt-2 text-3xl text-amber-300">{dashboard?.offlineSalesCount ?? '0'}</p>
-                <p className="mt-1 text-[11px] text-amber-400/80">Manage direct sales & POS →</p>
+                <p className="mt-2 text-3xl text-amber-800 font-semibold">{dashboard?.offlineSalesCount ?? '0'}</p>
+                <p className="mt-1 text-[11px] text-amber-800 font-medium">Manage direct sales & POS →</p>
               </Card>
               <Card asMotion={false} className="p-5">
                 <p className="text-xs uppercase text-scnt-text-muted">Catalog Products</p>

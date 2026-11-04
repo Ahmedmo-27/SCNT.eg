@@ -230,6 +230,8 @@ export const enSite: Record<string, string> = {
   'cart.promoRmOk': 'Promo code removed.',
   'cart.promoApplyFail': 'Could not apply promo code.',
   'cart.promoRmFail': 'Could not remove promo code.',
+  'cart.promoWhole': 'Applied to entire cart',
+  'cart.promoEligible': 'Applied to eligible items only',
 
   'checkout.title': 'Checkout',
   'checkout.sub': 'Complete your delivery details and confirm your order. Cash on delivery only.',

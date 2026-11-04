@@ -108,7 +108,7 @@ function orderStatusClass(status: UserOrder['status']): string {
     case 'SHIPPED':
       return 'bg-scnt-bg-muted/75 text-scnt-text ring-1 ring-scnt-text/12'
     case 'CANCELLED':
-      return 'bg-red-500/10 text-red-400 ring-1 ring-red-500/30'
+      return 'bg-red-500/10 text-red-700 ring-1 ring-red-500/30 font-medium'
     default:
       return 'bg-scnt-bg-muted/70 text-scnt-text'
   }
@@ -547,7 +547,7 @@ export function ProfilePage() {
                       </div>
                     </div>
                     {cancelMessage && cancelMessage.id === order._id ? (
-                      <p className={`mt-2 text-xs ${cancelMessage.error ? 'text-red-400' : 'text-emerald-400'}`}>
+                      <p className={`mt-2 text-xs font-medium ${cancelMessage.error ? 'text-red-700' : 'text-emerald-700'}`}>
                         {cancelMessage.error || cancelMessage.success}
                       </p>
                     ) : null}
