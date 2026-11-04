@@ -320,6 +320,7 @@ export async function logDecantGiveaway(payload: {
   campaignName?: string
   recipient?: string
   notes?: string
+  date?: string
   fragranceId?: string | null
   fragranceAllocations?: {
     product?: string | null

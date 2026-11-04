@@ -258,6 +258,14 @@ export function sendPromotionalMail(payload: PromotionalMailPayload): Promise<Pr
   return apiPostDataAuthed<PromotionalMailResult>('/admin/mail/promotional', payload)
 }
 
+export type OfflineOutletDetails = {
+  noBox?: boolean
+  noBottleSticker?: boolean
+  noBoxStickers?: boolean
+  noPackaging?: boolean
+  notes?: string
+}
+
 export type OfflineSaleItem = {
   product: string | { _id: string; name: string; slug?: string; price?: number; images?: string[]; coverImage?: string }
   productName: string
@@ -265,6 +273,8 @@ export type OfflineSaleItem = {
   quantity: number
   unitPrice: number
   subtotal: number
+  isOutlet?: boolean
+  outletDetails?: OfflineOutletDetails
   unitCogs?: number
   lineCogs?: number
   lineNetRevenue?: number
@@ -305,6 +315,8 @@ export type CreateOfflineSalePayload = {
     size: string
     quantity: number
     unitPrice: number
+    isOutlet?: boolean
+    outletDetails?: OfflineOutletDetails
   }>
   discount?: number
   paymentMethod?: 'CASH' | 'INSTAPAY' | 'CARD' | 'VODAFONE_CASH' | 'BANK_TRANSFER' | 'OTHER'
@@ -352,6 +364,7 @@ export function fetchOfflineSales(params?: {
   paymentStatus?: string
   startDate?: string
   endDate?: string
+  outlet?: string | boolean
 }): Promise<OfflineSalesListResponse> {
   const query = new URLSearchParams()
   if (params?.page) query.set('page', String(params.page))
@@ -362,6 +375,7 @@ export function fetchOfflineSales(params?: {
   if (params?.paymentStatus) query.set('paymentStatus', params.paymentStatus)
   if (params?.startDate) query.set('startDate', params.startDate)
   if (params?.endDate) query.set('endDate', params.endDate)
+  if (params?.outlet !== undefined) query.set('outlet', String(params.outlet))
   const qs = query.toString()
   return apiGetDataAuthed<OfflineSalesListResponse>(`/admin/offline-sales${qs ? `?${qs}` : ''}`)
 }

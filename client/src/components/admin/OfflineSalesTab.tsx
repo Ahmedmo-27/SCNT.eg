@@ -31,6 +31,7 @@ import {
   type AdminProduct,
   type OfflineSale,
   type OfflineSalesSummary,
+  type OfflineOutletDetails,
 } from '../../services/adminApi'
 
 interface OfflineSalesTabProps {
@@ -43,6 +44,18 @@ type BasketLine = {
   size: string
   quantity: number
   unitPrice: number
+  isOutlet?: boolean
+  outletDetails?: OfflineOutletDetails
+}
+
+export function getOutletLabel(details?: OfflineOutletDetails): string {
+  if (!details) return 'Outlet'
+  const excluded: string[] = []
+  if (details.noBox !== false) excluded.push('No Box')
+  if (details.noBottleSticker !== false) excluded.push('No Sticker')
+  if (details.noPackaging !== false) excluded.push('No Wrap')
+  if (excluded.length === 0) return 'Outlet'
+  return `Outlet (${excluded.join(', ')})`
 }
 
 function formatEgp(val: number): string {
@@ -147,6 +160,23 @@ export function getOfflineSaleFinancials(sale: OfflineSale, products?: AdminProd
           }
         }
       }
+
+      if (item.isOutlet) {
+        const is50 = sizeStr.includes('50')
+        const is3 = sizeStr.includes('3') || sizeStr.includes('decant')
+        if (is3) {
+          unitCogs = Math.max(0, unitCogs - 0.9)
+        } else {
+          const details = item.outletDetails || {}
+          let deduction = 0
+          if (details.noBox !== false) deduction += is50 ? 16 : 22
+          if (details.noBottleSticker !== false) deduction += 5
+          if (details.noBoxStickers !== false || details.noBox !== false) deduction += 3.88
+          if (details.noPackaging !== false) deduction += 21.2
+          unitCogs = Math.max(0, Math.round((unitCogs - deduction) * 100) / 100)
+        }
+      }
+
       computedCogs += unitCogs * qty
     }
   }
@@ -174,6 +204,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
   const [paymentFilter, setPaymentFilter] = useState('ALL')
   const [channelFilter, setChannelFilter] = useState('ALL')
   const [dateFilter, setDateFilter] = useState<'ALL' | 'TODAY' | '7DAYS' | '30DAYS'>('ALL')
+  const [outletFilter, setOutletFilter] = useState<'ALL' | 'OUTLET' | 'STANDARD'>('ALL')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
@@ -187,6 +218,12 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
   const [itemSoldPrice, setItemSoldPrice] = useState<string>('')
   const [itemQuantity, setItemQuantity] = useState<number>(1)
   const [productSearch, setProductSearch] = useState('')
+  const [itemIsOutlet, setItemIsOutlet] = useState<boolean>(false)
+  const [itemOutletNoBox, setItemOutletNoBox] = useState<boolean>(true)
+  const [itemOutletNoBottleSticker, setItemOutletNoBottleSticker] = useState<boolean>(true)
+  const [itemOutletNoBoxStickers, setItemOutletNoBoxStickers] = useState<boolean>(true)
+  const [itemOutletNoPackaging, setItemOutletNoPackaging] = useState<boolean>(true)
+  const [itemOutletNotes, setItemOutletNotes] = useState<string>('')
 
   // Basket of items
   const [basket, setBasket] = useState<BasketLine[]>([])
@@ -239,6 +276,31 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
   const [editItemSoldPrice, setEditItemSoldPrice] = useState<string>('')
   const [editItemQuantity, setEditItemQuantity] = useState<number>(1)
   const [editProductSearch, setEditProductSearch] = useState('')
+  const [editItemIsOutlet, setEditItemIsOutlet] = useState<boolean>(false)
+  const [editItemOutletNoBox, setEditItemOutletNoBox] = useState<boolean>(true)
+  const [editItemOutletNoBottleSticker, setEditItemOutletNoBottleSticker] = useState<boolean>(true)
+  const [editItemOutletNoBoxStickers, setEditItemOutletNoBoxStickers] = useState<boolean>(true)
+  const [editItemOutletNoPackaging, setEditItemOutletNoPackaging] = useState<boolean>(true)
+  const [editItemOutletNotes, setEditItemOutletNotes] = useState<string>('')
+
+  // Temporary suppressions for WIP outlet edit controls
+  void setOutletFilter
+  void setItemOutletNoBox
+  void setItemOutletNoBottleSticker
+  void setItemOutletNoBoxStickers
+  void setItemOutletNoPackaging
+  void editItemIsOutlet
+  void setEditItemIsOutlet
+  void editItemOutletNoBox
+  void setEditItemOutletNoBox
+  void editItemOutletNoBottleSticker
+  void setEditItemOutletNoBottleSticker
+  void editItemOutletNoBoxStickers
+  void setEditItemOutletNoBoxStickers
+  void editItemOutletNoPackaging
+  void setEditItemOutletNoPackaging
+  void editItemOutletNotes
+  void setEditItemOutletNotes
 
   // Ensure selectedProductId is initialized when products prop loads or changes
   useEffect(() => {
@@ -326,6 +388,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
           search: search.trim() || undefined,
           paymentMethod: paymentFilter !== 'ALL' ? paymentFilter : undefined,
           channel: channelFilter !== 'ALL' ? channelFilter : undefined,
+          outlet: outletFilter === 'OUTLET' ? 'true' : outletFilter === 'STANDARD' ? 'false' : undefined,
           ...dateParams,
         }),
         fetchOfflineSalesSummary(),
@@ -339,7 +402,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
     } finally {
       setLoading(false)
     }
-  }, [page, search, paymentFilter, channelFilter, dateFilter])
+  }, [page, search, paymentFilter, channelFilter, dateFilter, outletFilter])
 
   useEffect(() => {
     loadData()
@@ -358,15 +421,28 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
       return
     }
 
-    // Check if same product & size is already in basket
+    // Check if same product & size & outlet state is already in basket
     const existingIndex = basket.findIndex(
-      (b) => b.product._id === currentProduct._id && b.size === selectedSize
+      (b) =>
+        b.product._id === currentProduct._id &&
+        b.size === selectedSize &&
+        Boolean(b.isOutlet) === Boolean(itemIsOutlet)
     )
 
     if (existingIndex >= 0) {
       const updated = [...basket]
       updated[existingIndex].quantity += itemQuantity
       updated[existingIndex].unitPrice = price // update to latest custom price
+      if (itemIsOutlet) {
+        updated[existingIndex].isOutlet = true
+        updated[existingIndex].outletDetails = {
+          noBox: itemOutletNoBox,
+          noBottleSticker: itemOutletNoBottleSticker,
+          noBoxStickers: itemOutletNoBoxStickers,
+          noPackaging: itemOutletNoPackaging,
+          notes: itemOutletNotes.trim(),
+        }
+      }
       setBasket(updated)
     } else {
       setBasket((prev) => [
@@ -376,12 +452,24 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
           size: selectedSize,
           quantity: itemQuantity,
           unitPrice: price,
+          isOutlet: itemIsOutlet,
+          outletDetails: itemIsOutlet
+            ? {
+                noBox: itemOutletNoBox,
+                noBottleSticker: itemOutletNoBottleSticker,
+                noBoxStickers: itemOutletNoBoxStickers,
+                noPackaging: itemOutletNoPackaging,
+                notes: itemOutletNotes.trim(),
+              }
+            : undefined,
         },
       ])
     }
 
-    // Reset item quantity
+    // Reset item quantity & outlet toggle
     setItemQuantity(1)
+    setItemIsOutlet(false)
+    setItemOutletNotes('')
   }
 
   // Remove Line from Basket
@@ -432,6 +520,8 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
           size: item.size,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
+          isOutlet: Boolean(item.isOutlet),
+          outletDetails: item.outletDetails,
         })),
         discount: parsedDiscount,
         paymentMethod,
@@ -556,13 +646,26 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
 
     const curId = editCurrentProduct._id || (editCurrentProduct as any).id
     const existingIndex = editBasket.findIndex(
-      (b) => (b.product._id || (b.product as any).id) === curId && b.size === editSelectedSize
+      (b) =>
+        (b.product._id || (b.product as any).id) === curId &&
+        b.size === editSelectedSize &&
+        Boolean(b.isOutlet) === Boolean(editItemIsOutlet)
     )
 
     if (existingIndex >= 0) {
       const updated = [...editBasket]
       updated[existingIndex].quantity += editItemQuantity
       updated[existingIndex].unitPrice = price
+      if (editItemIsOutlet) {
+        updated[existingIndex].isOutlet = true
+        updated[existingIndex].outletDetails = {
+          noBox: editItemOutletNoBox,
+          noBottleSticker: editItemOutletNoBottleSticker,
+          noBoxStickers: editItemOutletNoBoxStickers,
+          noPackaging: editItemOutletNoPackaging,
+          notes: editItemOutletNotes.trim(),
+        }
+      }
       setEditBasket(updated)
     } else {
       setEditBasket((prev) => [
@@ -572,10 +675,22 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
           size: editSelectedSize,
           quantity: editItemQuantity,
           unitPrice: price,
+          isOutlet: editItemIsOutlet,
+          outletDetails: editItemIsOutlet
+            ? {
+                noBox: editItemOutletNoBox,
+                noBottleSticker: editItemOutletNoBottleSticker,
+                noBoxStickers: editItemOutletNoBoxStickers,
+                noPackaging: editItemOutletNoPackaging,
+                notes: editItemOutletNotes.trim(),
+              }
+            : undefined,
         },
       ])
     }
     setEditItemQuantity(1)
+    setEditItemIsOutlet(false)
+    setEditItemOutletNotes('')
   }
 
   const handleRemoveEditLine = (index: number) => {
@@ -640,6 +755,8 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
         size: item.size || '100ml',
         quantity: item.quantity || 1,
         unitPrice: item.unitPrice || 750,
+        isOutlet: Boolean(item.isOutlet),
+        outletDetails: item.outletDetails,
       }
     })
     setEditBasket(lines)
@@ -673,6 +790,8 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
           size: item.size,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
+          isOutlet: Boolean(item.isOutlet),
+          outletDetails: item.outletDetails,
         })),
         discount: editParsedDiscount,
         paymentMethod: editPaymentMethod,
@@ -720,7 +839,7 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
       `---------------------------------`,
       `ITEMS:`,
       ...sale.items.map(
-        (i) => `• ${i.quantity}x ${i.productName} (${i.size}) @ ${formatEgp(i.unitPrice)} = ${formatEgp(i.subtotal)}`
+        (i) => `• ${i.quantity}x ${i.productName} (${i.size})${i.isOutlet ? ` [${getOutletLabel(i.outletDetails)}]` : ''} @ ${formatEgp(i.unitPrice)} = ${formatEgp(i.subtotal)}`
       ),
       `---------------------------------`,
       `Subtotal: ${formatEgp(sale.subtotal)}`,
@@ -1073,6 +1192,78 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                   </div>
                 </div>
 
+                {/* Outlet Product Options */}
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2.5">
+                  <label className="flex items-center justify-between cursor-pointer select-none">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">🏷️</span>
+                      <div>
+                        <span className="text-xs font-semibold text-amber-300">Sold as Outlet Item</span>
+                        <span className="block text-[11px] text-scnt-text-muted">No box, no sticker, tester, or clearance packaging</span>
+                      </div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={itemIsOutlet}
+                      onChange={(e) => setItemIsOutlet(e.target.checked)}
+                      className="w-4 h-4 rounded border-amber-500/50 bg-scnt-bg text-amber-500 focus:ring-amber-500"
+                    />
+                  </label>
+
+                  {itemIsOutlet && (
+                    <div className="pt-2 border-t border-amber-500/20 space-y-2 text-xs">
+                      <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider block">
+                        Excluded Packaging (Reduces cost & accurately adjusts net revenue)
+                      </span>
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <label className="flex items-center gap-2 text-scnt-text cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={itemOutletNoBox}
+                            onChange={(e) => setItemOutletNoBox(e.target.checked)}
+                            className="rounded border-scnt-border bg-scnt-bg text-amber-500"
+                          />
+                          <span>No Outer Box <span className="text-scnt-text-muted">(-{selectedSize.includes('50') ? '16' : '22'} EGP)</span></span>
+                        </label>
+                        <label className="flex items-center gap-2 text-scnt-text cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={itemOutletNoBottleSticker}
+                            onChange={(e) => setItemOutletNoBottleSticker(e.target.checked)}
+                            className="rounded border-scnt-border bg-scnt-bg text-amber-500"
+                          />
+                          <span>No Bottle Label <span className="text-scnt-text-muted">(-5 EGP)</span></span>
+                        </label>
+                        <label className="flex items-center gap-2 text-scnt-text cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={itemOutletNoBoxStickers}
+                            onChange={(e) => setItemOutletNoBoxStickers(e.target.checked)}
+                            className="rounded border-scnt-border bg-scnt-bg text-amber-500"
+                          />
+                          <span>No Box Stickers <span className="text-scnt-text-muted">(-3.88 EGP)</span></span>
+                        </label>
+                        <label className="flex items-center gap-2 text-scnt-text cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={itemOutletNoPackaging}
+                            onChange={(e) => setItemOutletNoPackaging(e.target.checked)}
+                            className="rounded border-scnt-border bg-scnt-bg text-amber-500"
+                          />
+                          <span>No Wrap / Cards <span className="text-scnt-text-muted">(-21.2 EGP)</span></span>
+                        </label>
+                      </div>
+                      <input
+                        type="text"
+                        value={itemOutletNotes}
+                        onChange={(e) => setItemOutletNotes(e.target.value)}
+                        placeholder="Outlet reason (e.g. tester bottle, no box)"
+                        className="w-full rounded border border-scnt-border/60 bg-scnt-bg px-2.5 py-1 text-xs text-scnt-text placeholder:text-scnt-text-muted/60"
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <Button
                   type="button"
                   variant="outline"
@@ -1103,11 +1294,21 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                         className="flex items-center justify-between gap-3 rounded-lg border border-scnt-border/60 bg-scnt-bg/80 p-3"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-scnt-text truncate">
-                            {item.product.name}
-                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-sm font-medium text-scnt-text truncate">
+                              {item.product.name}
+                            </p>
+                            {item.isOutlet && (
+                              <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                🏷️ {getOutletLabel(item.outletDetails)}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-scnt-text-muted">
                             Size: <span className="text-scnt-text">{item.size}</span>
+                            {item.isOutlet && item.outletDetails?.notes && (
+                              <span className="ml-1 text-[10px] text-amber-400 italic">({item.outletDetails.notes})</span>
+                            )}
                           </p>
                         </div>
 
@@ -1410,6 +1611,20 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
             ))}
           </select>
 
+          {/* Outlet Filter */}
+          <select
+            value={outletFilter}
+            onChange={(e) => {
+              setOutletFilter(e.target.value as 'ALL' | 'OUTLET' | 'STANDARD')
+              setPage(1)
+            }}
+            className="rounded-lg border border-scnt-border/80 bg-scnt-bg px-3 py-1.5 text-xs text-scnt-text font-medium"
+          >
+            <option value="ALL">All Types (Standard & Outlet)</option>
+            <option value="OUTLET">🏷️ Outlet Sales Only</option>
+            <option value="STANDARD">Standard Sales Only</option>
+          </select>
+
           {/* Date Filter */}
           <div className="flex items-center gap-1 bg-scnt-bg rounded-lg border border-scnt-border/80 p-0.5 text-xs">
             {(['ALL', 'TODAY', '7DAYS', '30DAYS'] as const).map((range) => (
@@ -1528,15 +1743,38 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                                 else unitCogs = Math.round(93 + 25 * oilPerMl)
                               }
                             }
+                            if (it.isOutlet && !it.unitCogs) {
+                              const is50 = sizeStr.includes('50')
+                              const is3 = sizeStr.includes('3') || sizeStr.includes('decant')
+                              if (is3) {
+                                unitCogs = Math.max(0, unitCogs - 0.9)
+                              } else {
+                                const details = it.outletDetails || {}
+                                let deduction = 0
+                                if (details.noBox !== false) deduction += is50 ? 16 : 22
+                                if (details.noBottleSticker !== false) deduction += 5
+                                if (details.noBoxStickers !== false || details.noBox !== false) deduction += 3.88
+                                if (details.noPackaging !== false) deduction += 21.2
+                                unitCogs = Math.max(0, Math.round((unitCogs - deduction) * 100) / 100)
+                              }
+                            }
                             const lineSubtotal = it.subtotal || it.unitPrice * it.quantity
                             const lineCogs = it.lineCogs ?? unitCogs * it.quantity
                             const lineProfit = it.lineNetRevenue ?? Math.max(0, lineSubtotal - lineCogs)
 
                             return (
                               <div key={idx} className="flex items-center justify-between gap-2 text-[11px]">
-                                <span className="text-scnt-text truncate">
+                                <span className="text-scnt-text truncate flex items-center gap-1">
                                   <strong className="text-amber-400">{it.quantity}x</strong> {it.productName}{' '}
                                   <span className="text-scnt-text-muted">({it.size})</span>
+                                  {it.isOutlet && (
+                                    <span
+                                      className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.2 text-[9px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                                      title={it.outletDetails?.notes ? `${getOutletLabel(it.outletDetails)}: ${it.outletDetails.notes}` : getOutletLabel(it.outletDetails)}
+                                    >
+                                      🏷️ {getOutletLabel(it.outletDetails)}
+                                    </span>
+                                  )}
                                 </span>
                                 <span className="font-mono text-scnt-text-muted shrink-0 text-right">
                                   @ {formatEgp(it.unitPrice)}
@@ -1721,10 +1959,22 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
               {receiptSale.items.map((it, idx) => (
                 <div key={idx} className="flex justify-between items-center text-xs">
                   <div>
-                    <span className="font-medium text-scnt-text">
-                      {it.quantity}x {it.productName}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-medium text-scnt-text">
+                        {it.quantity}x {it.productName}
+                      </span>
+                      {it.isOutlet && (
+                        <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.2 text-[9px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                          🏷️ {getOutletLabel(it.outletDetails)}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-scnt-text-muted block">
+                      Size: {it.size}
+                      {it.isOutlet && it.outletDetails?.notes && (
+                        <span className="ml-1 text-amber-400 italic">({it.outletDetails.notes})</span>
+                      )}
                     </span>
-                    <span className="text-[10px] text-scnt-text-muted block">Size: {it.size}</span>
                   </div>
                   <span className="font-mono text-emerald-400">{formatEgp(it.subtotal)}</span>
                 </div>
@@ -1916,9 +2166,19 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                               className="flex items-center justify-between gap-3 p-2.5 rounded-lg border border-scnt-border/60 bg-scnt-bg-elevated/80 text-xs"
                             >
                               <div className="min-w-0 flex-1">
-                                <p className="font-medium text-scnt-text truncate">{line.product.name}</p>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="font-medium text-scnt-text truncate">{line.product.name}</p>
+                                  {line.isOutlet && (
+                                    <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.2 text-[9px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                      🏷️ {getOutletLabel(line.outletDetails)}
+                                    </span>
+                                  )}
+                                </div>
                                 <span className="text-[11px] text-scnt-text-muted">
                                   Size: <strong className="text-amber-400">{line.size}</strong>
+                                  {line.isOutlet && line.outletDetails?.notes && (
+                                    <span className="ml-1 text-[10px] text-amber-400 italic">({line.outletDetails.notes})</span>
+                                  )}
                                 </span>
                               </div>
 
@@ -2060,6 +2320,72 @@ export function OfflineSalesTab({ products, onSaleCreated }: OfflineSalesTabProp
                             </Button>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Outlet Options for Edit Line */}
+                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-2.5 space-y-2 mt-2">
+                        <label className="flex items-center justify-between cursor-pointer select-none">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs">🏷️</span>
+                            <span className="text-xs font-semibold text-amber-300">Sold as Outlet Item</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={editItemIsOutlet}
+                            onChange={(e) => setEditItemIsOutlet(e.target.checked)}
+                            className="w-3.5 h-3.5 rounded border-amber-500/50 bg-scnt-bg text-amber-500 focus:ring-amber-500"
+                          />
+                        </label>
+
+                        {editItemIsOutlet && (
+                          <div className="pt-1.5 border-t border-amber-500/20 space-y-1.5 text-xs">
+                            <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                              <label className="flex items-center gap-1.5 text-scnt-text cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={editItemOutletNoBox}
+                                  onChange={(e) => setEditItemOutletNoBox(e.target.checked)}
+                                  className="rounded border-scnt-border bg-scnt-bg text-amber-500"
+                                />
+                                <span>No Box (-{editSelectedSize.includes('50') ? '16' : '22'} EGP)</span>
+                              </label>
+                              <label className="flex items-center gap-1.5 text-scnt-text cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={editItemOutletNoBottleSticker}
+                                  onChange={(e) => setEditItemOutletNoBottleSticker(e.target.checked)}
+                                  className="rounded border-scnt-border bg-scnt-bg text-amber-500"
+                                />
+                                <span>No Bottle Sticker (-5 EGP)</span>
+                              </label>
+                              <label className="flex items-center gap-1.5 text-scnt-text cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={editItemOutletNoBoxStickers}
+                                  onChange={(e) => setEditItemOutletNoBoxStickers(e.target.checked)}
+                                  className="rounded border-scnt-border bg-scnt-bg text-amber-500"
+                                />
+                                <span>No Box Stickers (-3.88 EGP)</span>
+                              </label>
+                              <label className="flex items-center gap-1.5 text-scnt-text cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={editItemOutletNoPackaging}
+                                  onChange={(e) => setEditItemOutletNoPackaging(e.target.checked)}
+                                  className="rounded border-scnt-border bg-scnt-bg text-amber-500"
+                                />
+                                <span>No Wrap / Cards (-21.2 EGP)</span>
+                              </label>
+                            </div>
+                            <input
+                              type="text"
+                              value={editItemOutletNotes}
+                              onChange={(e) => setEditItemOutletNotes(e.target.value)}
+                              placeholder="Outlet notes / reason..."
+                              className="w-full rounded border border-scnt-border/60 bg-scnt-bg px-2 py-0.5 text-xs text-scnt-text placeholder:text-scnt-text-muted/60"
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

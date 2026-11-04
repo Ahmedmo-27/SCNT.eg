@@ -72,6 +72,12 @@ const listOfflineSales = asyncHandler(async (req, res) => {
     query.paymentStatus = req.query.paymentStatus;
   }
 
+  if (req.query.outlet === "true" || req.query.isOutlet === "true") {
+    query["items.isOutlet"] = true;
+  } else if (req.query.outlet === "false" || req.query.isOutlet === "false") {
+    query["items.isOutlet"] = { $ne: true };
+  }
+
   if (req.query.startDate || req.query.endDate) {
     query.saleDate = {};
     if (req.query.startDate) {
@@ -259,6 +265,24 @@ const createOfflineSale = asyncHandler(async (req, res) => {
     const lineSubtotal = Math.round(unitPrice * quantity * 100) / 100;
     subtotal += lineSubtotal;
 
+    const isOutlet = Boolean(item.isOutlet);
+    const outletDetails = isOutlet
+      ? {
+          noBox: item.outletDetails?.noBox !== false,
+          noBottleSticker: item.outletDetails?.noBottleSticker !== false,
+          noBoxStickers:
+            item.outletDetails?.noBoxStickers !== false || item.outletDetails?.noBox !== false,
+          noPackaging: item.outletDetails?.noPackaging !== false,
+          notes: (item.outletDetails?.notes || "").trim(),
+        }
+      : {
+          noBox: false,
+          noBottleSticker: false,
+          noBoxStickers: false,
+          noPackaging: false,
+          notes: "",
+        };
+
     processedItems.push({
       product: product._id,
       productName: item.productName || product.name,
@@ -266,6 +290,8 @@ const createOfflineSale = asyncHandler(async (req, res) => {
       quantity,
       unitPrice,
       subtotal: lineSubtotal,
+      isOutlet,
+      outletDetails,
     });
   }
 
@@ -433,6 +459,24 @@ const updateOfflineSale = asyncHandler(async (req, res) => {
       const lineSubtotal = Math.round(unitPrice * quantity * 100) / 100;
       subtotal += lineSubtotal;
 
+      const isOutlet = Boolean(item.isOutlet);
+      const outletDetails = isOutlet
+        ? {
+            noBox: item.outletDetails?.noBox !== false,
+            noBottleSticker: item.outletDetails?.noBottleSticker !== false,
+            noBoxStickers:
+              item.outletDetails?.noBoxStickers !== false || item.outletDetails?.noBox !== false,
+            noPackaging: item.outletDetails?.noPackaging !== false,
+            notes: (item.outletDetails?.notes || "").trim(),
+          }
+        : {
+            noBox: false,
+            noBottleSticker: false,
+            noBoxStickers: false,
+            noPackaging: false,
+            notes: "",
+          };
+
       processedItems.push({
         product: product._id,
         productName: item.productName || product.name,
@@ -440,6 +484,8 @@ const updateOfflineSale = asyncHandler(async (req, res) => {
         quantity,
         unitPrice,
         subtotal: lineSubtotal,
+        isOutlet,
+        outletDetails,
       });
     }
 

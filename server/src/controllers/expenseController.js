@@ -346,6 +346,7 @@ const logDecantGiveaway = asyncHandler(async (req, res) => {
     campaignName = "Sample Giveaway",
     recipient = "",
     notes = "",
+    date = null,
     fragranceId = null,
     fragranceAllocations = [],
     unassignedFormat = "decant3ml",
@@ -436,7 +437,7 @@ const logDecantGiveaway = asyncHandler(async (req, res) => {
     unit: "pcs",
     unitCost: unitCost,
     supplier: "SCNT In-House Production",
-    date: new Date(),
+    date: date ? new Date(date) : new Date(),
     notes:
       notes ||
       `Promotional giveaway distribution: ${parsedCount} items (${cleanedAllocations.length > 0 ? "itemized breakdown" : format}).`,
@@ -522,13 +523,31 @@ const updateExpense = asyncHandler(async (req, res) => {
   expense.unitCost = Number((Number(expense.amount) / parsedQty).toFixed(4));
 
   if (promotionDetails) {
+    const cleanedDetails = { ...promotionDetails };
+    if (Array.isArray(cleanedDetails.fragranceAllocations)) {
+      cleanedDetails.fragranceAllocations = cleanedDetails.fragranceAllocations.map((alloc) => ({
+        product: alloc.product || null,
+        productName: alloc.productName || "Fragrance",
+        format: alloc.format || "decant3ml",
+        quantity: Number(alloc.quantity) || 0,
+        unitCost: Number(alloc.unitCost) || 0,
+        totalCost:
+          Number(alloc.totalCost) ||
+          Number(((Number(alloc.quantity) || 0) * (Number(alloc.unitCost) || 0)).toFixed(2)),
+      }));
+    }
     expense.promotionDetails = {
-      ...expense.promotionDetails,
-      ...promotionDetails,
+      ...(expense.promotionDetails?.toObject ? expense.promotionDetails.toObject() : expense.promotionDetails),
+      ...cleanedDetails,
     };
+    expense.markModified("promotionDetails");
   }
 
   await expense.save();
+
+  const populatedExpense = await Expense.findById(expense._id)
+    .populate("assignedProduct", "name slug")
+    .populate("promotionDetails.fragranceAllocations.product", "name slug");
 
   if (syncWithCostConfig) {
     await syncExpenseToCostConfig({
@@ -547,7 +566,7 @@ const updateExpense = asyncHandler(async (req, res) => {
     details: { title: expense.title, category: expense.category, amount: expense.amount },
   });
 
-  res.status(200).json(successResponse(expense, "Expense updated"));
+  res.status(200).json(successResponse(populatedExpense || expense, "Expense updated"));
 });
 
 /**

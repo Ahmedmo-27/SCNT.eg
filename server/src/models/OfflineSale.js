@@ -8,6 +8,14 @@ const offlineSaleItemSchema = new mongoose.Schema(
     quantity: { type: Number, required: true, min: 1 },
     unitPrice: { type: Number, required: true, min: 0 },
     subtotal: { type: Number, required: true, min: 0 },
+    isOutlet: { type: Boolean, default: false },
+    outletDetails: {
+      noBox: { type: Boolean, default: false },
+      noBottleSticker: { type: Boolean, default: false },
+      noBoxStickers: { type: Boolean, default: false },
+      noPackaging: { type: Boolean, default: false },
+      notes: { type: String, default: "", trim: true },
+    },
   },
   { _id: false }
 );

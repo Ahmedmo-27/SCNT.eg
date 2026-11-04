@@ -174,6 +174,7 @@ export function ExpensesTab() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showGiveawayModal, setShowGiveawayModal] = useState(false)
   const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null)
+  const [editingGiveaway, setEditingGiveaway] = useState<ExpenseItem | null>(null)
 
   // Form: Add/Edit Expense
   const [formTitle, setFormTitle] = useState('')
@@ -192,6 +193,7 @@ export function ExpensesTab() {
   const [giveawayCount, setGiveawayCount] = useState('5')
   const [giveawayCampaign, setGiveawayCampaign] = useState('Sample Promotion')
   const [giveawayRecipient, setGiveawayRecipient] = useState('')
+  const [giveawayDate, setGiveawayDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [giveawayNotes, setGiveawayNotes] = useState('')
   const [giveawayFragranceId, setGiveawayFragranceId] = useState<string>('')
 
@@ -675,6 +677,90 @@ export function ExpensesTab() {
     setShowAddModal(true)
   }
 
+  const openGiveawayModal = (item?: ExpenseItem) => {
+    if (item) {
+      setEditingGiveaway(item)
+      setGiveawayCampaign(item.promotionDetails?.campaignName || item.title || '')
+      setGiveawayRecipient(
+        item.promotionDetails?.recipient ||
+          (item.supplier && item.supplier !== 'SCNT In-House Production' ? item.supplier : '') ||
+          ''
+      )
+      setGiveawayDate(item.date ? item.date.slice(0, 10) : new Date().toISOString().slice(0, 10))
+      setGiveawayNotes(item.notes || '')
+
+      const hasAllocations =
+        Array.isArray(item.promotionDetails?.fragranceAllocations) &&
+        item.promotionDetails.fragranceAllocations.length > 0
+
+      if (hasAllocations && item.promotionDetails?.fragranceAllocations) {
+        setUsePromoCalculator(true)
+        setPromoCampaignType(item.promotionDetails.promoType || 'MIXED')
+        const targetTotal = item.promotionDetails.totalUnitsGiven || item.quantity || 10
+        setPromoTargetTotal(targetTotal)
+        setGiveawayCount(String(targetTotal))
+        setPromoAllocations(
+          item.promotionDetails.fragranceAllocations.map((a) => ({
+            productId:
+              typeof a.product === 'object' && a.product?._id
+                ? a.product._id
+                : (a.product as string) || '',
+            productName: a.productName || 'Fragrance',
+            format: (a.format as '100ml' | '50ml' | 'decant3ml') || '100ml',
+            quantity: a.quantity || 0,
+            unitCost: a.unitCost || 0,
+          }))
+        )
+        setPromoSelectedFormat(
+          item.promotionDetails.promoType === 'BOTTLES_100ML'
+            ? '100ml'
+            : item.promotionDetails.promoType === 'BOTTLES_50ML'
+            ? '50ml'
+            : 'decant3ml'
+        )
+      } else {
+        setUsePromoCalculator(false)
+        const formatFromType: '100ml' | '50ml' | 'decant3ml' =
+          item.promotionDetails?.promoType === 'BOTTLES_100ML' || item.title.toLowerCase().includes('100ml')
+            ? '100ml'
+            : item.promotionDetails?.promoType === 'BOTTLES_50ML' || item.title.toLowerCase().includes('50ml')
+            ? '50ml'
+            : 'decant3ml'
+        setPromoCampaignType(
+          item.promotionDetails?.promoType ||
+            (formatFromType === '100ml' ? 'BOTTLES_100ML' : formatFromType === '50ml' ? 'BOTTLES_50ML' : 'DECANTS')
+        )
+        setPromoSelectedFormat(formatFromType)
+        setGiveawayCount(String(item.quantity || 1))
+        setPromoTargetTotal(item.quantity || 1)
+        setPromoAllocations([])
+        const assignedId =
+          typeof item.assignedProduct === 'object' && item.assignedProduct?._id
+            ? item.assignedProduct._id
+            : typeof item.assignedProduct === 'string'
+            ? item.assignedProduct
+            : ''
+        setGiveawayFragranceId(assignedId)
+      }
+    } else {
+      setEditingGiveaway(null)
+      setGiveawayCount('5')
+      setGiveawayCampaign('Sample Promotion')
+      setGiveawayRecipient('')
+      setGiveawayDate(new Date().toISOString().slice(0, 10))
+      setGiveawayNotes('')
+      setGiveawayFragranceId('')
+      setUsePromoCalculator(false)
+      setPromoCampaignType('DECANTS')
+      setPromoSelectedFormat('decant3ml')
+      setPromoTargetTotal(5)
+      setPromoAllocations([])
+      setPromoSelectedFragranceId('')
+      setPromoAllocQuantity('5')
+    }
+    setShowGiveawayModal(true)
+  }
+
   const handleSaveExpense = async (e: FormEvent) => {
     e.preventDefault()
     setBusy(true)
@@ -767,41 +853,153 @@ export function ExpensesTab() {
     setError(null)
     try {
       const isMultiFragrance = usePromoCalculator
-      const countToLog = isMultiFragrance ? promoTargetTotal : Number(giveawayCount)
-      const res = await logDecantGiveaway({
-        count: countToLog,
-        format: promoCampaignType === 'MIXED' ? 'mixed' : promoSelectedFormat,
-        campaignName: giveawayCampaign,
-        recipient: giveawayRecipient,
-        notes: giveawayNotes,
-        fragranceId: isMultiFragrance ? null : giveawayFragranceId || null,
-        fragranceAllocations: isMultiFragrance
-          ? promoAllocations.map((a) => ({
-              product: a.productId || null,
-              productName: a.productName,
-              format: a.format,
-              quantity: a.quantity,
-              unitCost: a.unitCost,
-              totalCost: Number((a.quantity * a.unitCost).toFixed(2)),
-            }))
-          : [],
-        unassignedFormat,
-        unassignedQuantity: isMultiFragrance ? unassignedUnitsCount : 0,
-        unassignedUnitCost: isMultiFragrance ? activeBaselineUnitCost : 0,
-      })
-      showToast(
-        `Logged giveaway of ${countToLog} units (${formatEgp(res.totalLogged)}) into promotional expenses!`
-      )
-      setShowGiveawayModal(false)
-      setPage(1)
-      await Promise.all([loadExpenses(1, limit), loadOverviewAndConfig()])
-      setGiveawayRecipient('')
-      setGiveawayNotes('')
-      setGiveawayFragranceId('')
-      setPromoAllocations([])
-      await Promise.all([loadExpenses(), loadOverviewAndConfig()])
+      const countToLog = isMultiFragrance ? promoTargetTotal : Math.max(1, parseInt(giveawayCount) || 1)
+
+      if (editingGiveaway) {
+        let unitCost = 0
+        let totalAmount = 0
+        let cleanedAllocations: {
+          product: string | null
+          productName: string
+          format: '100ml' | '50ml' | 'decant3ml'
+          quantity: number
+          unitCost: number
+          totalCost: number
+        }[] = []
+        let titleDetail = ''
+        let baseFormatTitle = ''
+
+        if (isMultiFragrance) {
+          cleanedAllocations = promoAllocations.map((a) => ({
+            product: a.productId || null,
+            productName: a.productName || 'Fragrance',
+            format: a.format || '100ml',
+            quantity: a.quantity,
+            unitCost: a.unitCost,
+            totalCost: Number((a.quantity * a.unitCost).toFixed(2)),
+          }))
+          totalAmount = computedPromoTotalAmount
+          unitCost = computedPromoBlendedUnitCost
+          baseFormatTitle =
+            promoCampaignType === 'BOTTLES_100ML'
+              ? '100ml Boxed Fragrance Giveaway'
+              : promoCampaignType === 'BOTTLES_50ML'
+              ? '50ml Boxed Fragrance Giveaway'
+              : promoCampaignType === 'MIXED'
+              ? 'Promotional Fragrance & Decant Giveaway'
+              : '3ml Decant Giveaway'
+          const allocSummary = cleanedAllocations.map((a) => `${a.quantity}x ${a.productName} (${a.format})`).join(', ')
+          titleDetail = ` (${allocSummary}${unassignedUnitsCount > 0 ? `, ${unassignedUnitsCount}x Unassigned` : ''})`
+        } else {
+          baseFormatTitle =
+            promoSelectedFormat === '100ml'
+              ? '100ml Boxed Fragrance Giveaway'
+              : promoSelectedFormat === '50ml'
+              ? '50ml Boxed Fragrance Giveaway'
+              : '3ml Decant Giveaway'
+          const matchedProd =
+            giveawayFragranceId && cogsAnalysis
+              ? cogsAnalysis.productAnalysis.find((p) => p._id === giveawayFragranceId)
+              : null
+          unitCost = giveawayFragranceId
+            ? getFragranceFormatCogs(giveawayFragranceId, promoSelectedFormat)
+            : promoSelectedFormat === '100ml'
+            ? baseNonOil100ml
+            : promoSelectedFormat === '50ml'
+            ? baseNonOil50ml
+            : baseNonOilDecant
+          totalAmount = Number((countToLog * unitCost).toFixed(2))
+          titleDetail = matchedProd ? ` - ${matchedProd.name}` : ''
+        }
+
+        const bottles100ml =
+          cleanedAllocations.filter((a) => a.format === '100ml').reduce((s, a) => s + a.quantity, 0) +
+          (!isMultiFragrance && promoSelectedFormat === '100ml' ? countToLog : 0)
+        const bottles50ml =
+          cleanedAllocations.filter((a) => a.format === '50ml').reduce((s, a) => s + a.quantity, 0) +
+          (!isMultiFragrance && promoSelectedFormat === '50ml' ? countToLog : 0)
+        const decants =
+          cleanedAllocations.filter((a) => a.format === 'decant3ml').reduce((s, a) => s + a.quantity, 0) +
+          (!isMultiFragrance && promoSelectedFormat === 'decant3ml' ? countToLog : 0)
+
+        const promoType = isMultiFragrance
+          ? promoCampaignType
+          : promoSelectedFormat === '100ml'
+          ? 'BOTTLES_100ML'
+          : promoSelectedFormat === '50ml'
+          ? 'BOTTLES_50ML'
+          : 'DECANTS'
+
+        const payload: Partial<ExpenseItem> = {
+          title: `${baseFormatTitle} (${countToLog} units${titleDetail} - ${giveawayCampaign || 'Promotion'})`,
+          category: 'MARKETING_GIVEAWAYS',
+          amount: totalAmount,
+          quantity: countToLog,
+          unit: 'pcs',
+          unitCost: unitCost,
+          supplier: giveawayRecipient || 'SCNT In-House Production',
+          date: giveawayDate,
+          notes: giveawayNotes,
+          assignedProduct: isMultiFragrance ? null : (giveawayFragranceId || null),
+          promotionDetails: {
+            campaignName: giveawayCampaign || 'Giveaway Campaign',
+            promoType: promoType as any,
+            bottles100mlGiven: bottles100ml,
+            bottles50mlGiven: bottles50ml,
+            decantUnitsGiven: decants,
+            totalUnitsGiven: countToLog,
+            decantUnitCostApplied: unitCost,
+            recipient: giveawayRecipient || 'Marketing Distribution',
+            fragranceAllocations: cleanedAllocations,
+            unassignedFormat: isMultiFragrance ? unassignedFormat : promoSelectedFormat,
+            unassignedQuantity: isMultiFragrance ? unassignedUnitsCount : 0,
+            unassignedUnitCost: isMultiFragrance ? activeBaselineUnitCost : unitCost,
+          },
+        }
+
+        await updateExpense(editingGiveaway._id, payload)
+        showToast(
+          `Giveaway updated successfully (${countToLog} units - ${formatEgp(totalAmount)})`
+        )
+        setShowGiveawayModal(false)
+        setEditingGiveaway(null)
+        await Promise.all([loadExpenses(page, limit), loadOverviewAndConfig(), loadCatalogAnalysis()])
+      } else {
+        const res = await logDecantGiveaway({
+          count: countToLog,
+          format: promoCampaignType === 'MIXED' ? 'mixed' : promoSelectedFormat,
+          campaignName: giveawayCampaign,
+          recipient: giveawayRecipient,
+          notes: giveawayNotes,
+          date: giveawayDate,
+          fragranceId: isMultiFragrance ? null : giveawayFragranceId || null,
+          fragranceAllocations: isMultiFragrance
+            ? promoAllocations.map((a) => ({
+                product: a.productId || null,
+                productName: a.productName,
+                format: a.format,
+                quantity: a.quantity,
+                unitCost: a.unitCost,
+                totalCost: Number((a.quantity * a.unitCost).toFixed(2)),
+              }))
+            : [],
+          unassignedFormat,
+          unassignedQuantity: isMultiFragrance ? unassignedUnitsCount : 0,
+          unassignedUnitCost: isMultiFragrance ? activeBaselineUnitCost : 0,
+        })
+        showToast(
+          `Logged giveaway of ${countToLog} units (${formatEgp(res.totalLogged)}) into promotional expenses!`
+        )
+        setShowGiveawayModal(false)
+        setPage(1)
+        await Promise.all([loadExpenses(1, limit), loadOverviewAndConfig(), loadCatalogAnalysis()])
+        setGiveawayRecipient('')
+        setGiveawayNotes('')
+        setGiveawayFragranceId('')
+        setPromoAllocations([])
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to log promotional giveaway')
+      setError(err instanceof Error ? err.message : 'Failed to save promotional giveaway')
     } finally {
       setBusy(false)
     }
@@ -923,7 +1121,7 @@ export function ExpensesTab() {
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
-            onClick={() => setShowGiveawayModal(true)}
+            onClick={() => openGiveawayModal()}
             className="!px-4 !py-1.5 text-xs border-fuchsia-400 text-fuchsia-800 hover:bg-fuchsia-50"
           >
             Log 3ml Decant Giveaway
@@ -1109,7 +1307,11 @@ export function ExpensesTab() {
                         <td className="px-4 py-3 text-right whitespace-nowrap">
                           <div className="flex justify-end gap-1">
                             <button
-                              onClick={() => openAddModal(item)}
+                              onClick={() =>
+                                item.category === 'MARKETING_GIVEAWAYS'
+                                  ? openGiveawayModal(item)
+                                  : openAddModal(item)
+                              }
                               disabled={busy}
                               className="rounded px-2 py-1 text-[11px] text-scnt-text hover:bg-scnt-card/80 transition-colors"
                             >
@@ -2356,7 +2558,7 @@ export function ExpensesTab() {
                     <Button
                       variant="outline"
                       className="w-full !px-3 !py-1.5 text-xs border-fuchsia-400 text-fuchsia-800 hover:bg-fuchsia-100"
-                      onClick={() => setShowGiveawayModal(true)}
+                      onClick={() => openGiveawayModal()}
                     >
                       Log Decants Giveaway
                     </Button>
@@ -2431,7 +2633,7 @@ export function ExpensesTab() {
             </Card>
 
             <Card asMotion={false} className="p-4 bg-scnt-bg/60 border-scnt-border/60 flex flex-col justify-center">
-              <Button onClick={() => setShowGiveawayModal(true)} className="w-full text-xs">
+              <Button onClick={() => openGiveawayModal()} className="w-full text-xs">
                 Log Promotional Giveaway
               </Button>
             </Card>
@@ -2450,12 +2652,13 @@ export function ExpensesTab() {
                     <th className="px-4 py-3">Unit COGS Applied</th>
                     <th className="px-4 py-3">Total Marketing Cost</th>
                     <th className="px-4 py-3">Notes</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-scnt-border/40">
                   {expenses.filter((e) => e.category === 'MARKETING_GIVEAWAYS').length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-4 py-6 text-center text-scnt-text-muted">
+                      <td colSpan={7} className="px-4 py-6 text-center text-scnt-text-muted">
                         No promotional giveaways logged yet. Click "Log Promotional Giveaway" to record campaign samples or full bottle gifts.
                       </td>
                     </tr>
@@ -2511,6 +2714,26 @@ export function ExpensesTab() {
                             {formatEgp(item.amount)}
                           </td>
                           <td className="px-4 py-3 text-[11px] text-scnt-text-muted">{item.notes || '—'}</td>
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => openGiveawayModal(item)}
+                                disabled={busy}
+                                className="rounded px-2.5 py-1 text-xs font-medium text-fuchsia-800 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border border-fuchsia-500/30 transition-colors"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => void handleDeleteExpense(item._id)}
+                                disabled={busy}
+                                className="rounded px-2.5 py-1 text-xs font-medium text-rose-700 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))
                   )}
@@ -3496,19 +3719,27 @@ export function ExpensesTab() {
           <div className="relative my-auto w-full max-w-lg rounded-xl bg-scnt-bg border border-scnt-border p-6 shadow-2xl max-h-[min(90vh,calc(100vh-3rem))] overflow-y-auto">
             <div className="flex items-start justify-between pb-2 mb-2 border-b border-scnt-border/40">
               <div>
-                <h3 className="text-base font-semibold text-scnt-text mb-0.5 flex items-center gap-1.5"><GiftIcon size={16} className="shrink-0 text-amber-400" /><span>Log Promotional Giveaway</span></h3>
+                <h3 className="text-base font-semibold text-scnt-text mb-0.5 flex items-center gap-1.5">
+                  <GiftIcon size={16} className="shrink-0 text-amber-400" />
+                  <span>{editingGiveaway ? 'Edit Promotional Giveaway' : 'Log Promotional Giveaway'}</span>
+                </h3>
                 <p className="text-[11px] text-scnt-text-muted">
-                  Record promotional gifts for full boxed bottles (100ml / 50ml) or 3ml decants with custom cards.
+                  {editingGiveaway
+                    ? 'Update campaign name, recipients, item formats, counts, allocated fragrances, and notes.'
+                    : 'Record promotional gifts for full boxed bottles (100ml / 50ml) or 3ml decants with custom cards.'}
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setShowGiveawayModal(false)}
+                onClick={() => {
+                  setShowGiveawayModal(false)
+                  setEditingGiveaway(null)
+                }}
                 className="rounded-lg p-1 text-xs text-scnt-text-muted hover:text-scnt-text hover:bg-scnt-card/60 transition-colors"
                 aria-label="Close modal"
               >
-              <CloseIcon size={16} />
-            </button>
+                <CloseIcon size={16} />
+              </button>
             </div>
 
             <form onSubmit={handleLogGiveaway} className="space-y-3">
@@ -3938,16 +4169,29 @@ export function ExpensesTab() {
                 </div>
               )}
 
-              <div>
-                <label className="text-xs text-scnt-text-muted">Campaign Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. VIP Influencer Seeding, Order Gift, Pop-up Event"
-                  className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-3 py-2 text-xs text-scnt-text"
-                  value={giveawayCampaign}
-                  onChange={(e) => setGiveawayCampaign(e.target.value)}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-scnt-text-muted">Campaign Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. VIP Influencer Seeding, Order Gift, Pop-up Event"
+                    className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-3 py-2 text-xs text-scnt-text"
+                    value={giveawayCampaign}
+                    onChange={(e) => setGiveawayCampaign(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs text-scnt-text-muted">Campaign Date</label>
+                  <input
+                    type="date"
+                    required
+                    className="mt-1 w-full rounded-md border border-scnt-border bg-scnt-bg px-3 py-2 text-xs text-scnt-text"
+                    value={giveawayDate}
+                    onChange={(e) => setGiveawayDate(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div>
@@ -3973,11 +4217,25 @@ export function ExpensesTab() {
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setShowGiveawayModal(false)} disabled={busy}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowGiveawayModal(false)
+                    setEditingGiveaway(null)
+                  }}
+                  disabled={busy}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={busy}>
-                  {busy ? 'Logging...' : 'Confirm Giveaway Log'}
+                  {busy
+                    ? editingGiveaway
+                      ? 'Saving...'
+                      : 'Logging...'
+                    : editingGiveaway
+                    ? 'Save Giveaway Changes'
+                    : 'Confirm Giveaway Log'}
                 </Button>
               </div>
             </form>

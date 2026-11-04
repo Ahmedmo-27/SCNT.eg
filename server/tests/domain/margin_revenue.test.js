@@ -2,10 +2,12 @@ const {
   computeStandardCogs,
   normalizeSize,
   buildProductCogsMap,
+  calculateOutletUnitCogs,
   getItemUnitCogs,
   calculateOrdersMarginAndSales,
   calculateOfflineSalesMarginAndSales,
   calculateStorewideRevenueAndSales,
+  calculateSingleOfflineSaleMarginAndCogs,
   DEFAULT_COST_CONFIG,
 } = require("../../src/utils/cogsCalculator");
 
@@ -209,6 +211,100 @@ describe("Margin & Revenue Calculation Suite", () => {
       expect(result.topProducts.length).toBe(2);
       expect(result.topProducts[0].productName).toBe("Azure Code");
       expect(result.topProducts[0].quantity).toBe(2);
+    });
+
+    it("calculates reduced COGS and increased revenue for outlet products (no box, no stickers, no packaging)", () => {
+      const { productMap, defaultSizeCogs } = buildProductCogsMap(sampleProducts, DEFAULT_COST_CONFIG);
+      const azure100StandardCogs = productMap.get("650000000000000000000001")["100ml"];
+
+      const standardSale = {
+        subtotal: 500,
+        discount: 0,
+        items: [
+          {
+            product: "650000000000000000000001",
+            productName: "Azure Code",
+            size: "100ml",
+            quantity: 1,
+            unitPrice: 500,
+            subtotal: 500,
+            isOutlet: false,
+          },
+        ],
+      };
+
+      const outletSale = {
+        subtotal: 500,
+        discount: 0,
+        items: [
+          {
+            product: "650000000000000000000001",
+            productName: "Azure Code",
+            size: "100ml",
+            quantity: 1,
+            unitPrice: 500,
+            subtotal: 500,
+            isOutlet: true,
+            outletDetails: {
+              noBox: true,
+              noBottleSticker: true,
+              noBoxStickers: true,
+              noPackaging: true,
+            },
+          },
+        ],
+      };
+
+      const standardFinancials = calculateSingleOfflineSaleMarginAndCogs(standardSale, productMap, defaultSizeCogs);
+      const outletFinancials = calculateSingleOfflineSaleMarginAndCogs(outletSale, productMap, defaultSizeCogs);
+
+      // Outlet item COGS must be strictly less than standard COGS because box, stickers, and packaging are excluded
+      expect(outletFinancials.cogs).toBeLessThan(standardFinancials.cogs);
+
+      // SCNT 100ml box (22) + bottle sticker (5) + box stickers (3.875) + packaging (21.2) = 52.075 EGP savings
+      const expectedSaving = 22 + 5 + 3.875 + 21.2;
+      expect(standardFinancials.cogs - outletFinancials.cogs).toBeCloseTo(expectedSaving, 1);
+
+      // Net revenue (profit) on the order increases by the packaging cost saved
+      expect(outletFinancials.netRevenue).toBeGreaterThan(standardFinancials.netRevenue);
+      expect(outletFinancials.netRevenue - standardFinancials.netRevenue).toBeCloseTo(expectedSaving, 1);
+      expect(outletFinancials.marginPercent).toBeGreaterThan(standardFinancials.marginPercent);
+    });
+
+    it("allows selective outlet packaging exclusions (e.g. bare bottle with label, but without box)", () => {
+      const { productMap, defaultSizeCogs } = buildProductCogsMap(sampleProducts, DEFAULT_COST_CONFIG);
+
+      // Bottle kept its label (noBottleSticker = false), but sold without box or gift packaging
+      const partialOutletSale = {
+        subtotal: 600,
+        discount: 0,
+        items: [
+          {
+            product: "650000000000000000000001",
+            productName: "Azure Code",
+            size: "100ml",
+            quantity: 1,
+            unitPrice: 600,
+            subtotal: 600,
+            isOutlet: true,
+            outletDetails: {
+              noBox: true,
+              noBottleSticker: false, // Bottle label IS included
+              noBoxStickers: true,
+              noPackaging: true,
+            },
+          },
+        ],
+      };
+
+      const financials = calculateSingleOfflineSaleMarginAndCogs(partialOutletSale, productMap, defaultSizeCogs);
+      const standardCogs = productMap.get("650000000000000000000001")["100ml"];
+
+      // Deducts box (22) + box stickers (3.875) + packaging (21.2) = 47.075, keeping the 5 EGP bottle sticker
+      const expectedDeduction = 22 + 3.875 + 21.2;
+      expect(standardCogs - financials.cogs).toBeCloseTo(expectedDeduction, 1);
+      expect(financials.items[0].isOutlet).toBe(true);
+      expect(financials.items[0].unitCogs).toBeCloseTo(financials.cogs, 2);
     });
   });
 

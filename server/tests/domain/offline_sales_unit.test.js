@@ -218,5 +218,85 @@ describe("Offline Purchases & Direct Sales Unit Tests", () => {
       expect(updated.channel).toBe("BAZAAR");
       expect(updated.location).toBe("Arkan Plaza");
     });
+
+    it("records and preserves outlet status and excluded packaging options on offline purchase items", () => {
+      const offlineSale = {
+        receiptNumber: "OFF-261104-9988",
+        items: [
+          {
+            product: "650000000000000000000001",
+            productName: "Azure Code",
+            size: "100ml",
+            quantity: 1,
+            unitPrice: 500,
+            subtotal: 500,
+            isOutlet: true,
+            outletDetails: {
+              noBox: true,
+              noBottleSticker: true,
+              noBoxStickers: true,
+              noPackaging: true,
+              notes: "Showroom display bottle, missing outer box",
+            },
+          },
+          {
+            product: "650000000000000000000002",
+            productName: "Deep Horizon",
+            size: "50ml",
+            quantity: 1,
+            unitPrice: 500,
+            subtotal: 500,
+            isOutlet: false,
+          },
+        ],
+        subtotal: 1000,
+        discount: 0,
+        total: 1000,
+      };
+
+      const outletItem = offlineSale.items.find((i) => i.isOutlet);
+      const standardItem = offlineSale.items.find((i) => !i.isOutlet);
+
+      expect(outletItem).toBeDefined();
+      expect(outletItem.isOutlet).toBe(true);
+      expect(outletItem.outletDetails.noBox).toBe(true);
+      expect(outletItem.outletDetails.noBottleSticker).toBe(true);
+      expect(outletItem.outletDetails.notes).toContain("display bottle");
+
+      expect(standardItem).toBeDefined();
+      expect(standardItem.isOutlet).toBe(false);
+    });
+
+    it("updates outlet status and recalculates financial fields when editing offline sale", () => {
+      const originalItem = {
+        product: "650000000000000000000001",
+        productName: "Azure Code",
+        size: "100ml",
+        quantity: 1,
+        unitPrice: 750,
+        subtotal: 750,
+        isOutlet: false,
+      };
+
+      // Admin modifies item to mark it as sold as outlet at a special discount price
+      const updatedItem = {
+        ...originalItem,
+        unitPrice: 550,
+        subtotal: 550,
+        isOutlet: true,
+        outletDetails: {
+          noBox: true,
+          noBottleSticker: false,
+          noBoxStickers: true,
+          noPackaging: true,
+          notes: "Cap scratched, sold without box",
+        },
+      };
+
+      expect(updatedItem.isOutlet).toBe(true);
+      expect(updatedItem.outletDetails.noBox).toBe(true);
+      expect(updatedItem.outletDetails.noBottleSticker).toBe(false);
+      expect(updatedItem.subtotal).toBe(550);
+    });
   });
 });

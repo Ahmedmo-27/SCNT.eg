@@ -231,6 +231,7 @@ function buildProductCogsMap(products = [], config) {
     "100ml": baseCogs.size100ml.totalCogs,
     "50ml": baseCogs.size50ml.totalCogs,
     "3ml": baseCogs.decant3ml.totalCogs,
+    _breakdowns: baseCogs,
   };
 
   const productMap = new Map();
@@ -248,6 +249,7 @@ function buildProductCogsMap(products = [], config) {
       "100ml": breakdowns.size100ml.totalCogs,
       "50ml": breakdowns.size50ml.totalCogs,
       "3ml": breakdowns.decant3ml.totalCogs,
+      _breakdowns: breakdowns,
     };
 
     if (p._id) {
@@ -265,22 +267,88 @@ function buildProductCogsMap(products = [], config) {
 }
 
 /**
+ * Calculate COGS for an outlet product by deducting packaging items not included
+ * (e.g. no box, no sticker, no outer packaging / cards)
+ */
+function calculateOutletUnitCogs(standardCogs, breakdown, outletDetails = {}) {
+  if (!breakdown) {
+    return Math.max(0, Number((standardCogs - 50.88).toFixed(2)));
+  }
+
+  // If outletDetails is empty or fields undefined, default to true for outlet exclusions
+  const noBox = outletDetails.noBox !== false;
+  const noBottleSticker = outletDetails.noBottleSticker !== false;
+  const noBoxStickers = outletDetails.noBoxStickers !== false || noBox; // If no box, cannot have box stickers
+  const noPackaging = outletDetails.noPackaging !== false;
+
+  let deduction = 0;
+
+  if (noBox && breakdown.boxCost) {
+    deduction += breakdown.boxCost;
+  }
+
+  if (breakdown.stickerDetails) {
+    if (noBottleSticker && breakdown.stickerDetails.bottleSticker) {
+      deduction += breakdown.stickerDetails.bottleSticker;
+    }
+    if (noBoxStickers) {
+      if (breakdown.stickerDetails.boxTopSticker) {
+        deduction += breakdown.stickerDetails.boxTopSticker;
+      }
+      if (breakdown.stickerDetails.boxSealingSticker) {
+        deduction += breakdown.stickerDetails.boxSealingSticker;
+      }
+    }
+  } else if ((outletDetails.noStickers || outletDetails.noSticker) && breakdown.stickersCost) {
+    deduction += breakdown.stickersCost;
+  }
+
+  if (noPackaging && breakdown.packagingCost) {
+    deduction += breakdown.packagingCost;
+  }
+
+  if (breakdown.decantCardCost && (outletDetails.noCard || noPackaging || outletDetails.noBox)) {
+    deduction += breakdown.decantCardCost;
+  }
+
+  const outletCogs = Math.max(0, standardCogs - deduction);
+  return Number(outletCogs.toFixed(2));
+}
+
+/**
  * Calculate unit COGS for an item given the product map and default fallbacks
  */
 function getItemUnitCogs(item, productMap, defaultSizeCogs) {
   const sizeKey = normalizeSize(item.size);
 
   let sizeCogs = defaultSizeCogs[sizeKey] || defaultSizeCogs["100ml"];
+  let breakdown =
+    defaultSizeCogs?._breakdowns?.[
+      sizeKey === "50ml" ? "size50ml" : sizeKey === "3ml" ? "decant3ml" : "size100ml"
+    ];
 
   const prodKey =
     (item.product && item.product._id ? item.product._id.toString() : item.product ? item.product.toString() : null) ||
     (item.productName ? item.productName.toLowerCase().trim() : null);
 
   if (prodKey && productMap.has(prodKey)) {
-    sizeCogs = productMap.get(prodKey)[sizeKey] ?? sizeCogs;
+    const entry = productMap.get(prodKey);
+    if (entry) {
+      sizeCogs = entry[sizeKey] ?? sizeCogs;
+      if (entry._breakdowns) {
+        breakdown =
+          entry._breakdowns[
+            sizeKey === "50ml" ? "size50ml" : sizeKey === "3ml" ? "decant3ml" : "size100ml"
+          ] || breakdown;
+      }
+    }
   }
 
-  return sizeCogs;
+  if (!item.isOutlet) {
+    return sizeCogs;
+  }
+
+  return calculateOutletUnitCogs(sizeCogs, breakdown, item.outletDetails);
 }
 
 /**
@@ -558,6 +626,7 @@ module.exports = {
   computeStandardCogs,
   normalizeSize,
   buildProductCogsMap,
+  calculateOutletUnitCogs,
   getItemUnitCogs,
   calculateOrdersMarginAndSales,
   calculateOfflineSalesMarginAndSales,
